@@ -1,0 +1,9 @@
+{
+	"extends": "./shared/tsconfig/tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"types": ["bun"]
+	},
+	"include": ["shared/backend/**/*.ts", "shared/cli/**/*.ts"],
+	"exclude": ["**/*.example.ts"]
+}

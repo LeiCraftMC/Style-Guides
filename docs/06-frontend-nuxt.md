@@ -1,0 +1,249 @@
+# 06 — Frontend architecture (Nuxt)
+
+## Nuxt 4 `app/` directory
+
+All Nuxt apps use the Nuxt 4 `app/` srcDir. Root-level `pages/`, `components/`, `composables/`, etc.
+are gone. Configure it in `nuxt.config.ts`:
+
+```ts
+export default defineNuxtConfig({
+	future: { compatibilityVersion: 4 },
+	srcDir: "app/",
+	// ...
+});
+```
+
+Entry layout in `app/app.vue`:
+
+```vue
+<template>
+  <UApp>
+    <NuxtLayout />
+  </UApp>
+</template>
+```
+
+`app/error.vue` uses NuxtUI's error component:
+
+```vue
+<script setup lang="ts">
+const props = defineProps<{ error: any }&gt;();
+</script>
+
+<template>
+  <UError :error="props.error" />
+</template>
+```
+
+## NuxtUI v4 + Tailwind v4 (CSS-first)
+
+There is no `tailwind.config.js`. Styling lives in `app/assets/css/main.css`:
+
+```css
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+	--font-sans: "Rubik", sans-serif;
+}
+
+:root {
+	color-scheme: dark;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+.main-bg-color {
+	background-color: rgb(2 6 23);
+}
+```
+
+Reference it in `nuxt.config.ts`:
+
+```ts
+export default defineNuxtConfig({
+	css: ["~/assets/css/main.css"],
+	modules: ["@nuxt/ui"],
+	ui: { colorMode: true },
+	// ...
+});
+```
+
+Colors and theme live in `app.config.ts`:
+
+```ts
+export default defineAppConfig({
+	ui: {
+		colors: {
+			primary: "sky",
+			neutral: "slate",
+		},
+	},
+	theme: {
+		radius: 0.5,
+		blackAsPrimary: false,
+	},
+});
+```
+
+Pick a project-appropriate `primary`: `sky` for LeiOS/Delivr/sites, `emerald` for NowIP, `orange` for
+MindCode. `neutral: slate` is org-wide. See [15 — Design system](15-design-system.md).
+
+## Icon system
+
+Use Lucide icons through NuxtUI's icon naming: `i-lucide-home`, `i-lucide-settings-2`,
+`i-lucide-trash`. The `UButton`, `UInput`, `UNavigationMenu` components accept these directly via the
+`icon` / `trailing-icon` props.
+
+## Project color and public config
+
+Put the API URL and app URL in `runtimeConfig.public` so they are available on server and client:
+
+```ts
+export default defineNuxtConfig({
+	runtimeConfig: {
+		public: {
+			apiUrl: process.env.NUXT_PUBLIC_API_URL || "http://localhost:3000",
+			appUrl: process.env.NUXT_PUBLIC_APP_URL || "http://localhost:3001",
+		},
+	},
+});
+```
+
+Access them via [`shared/frontend/useRuntimeAppConfigs.ts`](../shared/frontend/useRuntimeAppConfigs.ts):
+
+```ts
+const { apiUrl, appUrl } = useRuntimeAppConfigs();
+```
+
+## Directory conventions
+
+```
+app/
+  app.vue
+  app.config.ts
+  error.vue
+  assets/css/main.css
+  components/
+    dashboard/        # domain-grouped components
+    form/
+    img/              # logo components, e.g. LeiOSLogo.vue
+    layout/
+  composables/
+    stores/           # useXxxStore() factories
+    useAPI.ts
+    updateAPIClient.ts
+    useAppCookies.ts
+    useRuntimeAppConfigs.ts
+    useAwaitedComputed.ts
+  layouts/
+    default.vue
+    dashboard.vue
+    auth.vue
+  middleware/
+    auth.global.ts
+    rewrites.global.ts
+  pages/              # file-based routing; groups and params supported
+    index.vue
+    dashboard.vue
+    dashboard/
+      [id].vue
+  utils/
+    abstractStore.ts
+    routeMatcher.ts
+  api-client/         # GENERATED — never hand-edit
+    openapi.json
+    client.gen.ts
+    sdk.gen.ts
+    types.gen.ts
+```
+
+Components are PascalCase and grouped by domain. Composables are camelCase `useXxx.ts`. Stores are
+not composables; keep them in `composables/stores/` and export a `useXxxStore()` factory.
+
+## Route middleware
+
+Use `.global.ts` for middleware that runs on every navigation.
+
+[`shared/frontend/rewrites.global.ts`](../shared/frontend/rewrites.global.ts) strips trailing
+slashes:
+
+```ts
+export default defineNuxtRouteMiddleware((to) => {
+	if (to.path.endsWith("/") && to.path !== "/") {
+		return navigateTo(to.path.slice(0, -1), { replace: true });
+	}
+});
+```
+
+`auth.global.ts` resolves the current session, allows public routes, and redirects anonymous users
+to `/auth/login`:
+
+```ts
+export default defineNuxtRouteMiddleware(async (to) => {
+	const publicRoutes = ["/auth/login", "/auth/register", "/docs"];
+	const match = SimpleRouteMatcher.match(to.path, publicRoutes);
+	if (match) return;
+
+	const result = await useAPI((api) => api.getMe(), true);
+	if (!result.success) {
+		return navigateTo(`/auth/login?url=${encodeURIComponent(to.fullPath)}`);
+	}
+});
+```
+
+Use [`shared/frontend/routeMatcher.ts`](../shared/frontend/routeMatcher.ts) for dynamic allowlists:
+`["/dashboard/[id]"]`.
+
+## API access
+
+Frontend code never calls `$fetch` or the generated SDK directly. Always go through `useAPI` from
+[`shared/frontend/useAPI.ts`](../shared/frontend/useAPI.ts). It handles server/client differences,
+session cookies, 401 redirects, and envelope normalization.
+
+```vue
+<script setup lang="ts">
+const route = useRoute();
+const user = await useAPI((api) => api.getUser({ path: { userId: route.params.userId } }));
+
+if (!user.success) {
+	showToast(user.message);
+}
+</script>
+```
+
+See [05 — API contract](05-api-contract.md) and [07 — State & data](07-state-and-data.md).
+
+## State
+
+Global state must be SSR-safe. Use `AbstractStore` over `useState` (see
+[`shared/frontend/abstractStore.ts`](../shared/frontend/abstractStore.ts)). Never use a static
+`reactive()` object or static class fields for per-request state — they leak across requests on the
+server.
+
+## SEO / metadata
+
+Use `useHead` and `useSeoMeta` in pages or layouts. For static sites, prefer `nuxt generate` with
+explicit meta in each page:
+
+```ts
+useSeoMeta({
+	title: "LeiOS — Next-gen server deployment",
+	ogTitle: "LeiOS",
+	description: "Deploy, manage, and scale game servers from one dashboard.",
+});
+```
+
+## Checklist
+
+- [ ] Nuxt 4 `app/` srcDir is configured.
+- [ ] Tailwind v4 via CSS import; no `tailwind.config.js`.
+- [ ] `app.config.ts` sets `primary`, `neutral: slate`, `radius: 0.5`, `blackAsPrimary: false`.
+- [ ] Lucide icons only (`i-lucide-*`).
+- [ ] Public API/app URLs via `runtimeConfig.public`.
+- [ ] `auth.global.ts` + `rewrites.global.ts` in `app/middleware/`.
+- [ ] `useAPI` is the only API call path; no raw `$fetch`.
+- [ ] Global state uses `AbstractStore` over `useState`.
+- [ ] Generated client in `app/api-client/` is committed but never hand-edited.

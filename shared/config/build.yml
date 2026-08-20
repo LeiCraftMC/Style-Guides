@@ -1,0 +1,16 @@
+# .gitlab/ci/build.yml — build stage.
+# Generic build job; override artifacts/paths per project (Nuxt .output/, backend build/bin/, etc.).
+
+build:
+  stage: build
+  image: oven/bun:latest
+  script:
+    - bun install --frozen-lockfile
+    - bun run build
+  artifacts:
+    paths:
+      - .output/
+      - build/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

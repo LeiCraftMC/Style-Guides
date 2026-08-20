@@ -1,0 +1,8 @@
+# Top-level .gitlab-ci.yml — copy to repo root and keep the two includes.
+include:
+  - local: .gitlab/ci/testing.yml
+  - local: .gitlab/ci/build.yml
+
+stages:
+  - test
+  - build

@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. 1.2.3)"
+        required: true
+      release_name:
+        description: "Release title"
+        required: false
+      release_notes:
+        description: "Release notes"
+        required: false
+      prerelease:
+        description: "Mark as prerelease"
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run compile all ${{ inputs.version }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: build/bin/*
+      - uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ inputs.version }}
+          name: ${{ inputs.release_name }}
+          body: ${{ inputs.release_notes }}
+          prerelease: ${{ inputs.prerelease }}
+          artifacts: build/bin/*
+          token: ${{ secrets.GITHUB_TOKEN }}

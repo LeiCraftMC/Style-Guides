@@ -1,0 +1,20 @@
+# .gitlab/ci/testing.yml — test stage.
+# Runs biome, typecheck, and bun:test with a Bun cache.
+
+test:
+  stage: test
+  image: oven/bun:latest
+  before_script:
+    - bun --version
+  script:
+    - bun install --frozen-lockfile
+    - bunx biome check
+    - bun run typecheck
+    - bun test
+  cache:
+    key:
+      files:
+        - bun.lock
+    paths:
+      - node_modules/
+      - .bun/
