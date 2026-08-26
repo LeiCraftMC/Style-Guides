@@ -75,8 +75,10 @@ in this repo.
 
 Drop-in config files: `gitignore`, `renovate.json`, `mcp.json` (`.vscode/mcp.json`), GitLab CI
 (`testing.yml` + `build.yml` + the top-level `.gitlab-ci.yml`), and GitHub Actions (`ci.yml` +
-`release.yml`). The canonical `biome.json` lives at the repository root so the guide repo has a
-single formatter/linter config; copy the root `biome.json` into new projects.
+`release.yml`). Claude Code config: `claude-settings.backend.json` / `claude-settings.nuxt.json`
+(copy to `.claude/settings.json` — see [`docs/16-ai-tooling.md`](../docs/16-ai-tooling.md)). The
+canonical `biome.json` lives at the repository root so the guide repo has a single formatter/linter
+config; copy the root `biome.json` into new projects.
 
 ## Package roadmap
 

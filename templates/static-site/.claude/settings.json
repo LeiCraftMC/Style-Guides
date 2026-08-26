@@ -1,0 +1,37 @@
+{
+	"mcpServers": {
+		"nuxt": {
+			"type": "url",
+			"url": "https://nuxt.com/mcp"
+		},
+		"nuxt-ui": {
+			"type": "url",
+			"url": "https://ui.nuxt.com/mcp"
+		}
+	},
+	"commands": {
+		"verify": {
+			"description": "Run the repo verification flow",
+			"prompt": "Run the standard verification flow for this static Nuxt 4 + Bun project.\n\n1. Run `bun run typecheck`.\n2. Run `bun run generate` to confirm the static build succeeds.\n3. Summarize any failures or warnings.\n4. If this command was triggered after a code change, fix issues that are clearly caused by that change before summarizing."
+		},
+		"typecheck": {
+			"description": "Run the TypeScript type checker",
+			"prompt": "Run `bun run typecheck` for this Nuxt 4 + Bun project. If there are type errors, diagnose and fix them before summarizing. Report the pass/fail status and what was fixed, if anything."
+		},
+		"generate": {
+			"description": "Generate the static site",
+			"prompt": "Generate the static site for this project.\n\n1. Run `bun run generate`.\n2. Confirm `.output/public/` was produced.\n3. Summarize the outcome and any warnings."
+		}
+	},
+	"fileScan": {
+		"exclude": [
+			".git/**",
+			"node_modules/**",
+			".nuxt/**",
+			".output/**",
+			".nitro/**",
+			".cache/**",
+			"dist/**"
+		]
+	}
+}

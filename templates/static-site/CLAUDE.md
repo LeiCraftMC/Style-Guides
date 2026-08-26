@@ -4,15 +4,16 @@ Read `AGENTS.md` first. This file adds Claude-Code-specific notes.
 
 ## Slash commands
 
-Use the commands in `.claude/commands/`:
+Defined in `.claude/settings.json`:
 
-- `/verify` — run Biome + typecheck.
+- `/verify` — typecheck + `nuxt generate`.
 - `/typecheck` — `bun run typecheck`.
-- `/format` — format and lint with Biome.
+- `/generate` — generate the static site.
 
 ## MCP servers
 
-`.vscode/mcp.json` registers `nuxt` and `nuxt-ui` MCP servers for component/styling help.
+`mcpServers` in `.claude/settings.json` and `.vscode/mcp.json` both register `nuxt` and `nuxt-ui`
+for component/styling help.
 
 ## Static generation
 

@@ -1,0 +1,41 @@
+{
+	"mcpServers": {
+		"nuxt": {
+			"type": "url",
+			"url": "https://nuxt.com/mcp"
+		},
+		"nuxt-ui": {
+			"type": "url",
+			"url": "https://ui.nuxt.com/mcp"
+		}
+	},
+	"commands": {
+		"verify": {
+			"description": "Run the full self-check for this style-guide repo (Biome + typecheck)",
+			"prompt": "Verify that the guide's own code is clean and type-correct before committing.\n\nRun, in order, and report any failures:\n\n1. Run `bunx biome check` across `shared/` and the repo root (templates are excluded from the root config) — must pass with no errors.\n2. Run `bun run typecheck` (runs `tsc -p ./tsconfig.json`) — must print 'Typecheck passed!'.\n3. If any template changed, sanity-check it: copy the template to a temp dir, replace the `<PREFIX>` / `<PORT>` / `<ProjectName>` placeholders, `bun install`, `bun run typecheck`, `bun test`. Report the result.\n\nDo not commit. Just report a concise pass/fail summary per step with the failing output if any."
+		},
+		"typecheck": {
+			"description": "Type-check the guide's shared utilities with tsc",
+			"prompt": "Run `bun run typecheck` for this repository and report the result. If it fails, show the first few TypeScript errors with file:line and suggest the fix. Do not edit files unless asked."
+		},
+		"format": {
+			"description": "Format the repo with Biome",
+			"prompt": "Run `bunx biome format --write` across the repo, then `bunx biome check` to confirm there are no remaining lint issues. Report a concise summary of what changed and any lint findings that need manual attention."
+		},
+		"test": {
+			"description": "Run the Bun test suite",
+			"prompt": "Run `bun run test` for this repository (templates are excluded via --path-ignore-patterns). Report pass/fail status and any failures with the exact command that was run."
+		}
+	},
+	"fileScan": {
+		"exclude": [
+			"node_modules/**",
+			".git/**",
+			"build/**",
+			"dist/**",
+			"drizzle/**",
+			"coverage/**",
+			"templates/**/node_modules/**"
+		]
+	}
+}

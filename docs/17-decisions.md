@@ -79,8 +79,9 @@ allowed when the domain needs it, with per-dialect schema files.
 **Divergence:** During guide creation, an attempt was made to create `.claude/settings.json` with
 permission rules.
 
-**Decision:** Reject this. Permission grants are the user's to manage. The guide only ships slash
-commands (`.claude/commands/`) and MCP config (`.vscode/mcp.json`).
+**Decision:** Reject this. Permission grants are the user's to manage. `.claude/settings.json`
+ships only `commands` (slash commands), `mcpServers`, and `fileScan` — never `permissions.allow`.
+MCP config also lives in `.vscode/mcp.json` for Nuxt projects (matching the existing ecosystem).
 
 ## Handling future drift
 

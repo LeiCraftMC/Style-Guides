@@ -4,11 +4,12 @@ Read `AGENTS.md` first. This file adds Claude-Code-specific notes.
 
 ## Slash commands
 
-Use the commands in `.claude/commands/`:
+Defined in `.claude/settings.json`:
 
-- `/verify` — run Biome + typecheck + tests.
+- `/verify` — typecheck + relevant tests.
 - `/typecheck` — `bun run typecheck`.
-- `/format` — format and lint with Biome.
+- `/test` — `bun test`.
+- `/compile` — build the standalone binary.
 
 ## Releases
 

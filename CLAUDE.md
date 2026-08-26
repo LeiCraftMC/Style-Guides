@@ -14,14 +14,16 @@ type-correct.
 ## When working *in this* repo
 
 - The guide itself follows its own rules: format with Biome, type-check with `tsc`.
-- Helper slash commands live in [`.claude/commands/`](.claude/commands/):
+- Slash commands, MCP servers, and `fileScan.exclude` are defined in
+  [`.claude/settings.json`](.claude/settings.json):
   - `/verify` — run Biome + typecheck and report pass/fail.
   - `/typecheck` — `bun run typecheck`.
   - `/format` — `bunx biome format --write` then `biome check`.
-- MCP servers (`.vscode/mcp.json`): `nuxt` and `nuxt-ui` — useful when editing
-  [`templates/nuxt-app/`](templates/nuxt-app/) or [`shared/frontend/`](shared/frontend/).
+  - `/test` — `bun run test`.
+  - `mcpServers` registers `nuxt` and `nuxt-ui` — useful when editing
+    [`templates/nuxt-app/`](templates/nuxt-app/) or [`shared/frontend/`](shared/frontend/).
 - Do **not** add `permissions.allow` rules to `.claude/settings.json` on your own initiative; the
-  user manages permission grants.
+  user manages permission grants. Ship only `commands`, `mcpServers`, and `fileScan`.
 
 ## When working *in a LeiCraftMC project* (not this repo)
 
