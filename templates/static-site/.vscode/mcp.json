@@ -1,10 +1,12 @@
 {
-  "servers": {
-    "nuxt": {
-      "url": "https://nuxt.com/mcp"
-    },
-    "nuxt-ui": {
-      "url": "https://ui.nuxt.com/mcp"
-    }
-  }
+	"servers": {
+		"nuxt": {
+			"type": "http",
+			"url": "https://nuxt.com/mcp"
+		},
+		"nuxt-ui": {
+			"type": "http",
+			"url": "https://ui.nuxt.com/mcp"
+		}
+	}
 }

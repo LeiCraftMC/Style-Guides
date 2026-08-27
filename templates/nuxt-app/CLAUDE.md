@@ -4,16 +4,18 @@ Read `AGENTS.md` first. This file adds Claude-Code-specific notes.
 
 ## Slash commands
 
-Use the commands in `.claude/commands/`:
+Defined in `.claude/settings.json`:
 
-- `/verify` — run Biome + typecheck + tests.
-- `/typecheck` — `bun run typecheck`.
-- `/format` — format and lint with Biome.
+- `/api-client` — regenerate the typed API client.
+- `/verify` — typecheck + tests.
+- `/typecheck` — `bun run typecheck` (`nuxt typecheck` + `tsc`).
+- `/test` — `bun test`.
+- `/dev` — start/inspect the dev setup.
 
 ## MCP servers
 
-`.vscode/mcp.json` registers `nuxt` and `nuxt-ui` MCP servers. Use them when editing components,
-composables, or NuxtUI styling.
+`mcpServers` in `.claude/settings.json` and `.vscode/mcp.json` both register `nuxt` and `nuxt-ui`.
+Use them when editing components, composables, or NuxtUI styling.
 
 ## API client
 

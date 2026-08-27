@@ -75,7 +75,7 @@ Read top to bottom on first pass; jump to a page on demand.
 14. [13 — Git & CI](docs/13-git-and-ci.md) — Conventional Commits, GitLab/GitHub pipelines
 15. [14 — Deployment](docs/14-deployment.md) — compiled-binary Docker, Nuxt Bun preset, registries
 16. [15 — Design system](docs/15-design-system.md) — dark-first, palette, fonts, logos, status semantics
-17. [16 — AI tooling](docs/16-ai-tooling.md) — `CLAUDE.md`/`AGENTS.md`, slash commands, MCP
+17. [16 — AI tooling](docs/16-ai-tooling.md) — `CLAUDE.md`/`AGENTS.md`, `.claude/settings.json` commands, MCP
 18. [17 — Decisions & divergences](docs/17-decisions.md) — the opinionated calls and why
 
 ## Locked decisions
@@ -91,9 +91,9 @@ Four foundational standards were set for the org (rationale in
 ## Contributing
 
 This guide is itself a LeiCraftMC project: it is formatted with Biome and type-checked with `tsc`.
-Before committing, run `bun install && bunx biome check && bun run typecheck`. See
-[`.claude/commands/`](.claude/commands/) for the `verify`, `typecheck`, and `format` helper
-commands.
+Before committing, run `bun install && bunx biome check && bun run typecheck`. The
+`/verify`, `/typecheck`, `/format`, and `/test` helper slash commands are defined in
+[`.claude/settings.json`](.claude/settings.json) (see [docs/16](docs/16-ai-tooling.md)).
 
 ## License
 

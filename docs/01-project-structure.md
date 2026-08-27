@@ -102,7 +102,8 @@ Releases or baked into a Docker image. See [11](11-cli-and-infra.md).
 
 Every repo — regardless of shape — carries:
 
-- `.claude/` (slash commands) + `.vscode/mcp.json` (the `nuxt` + `nuxt-ui` MCP servers) — see
+- `.claude/settings.json` (slash commands + `fileScan.exclude`; `mcpServers` on Nuxt projects) +
+  `.vscode/mcp.json` (the `nuxt` + `nuxt-ui` MCP servers on Nuxt projects) — see
   [16](16-ai-tooling.md).
 - `CLAUDE.md` + `AGENTS.md` — per-repo architecture notes and the AI operating manual.
 - `tsconfig.json` extending `tsconfig/tsconfig.base.json`, plus `tsconfig/tsconfig.typecheck.json`
