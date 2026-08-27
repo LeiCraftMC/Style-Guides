@@ -41,7 +41,7 @@ Style-Guides/
 ├── docs/                ← the spec, one focused page per topic (00 → 17)
 ├── shared/              ← canonical, copy-paste utilities + config (logger, config, APIResponse, useAPI, …)
 ├── assets/              ← brand logos, icons, and design-system guidance
-└── templates/           ← ready-to-use project scaffolds (backend-service, nuxt-app, static-site, cli-tool)
+└── templates/           ← ready-to-use scaffolds (backend-service, nuxt-app, fullstack-nuxt-app, static-site, cli-tool)
 ```
 
 ## How to use this

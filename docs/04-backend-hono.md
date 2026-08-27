@@ -277,6 +277,120 @@ openAPIConfig: {
 Then individual routes use `APIRouteSpec.authenticated(...)` (bearer required) or
 `APIRouteSpec.unauthenticated(...)` (explicitly no security).
 
+## Mounting Hono in Nitro
+
+For the full-stack Nuxt shape (see [01 — Project structure](01-project-structure.md)), the same
+Hono `API` class runs **inside Nitro** instead of under `Bun.serve`. Three things change:
+
+1. **No `Bun.serve` / `Main.main()` / `registerShutdownHandlers`.** Nitro owns the process lifecycle.
+   Initialization moves into a Nitro plugin (`server/plugins/startup.ts`) that runs once at boot.
+2. **A catch-all Nitro route** (`server/routes/api/[...].ts`) builds a Hono wrapper, mounts the `API`
+   app at `/api`, and forwards each request. All endpoints become `/api/v1/<resource>`, `/api/health`,
+   `/api/docs/v1`.
+3. **The `API` class exposes `getApp()`** instead of `start()`/`stop()`.
+
+`server/lib/api/index.ts` — the `API` class (no `Bun.serve`):
+
+```ts
+import { Hono } from "hono";
+import { prettyJSON } from "hono/pretty-json";
+import { HTTPException } from "hono/http-exception";
+import { openAPIRouteHandler } from "hono-openapi";
+import { Scalar } from "@scalar/hono-api-reference";
+import { Logger } from "../../utils/logger";
+import { APIv1Router } from "./versions/v1";
+
+export class API {
+	protected static app: Hono | undefined;
+	protected static latestVersion: number | null = null;
+
+	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs = false) {
+		if (!this.app) throw new Error("API not initialized. Call API.init() first.");
+		this.app.route(`/v${versionRouter.version}`, versionRouter.router);
+		if (!this.latestVersion || versionRouter.version > this.latestVersion) {
+			this.latestVersion = versionRouter.version;
+		}
+		if (!disableDocs) {
+			this.app.get(`/docs/v${versionRouter.version}/openapi`, openAPIRouteHandler(versionRouter.router, versionRouter.openAPIConfig));
+			this.app.get(`/docs/v${versionRouter.version}`, Scalar({ url: `/docs/v${versionRouter.version}/openapi` }));
+		}
+	}
+
+	static async init(disableDocs = false) {
+		this.app = new Hono();
+		this.app.use(prettyJSON());
+		this.app.onError((err, c) => {
+			if (err instanceof HTTPException) {
+				return c.json({ success: false, code: err.status, message: "Your input is invalid" }, err.status);
+			}
+			Logger.error("API Error:", err);
+			return c.json({ success: false, code: 500, message: "Internal Server Error" }, 500);
+		});
+		this.registerVersion(new APIv1Router(), disableDocs);
+		this.app.get("/health", (c) => c.json({ success: true, code: 200, message: "healthy", data: null }));
+	}
+
+	static getApp(): Hono {
+		if (!this.app) throw new Error("API not initialized. Call API.init() first.");
+		return this.app;
+	}
+}
+```
+
+`server/routes/api/[...].ts` — the catch-all that bridges Nitro → Hono:
+
+```ts
+import { Hono } from "hono";
+import { defineEventHandler, getRequestURL, getMethod, readRawBody } from "h3";
+import { API } from "../../lib/api";
+
+let wrapper: Hono | null = null;
+
+export default defineEventHandler(async (event) => {
+	if (!wrapper) {
+		wrapper = new Hono();
+		wrapper.route("/api", API.getApp());
+	}
+	const url = getRequestURL(event);
+	const method = getMethod(event);
+	const request = new Request(url, {
+		method,
+		headers: event.headers,
+		body: method !== "GET" && method !== "HEAD" ? await readRawBody(event) : undefined,
+	});
+	return wrapper.fetch(request);
+});
+```
+
+`server/plugins/startup.ts` — replaces `Main.main()`:
+
+```ts
+import { defineNitroPlugin } from "nitropack/runtime";
+import { ConfigHandler } from "../utils/config";
+import { Logger } from "../utils/logger";
+import { DB } from "../db";
+import { API } from "../lib/api";
+
+export default defineNitroPlugin(async () => {
+	const config = await ConfigHandler.loadConfig();
+	Logger.setLogLevel(config.LOG_LEVEL ?? "info");
+	DB.init(config.DB_PATH ?? "./data/db.sqlite", config.DB_AUTO_MIGRATE ?? true);
+	await API.init(config.API_DISABLE_DOCS === true);
+});
+```
+
+Notes:
+
+- Mount at `/api` once (the `if (!wrapper)` guard). `API.getApp()` throws if `startup.ts` hasn't run
+  yet — in dev that's fine because Nitro runs plugins before routes; keep the guard anyway.
+- `nitro.rollupConfig.external: ["bun:sqlite"]` is required in `nuxt.config.ts` so Nitro doesn't try
+  to bundle the native SQLite binding.
+- OpenAPI is served per-router with `openAPIRouteHandler(versionRouter.router, config)` (not
+  `openAPISpecs(app, …)`), because the spec should describe the version router, not the `/api`
+  wrapper. The frontend generates the client from `/api/docs/v1/openapi`.
+- `routeRules` can set `ssr: false` for dashboard/auth pages while keeping SSR for public pages.
+- Tests still use `makeAPIRequest(API.getApp(), "/v1/...")` — drive the Hono app directly, no Nitro.
+
 ## Environment, config, and logging
 
 - Load config at startup with [`shared/backend/config-schema.ts`](../shared/backend/config-schema.ts).
@@ -306,7 +420,8 @@ the schemas exported in `DB.Schema.*`. Shared SQL helpers are in
 
 ## Checklist
 
-- [ ] `Main.main()` calls `registerShutdownHandlers` first.
+- [ ] `Main.main()` calls `registerShutdownHandlers` first. *(Full-stack Nuxt shape: skip — use a
+  `server/plugins/startup.ts` Nitro plugin instead; see [Mounting Hono in Nitro](#mounting-hono-in-nitro).)*
 - [ ] `API` is a static class; `API.init` mounts versioned routers and serves docs.
 - [ ] Each version is an `APIVersionRouter` subclass.
 - [ ] Routes use `zValidator` + `APIRouteSpec` + `APIResponse.*`.

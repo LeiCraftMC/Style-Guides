@@ -1,6 +1,6 @@
 # 01 — Project structure
 
-There are four project shapes in the ecosystem. Use the matching
+There are five project shapes in the ecosystem. Use the matching
 [`templates/`](../templates/) as your starting point so the layout is correct from day one.
 
 ## Backend service (Hono + Zod + OpenAPI + Drizzle)
@@ -51,9 +51,6 @@ my-app/
 │   ├── middleware/{auth.global,rewrites.global}.ts
 │   ├── pages/…                   # file-based routing; (groups) and [param] supported
 │   └── utils/{abstractStore.ts, …}
-├── server/                       # only for full-stack Nuxt apps (Status-Page, MindCode)
-│   ├── db/  lib/api/  routes/api/[...].ts  plugins/startup.ts  tasks/
-│   └── utils/{config.ts, logger.ts}
 ├── tests/{*.test.ts, helpers/}
 ├── public/
 ├── nuxt.config.ts  openapi-ts.config.ts  bunfig.toml
@@ -62,7 +59,45 @@ my-app/
 ```
 
 The Nuxt 4 `app/` srcDir is mandatory. API access goes through `useAPI` (never raw `$fetch`); state
-through `AbstractStore` over `useState`. See [06](06-frontend-nuxt.md) and [07](07-state-and-data.md).
+through `AbstractStore` over `useState`. This shape has **no `server/`** — the frontend talks to a
+separate backend service over HTTP. See [06](06-frontend-nuxt.md) and [07](07-state-and-data.md).
+
+## Full-stack Nuxt app (Nuxt + Hono in `server/`)
+
+When the backend is small enough to live with the frontend, mount Hono inside Nitro and let it own
+the `/api` endpoint. Status-Page and MindCode use this shape. Everything from the Nuxt app shape
+applies, plus a `server/` directory that mirrors the standalone backend layout — but without
+`Bun.serve`, `Main.main()`, or `registerShutdownHandlers` (Nitro owns the lifecycle).
+
+```
+my-app/
+├── app/                          # identical to the Nuxt app shape above
+│   └── …
+├── server/                       # the Hono backend lives here
+│   ├── routes/api/[...].ts       # catch-all Nitro route → forwards to the Hono app (mounted at /api)
+│   ├── lib/api/
+│   │   ├── index.ts              # `API` static class: Hono app, registerVersion, /health, docs. No Bun.serve.
+│   │   ├── utils/                # api-res.ts, spec-helpers.ts, api-version-router.ts, auth-handler.ts
+│   │   └── versions/v1/
+│   │       ├── index.ts          # `APIv1Router`
+│   │       ├── middleware/auth.ts
+│   │       └── routes/<resource>/{index.ts, model.ts}
+│   ├── db/{index.ts, schema.ts, utils.ts}     # `DB` class + SQLUtils
+│   ├── utils/{config.ts, logger.ts, index.ts}
+│   ├── plugins/startup.ts        # defineNitroPlugin — loadConfig → DB.init → API.init (replaces Main.main)
+│   └── tasks/                    # optional: nitro scheduled tasks
+├── tests/{*.test.ts, helpers/}
+├── public/
+├── nuxt.config.ts                # nitro.experimental.tasks, scheduledTasks, routeRules, runtimeConfig
+├── openapi-ts.config.ts  bunfig.toml
+├── package.json  tsconfig.json  tsconfig/tsconfig.typecheck.json  biome.json
+└── example.env  .gitignore  LICENSE  README.md  CLAUDE.md  AGENTS.md  .claude/  .vscode/mcp.json  .gitlab/
+```
+
+The contract: Hono is mounted at `/api`, so endpoints are `/api/v1/<resource>`, `/api/health`,
+`/api/docs/v1`. The frontend's `updateAPIClient` sets `baseURL` to `<appUrl>/api/v1` (same origin).
+See [04 — Backend › Mounting Hono in Nitro](04-backend-hono.md#mounting-hono-in-nitro) and
+[05 — API contract](05-api-contract.md).
 
 ## Static site (Nuxt, `nuxt generate`)
 

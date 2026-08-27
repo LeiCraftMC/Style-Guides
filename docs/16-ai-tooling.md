@@ -48,8 +48,11 @@ Canonical templates live in [`shared/config/`](../shared/config):
 
 - [`claude-settings.backend.json`](../shared/config/claude-settings.backend.json) — backend service
   / CLI shape: `commands` + `fileScan` (no MCP).
-- [`claude-settings.nuxt.json`](../shared/config/claude-settings.nuxt.json) — Nuxt app shape:
-  `mcpServers` + `commands` (incl. `api-client`, `dev`) + `fileScan`.
+- [`claude-settings.nuxt.json`](../shared/config/claude-settings.nuxt.json) — frontend-only Nuxt app
+  shape: `mcpServers` + `commands` (incl. `api-client`, `dev`) + `fileScan`.
+- [`claude-settings.fullstack.json`](../shared/config/claude-settings.fullstack.json) — full-stack
+  Nuxt shape (Hono in `server/`): `mcpServers` + `commands` (incl. `api-client`, `db`, `dev`) +
+  `fileScan`.
 
 Copy the matching one into a new project's `.claude/settings.json` and adjust the commands to the
 project's scripts and ports.

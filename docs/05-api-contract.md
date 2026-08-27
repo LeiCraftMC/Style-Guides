@@ -108,6 +108,11 @@ The frontend never hand-writes API client types. It generates them from the back
 2. Save it to `app/api-client/openapi.json` using `@hey-api/openapi-ts`.
 3. Generate `app/api-client/{client.gen,sdk.gen,types.gen}.ts` into `app/api-client/`.
 
+> **Full-stack Nuxt shape:** the spec is at `/api/docs/v1/openapi` (Hono is mounted at `/api`), and
+> `updateAPIClient` sets `baseURL` to `<appUrl>/api/v1` on the same origin. Point `openapi-ts` at
+> `http://localhost:<port>/api/docs/v1/openapi` during generation. See
+> [04 — Mounting Hono in Nitro](04-backend-hono.md#mounting-hono-in-nitro).
+
 Typical `package.json` scripts in a Nuxt app:
 
 ```json

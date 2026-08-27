@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { APIResponse } from "../../../../../utils/api-response";
-import { APIRouteSpec, APIResponseSpec } from "../../../../../utils/spec-helpers";
+import { APIResponse } from "../../../../utils/api-response";
+import { APIRouteSpec, APIResponseSpec } from "../../../../utils/spec-helpers";
 import { HealthModel } from "./model";
 
 const app = new Hono();

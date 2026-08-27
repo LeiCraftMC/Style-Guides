@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "hono-openapi";
-import { APIResponse } from "../../../../../utils/api-response";
-import { APIRouteSpec, APIResponseSpec } from "../../../../../utils/spec-helpers";
+import { APIResponse } from "../../../../utils/api-response";
+import { APIRouteSpec, APIResponseSpec } from "../../../../utils/spec-helpers";
 import { AuthModel } from "./model";
 
 const app = new Hono();

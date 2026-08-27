@@ -7,7 +7,7 @@
  * async work, so a crash anywhere still tears the process down cleanly.
  * See docs/04-backend-hono.md and docs/11-cli-and-infra.md.
  */
-import { Logger } from "./logger";
+import { Logger } from "./utils/logger";
 
 export interface ShutdownOptions {
 	/** Called once on the first shutdown signal — stop the server, flush, close the DB, etc. */

@@ -61,6 +61,20 @@ bun run .output/server/index.mjs --port 3000
 
 In production, run behind a reverse proxy (Nginx/Caddy/Traefik) that terminates TLS.
 
+### Full-stack Nuxt (Hono in `server/`)
+
+The full-stack Nuxt shape deploys as a **single** Nuxt app — the Hono backend ships inside the same
+`.output/` and runs under the same Bun process. No separate backend service or Docker image.
+
+```bash
+bun run build
+bun run .output/server/index.mjs --port 3000
+```
+
+`/api/*` is served by Hono (via the catch-all Nitro route); everything else by Nuxt. Make sure
+`nuxt.config.ts` keeps `nitro.rollupConfig.external: ["bun:sqlite"]` so the native SQLite binding
+isn't bundled, and mount the database on a persistent volume.
+
 ## Static sites
 
 Static sites use `nuxt generate` with the static Nitro preset:

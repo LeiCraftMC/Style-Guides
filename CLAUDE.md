@@ -36,6 +36,6 @@ Conventional Commits.
 
 - The spec: [`docs/`](docs/) (00 → 17).
 - Reusable code: [`shared/`](shared/) (`backend/`, `frontend/`, `cli/`, `config/`, `tsconfig/`).
-- Scaffolds: [`templates/`](templates/) (`backend-service/`, `nuxt-app/`, `static-site/`, `cli-tool/`).
+- Scaffolds: [`templates/`](templates/) (`backend-service/`, `nuxt-app/`, `fullstack-nuxt-app/`, `static-site/`, `cli-tool/`).
 - Brand: [`assets/`](assets/).
 - Opinionated calls and why: [`docs/17-decisions.md`](docs/17-decisions.md).

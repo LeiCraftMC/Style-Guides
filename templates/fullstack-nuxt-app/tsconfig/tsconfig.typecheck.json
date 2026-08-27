@@ -1,0 +1,13 @@
+{
+	"extends": "../../shared/tsconfig/tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["../app/*"],
+			"#app": ["../node_modules/.pnpm/nuxt@*/node_modules/nuxt/dist/app"]
+		}
+	},
+	"include": ["../app/**/*.ts", "../app/**/*.vue", "../server/**/*.ts", "../scripts/**/*.ts"]
+}
