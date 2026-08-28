@@ -1,11 +1,16 @@
 // Full-stack Nuxt: Hono backend lives in server/ and owns /api (see docs/04-backend-hono.md).
+// Nuxt 4 (app/ srcDir is the default).
 export default defineNuxtConfig({
-	future: { compatibilityVersion: 4 },
-	srcDir: "app/",
-	modules: ["@nuxt/ui"],
-	css: ["~/assets/css/main.css"],
-	ui: { colorMode: true },
 	compatibilityDate: "2026-08-20",
+	devtools: { enabled: true },
+	modules: ["@nuxt/ui"],
+	colorMode: {
+		preference: "dark",
+		fallback: "dark",
+		classSuffix: "",
+	},
+	ssr: true,
+	css: ["~/assets/css/main.css"],
 	nitro: {
 		preset: "bun",
 		// Keep the native SQLite binding out of the bundle.

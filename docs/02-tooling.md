@@ -29,6 +29,7 @@ Every project extends a shared base config. Copy it from
     "strict": true, "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true, "noUncheckedIndexedAccess": true,
     "noUnusedLocals": false, "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
     "experimentalDecorators": true, "emitDecoratorMetadata": true
   }
 }
@@ -45,14 +46,18 @@ The root `tsconfig.json` is just `{ "extends": "./tsconfig/tsconfig.base.json" }
 ```jsonc
 {
   "extends": "./tsconfig.base.json",
-  "compilerOptions": { "noEmit": true, "allowImportingTsExtensions": true },
+  "compilerOptions": { "noEmit": true },
   "include": ["../src/**/*.ts", "../tests/**/*.ts", "../scripts/**/*.ts"]
 }
 ```
 
-Nuxt apps use Nuxt's generated project-references stub for the root `tsconfig.json` and add a
-`tsconfig/tsconfig.typecheck.json` for the extra `tsc` pass (the `typecheck` script runs
-`nuxt typecheck && tsc -p ./tsconfig/tsconfig.typecheck.json`).
+Nuxt apps are different: the root `tsconfig.json` is Nuxt's generated project-references stub
+(`{ "files": [], "references": [".nuxt/tsconfig.{app,server,shared,node}.json"] }`), and
+`tsconfig/tsconfig.typecheck.json` **extends `../.nuxt/tsconfig.json`** with `"types": ["bun-types"]`
+and includes only `../tests/**` (and `../server/**` for full-stack apps). `app/**` is **not** in this
+pass — it is type-checked by `nuxt typecheck` (vue-tsc), which provides the Nuxt auto-import
+declarations (`ref`, `computed`, `useState`, …) that plain `tsc` cannot resolve. The `typecheck`
+script runs `nuxt typecheck && tsc -p ./tsconfig/tsconfig.typecheck.json`.
 
 ## Biome (formatter + linter)
 
@@ -60,19 +65,27 @@ Biome is the org formatter and linter — one tool, Bun-native, fast. The ecosys
 enforced formatter before; this is the new standard (see [17](17-decisions.md)). Copy the root
 [`biome.json`](../biome.json) into every project.
 
-Defaults the guide adopts (Biome's defaults, with two pragmatic relaxations):
+Defaults the guide adopts (Biome's defaults, with pragmatic relaxations):
 
 - **Indentation:** tabs. **Line width:** 100.
 - **Quotes:** double. **Semicolons:** always. **Trailing commas:** all.
-- **Two rules relaxed** because they fight the ecosystem's real code:
+- **CSS:** `css.parser.tailwindDirectives: true` so `main.css`'s `@import "tailwindcss"; @theme {}`
+  parses (Tailwind v4 CSS-first).
+- **Rules relaxed** because they fight the ecosystem's real code:
   - `suspicious/noExplicitAny: "off"` — the codebase uses `as any` for type-juggling (the
     `ConfigSchema` builder, DB inserts) and `// @ts-ignore` for Hono context. Tighten per-project
     if you want.
   - `correctness/noUndeclaredVariables: "off"` — Nuxt auto-imports (`useCookie`, `useState`,
     `navigateTo`, `defineAppConfig`, …) and Bun/Node globals (`process`, `Bun`) aren't visible to
     Biome. (Backend files have proper imports and are unaffected.)
+  - `complexity/noStaticOnlyClass: "off"` — the house pattern is static-class services (`API`,
+    `DB`, `Logger`, `APIResponse`); the rule would flag every one.
+  - `complexity/noBannedTypes: "off"` — the `ConfigSchema` builder uses `{}` as a default type
+    parameter (`ConfigSchema<T = {}>`).
 
-Run `bunx biome check` to lint, `bunx biome format --write` to format. Generated files
+`@biomejs/biome` is a devDependency in every project, and CI runs `bunx biome check` (the
+`test:lint` GitLab job / the `bunx biome check` GitHub Actions step) alongside `typecheck` and
+`test`. Run `bunx biome check` to lint, `bunx biome format --write` to format. Generated files
 (`*.gen.ts`, `api-client/`) and build outputs are excluded in the config.
 
 ## Standard scripts
@@ -84,13 +97,14 @@ Run `bunx biome check` to lint, `bunx biome format --write` to format. Generated
   "typecheck": "tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
   "test": "bun test",
   "dev": "bun run --watch src/index.ts",
-  "compile": "bun run ./scripts/compile",
+  "compile": "bun run ./scripts/compile/index.ts",
   "start": "bun run scripts/entrypoint.ts"
 }
 ```
 
-DB services add `db:generate` and `db:migrate` (both prefix `bun scripts/db-utils &&`). CLI tools
-add `clean: "rm -rf node_modules"`.
+DB services add `db:generate` / `db:migrate` / `db:push`, each prefixed with
+`bun scripts/db-utils.ts && bunx --bun drizzle-kit <cmd> --config=drizzle.config.ts` (the
+`db-utils` script ensures `./data/` exists first). CLI tools add `clean: "rm -rf node_modules"`.
 
 **Nuxt app:**
 

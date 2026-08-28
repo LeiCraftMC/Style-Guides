@@ -15,6 +15,11 @@ variables:
   BUN_INSTALL_CACHE_DIR: .bun/install/cache
   NUXT_TELEMETRY_DISABLED: "1"
 
+test:lint:
+  stage: test
+  script:
+    - bunx biome check
+
 test:typecheck:
   stage: test
   script:

@@ -1,13 +1,10 @@
-# CI workflow for GitHub-hosted LeiCraftMC projects.
-# Runs biome, typecheck, and tests on every push/PR to main.
-
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:

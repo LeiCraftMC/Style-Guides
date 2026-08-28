@@ -1,13 +1,12 @@
 {
-	"extends": "../../shared/tsconfig/tsconfig.base.json",
+	"extends": "../.nuxt/tsconfig.json",
 	"compilerOptions": {
 		"noEmit": true,
 		"allowImportingTsExtensions": true,
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["../app/*"],
-			"#app": ["../node_modules/.pnpm/nuxt@*/node_modules/nuxt/dist/app"]
-		}
+		"types": ["bun-types"]
 	},
-	"include": ["../app/**/*.ts", "../app/**/*.vue"]
+	// app/** is type-checked by `nuxt typecheck` (vue-tsc), which provides the
+	// Nuxt auto-import declarations (ref, computed, useState, ...). Plain tsc
+	// cannot resolve those globals, so this pass only covers tests/.
+	"include": ["../tests/**/*"]
 }

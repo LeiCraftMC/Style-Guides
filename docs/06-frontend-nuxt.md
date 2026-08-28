@@ -2,16 +2,26 @@
 
 ## Nuxt 4 `app/` directory
 
-All Nuxt apps use the Nuxt 4 `app/` srcDir. Root-level `pages/`, `components/`, `composables/`, etc.
-are gone. Configure it in `nuxt.config.ts`:
+All Nuxt apps are on **Nuxt 4** (`nuxt: ^4.4.x`) + **NuxtUI v4** (`@nuxt/ui: ^4.x`). With Nuxt 4,
+`app/` is the default srcDir — root-level `pages/`, `components/`, `composables/` are gone. You do
+**not** need `future: { compatibilityVersion: 4 }` or `srcDir: "app/"`; they are implied. A minimal
+`nuxt.config.ts`:
 
 ```ts
 export default defineNuxtConfig({
-	future: { compatibilityVersion: 4 },
-	srcDir: "app/",
-	// ...
+	compatibilityDate: "2026-08-20",
+	devtools: { enabled: true },
+	modules: ["@nuxt/ui"],
+	colorMode: { preference: "dark", fallback: "dark", classSuffix: "" },
+	ssr: true,
+	css: ["~/assets/css/main.css"],
+	nitro: { preset: "bun" },
 });
 ```
+
+`@nuxt/ui` is the only UI module. `@hey-api/nuxt` is auto-registered as a dependency for the
+generated API client (see [05](05-api-contract.md)). Lucide icons come from `@iconify-json/lucide`
+(devDependency) and are used as `i-lucide-*`.
 
 Entry layout in `app/app.vue`:
 
