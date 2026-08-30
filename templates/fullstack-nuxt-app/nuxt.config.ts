@@ -19,7 +19,7 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		public: {
 			// The API is on the same origin under /api.
-			appUrl: process.env.NUXT_PUBLIC_APP_URL || "http://localhost:3000",
+			appUrl: process.env.NUXT_PUBLIC_APP_URL || "http://localhost:12520",
 		},
 	},
 	routeRules: {

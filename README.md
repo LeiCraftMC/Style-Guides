@@ -47,8 +47,9 @@ Style-Guides/
 ## How to use this
 
 **Starting a new project** — copy a template from [`templates/`](templates/), then follow its
-`README.md` (replace the `<PREFIX>`, `<PORT>`, and `<ProjectName>` placeholders). Pull shared
-utilities from [`shared/`](shared/) rather than re-implementing them.
+`README.md` (replace the `<PREFIX>`, `<ProjectName>`, and **port** placeholders — each app gets a
+unique port, never `3000`; see [docs/02 — Ports](docs/02-tooling.md#ports--one-unique-port-per-app-dev--prod)).
+Pull shared utilities from [`shared/`](shared/) rather than re-implementing them.
 
 **Contributing to an existing project** — read the relevant [`docs/`](docs/) pages first. When in
 doubt, the existing codebase + this guide are the authority; generic internet advice is not.

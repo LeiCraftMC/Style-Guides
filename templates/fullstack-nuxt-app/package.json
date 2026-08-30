@@ -5,8 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"build": "nuxt build",
-		"start": "PORT=3000 bun run .output/server/index.mjs",
-		"dev": "nuxt dev --port 3000",
+		"start": "PORT=12520 bun run .output/server/index.mjs",
+		"dev": "nuxt dev --port 12520",
 		"generate": "nuxt generate",
 		"preview": "nuxt preview",
 		"postinstall": "nuxt prepare",

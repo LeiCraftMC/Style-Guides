@@ -15,6 +15,7 @@ Static site template for LeiCraftMC projects.
 ```bash
 bun install
 # Copy the LeiCraftMC biome.json from the style-guide root into this project.
+# Pick a unique port (never 3000) — set it in package.json; see docs/02 — Ports.
 bun run dev
 ```
 

@@ -13,6 +13,22 @@ Bun is the runtime, package manager, test runner, dev server, and (for Nuxt) the
 Bun auto-loads `.env` — there is no need for a `dotenv` call in web services (CLI tools that need
 an explicit env-file path use `dotenv`'s non-overwriting load; see [09](09-config-and-logging.md)).
 
+## Ports — one unique port per app, dev = prod
+
+**Never default to `3000`.** Every LeiCraftMC app gets its own unique port in the **12xxx** range,
+and the dev and prod ports are the **same** number (no separate dev/prod ports). Pick a port that
+isn't already used by another app in the ecosystem.
+
+The port shows up in up to four places — keep them in sync when you change it:
+
+- `package.json` scripts: `nuxt dev --port <PORT>` / `start: "PORT=<PORT> bun run .output/server/index.mjs"` (Nuxt), or `<PREFIX>_API_PORT` read by the backend's `ConfigHandler` (backend service).
+- `nuxt.config.ts` `runtimeConfig.public.appUrl` (and `apiUrl` for the frontend-only Nuxt shape).
+- `example.env` / `.env`: `NUXT_PUBLIC_APP_URL`, `NUXT_PUBLIC_API_URL`, `<PREFIX>_API_PORT`.
+- `openapi-ts.config.ts` `input` (the URL the client is generated from).
+
+The `api-client:generate` script (where a project boots a temporary API to fetch the spec) uses
+**port + 1** for that throwaway instance (e.g. an app on 12336 generates its client on 12337).
+
 ## TypeScript
 
 Every project extends a shared base config. Copy it from

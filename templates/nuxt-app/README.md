@@ -16,6 +16,7 @@ Frontend template for LeiCraftMC projects.
 bun install
 cp example.env .env
 # Copy the LeiCraftMC biome.json from the style-guide root into this project.
+# Pick a unique port (never 3000) — set it in package.json + example.env; see docs/02 — Ports.
 bun run dev
 ```
 
