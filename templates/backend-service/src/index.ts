@@ -17,11 +17,15 @@ export class Main {
 		await ConfigHandler.loadConfig();
 		const config = ConfigHandler.getConfig();
 
-		Logger.setLogLevel(config.LOG_LEVEL ?? "info");
+		Logger.setLogLevel(config.SVC_LOG_LEVEL ?? "info");
 		Logger.log("Starting <ProjectName> API...");
 
-		DB.init(config.DB_PATH ?? ":memory:", config.DB_AUTO_MIGRATE ?? true);
-		await API.init(config.API_PORT ?? 3000);
+		await DB.init(
+			config.SVC_DB_PATH ?? ":memory:",
+			config.SVC_DB_AUTO_MIGRATE ?? true,
+			config.SVC_CONFIG_BASE_DIR ?? "./data",
+		);
+		await API.init(Number(config.SVC_API_PORT ?? 12500));
 	}
 }
 

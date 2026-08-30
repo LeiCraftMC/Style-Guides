@@ -47,6 +47,8 @@ in this repo.
 | `main-shutdown.ts` | `registerShutdownHandlers()` — SIGINT/SIGTERM/uncaughtException/unhandledRejection with graceful + forced shutdown. |
 | `sql-utils.ts` | `SQLUtils.getCreatedAtColumn`/`primaryKeyIntAutoIncrement` (SQLite/PostgreSQL/MySQL) + `DrizzleDB`/`DrizzleTx` types. |
 | `make-api-request.ts` | Test helper: drives a Hono app in-process, asserts status, validates the envelope with Zod. |
+| `auth-handler.example.ts` | Opaque bearer-token auth scaffold: `<prefix>_<kind>_<id>:<base>`, `Bun.password` hashing, `AuthContext` union, `authMiddlewareV1`, `requireSession`/`requireAdmin`, `AuthRateLimiter`. Copy as `src/utils/auth-handler.ts` and wire the DB-lookup stubs. |
+| `runtime.ts` | `Runtime` static class (`isBun`/`isCloudflare`) + `Runtime.Password` (Bun.password or PBKDF2 fallback) for dual-target full-stack apps. |
 
 ## frontend/
 
@@ -61,6 +63,12 @@ in this repo.
 | `rewrites.global.ts` | Trailing-slash stripper route middleware. |
 | `main.css` | Tailwind v4 CSS-first entry: `@import "tailwindcss"; @import "@nuxt/ui";` + `@theme` font + dark `:root` + `.main-bg-color`. |
 | `app.config.ts` | NuxtUI `defineAppConfig` shape — `ui.colors` + `theme`. |
+| `usePageSeo.ts` | One composable for per-page SEO (`useSeoMeta` + canonical `useHead` + optional JSON-LD) — for static/marketing sites. |
+| `*.example.vue` | Canonical dashboard component copies: `DashboardPageHeader`, `DashboardPageBody`, `DataTable`, `DashboardModal`, `DashboardDeleteModal` (see docs/15). |
+
+> **`patch-api-client.ts` exception:** generated `*.gen.ts` may be patched by an automated,
+> idempotent post-`openapi-ts` script — never by hand. See
+> [docs/05](../docs/05-api-contract.md#generating-the-frontend-client).
 
 ## cli/
 

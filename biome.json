@@ -26,6 +26,7 @@
 			"!**/.git",
 			"!**/*.gen.ts",
 			"!**/api-client",
+			"!**/*.example.vue",
 			"!**/bun.lock",
 			"!**/bun.lockb",
 			"!**/templates"

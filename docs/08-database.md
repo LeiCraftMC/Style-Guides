@@ -11,6 +11,30 @@ The ecosystem has some multi-dialect services (Delivr supports SQLite, PostgreSQ
 you need that, keep per-dialect schema files (e.g. `src/db/schema/{sqlite,postgresql,mysql}.ts`) and
 switch on the config at runtime. New single-dialect services default to SQLite.
 
+### Dual-target runtime (Bun + Cloudflare/D1)
+
+A full-stack Nuxt app that ships to **both** Bun and Cloudflare Pages (Status-Page) abstracts the
+runtime behind a `Runtime` static class (see [`shared/backend/runtime.ts`](../shared/backend/runtime.ts))
+and branches `DB.init` on it:
+
+```ts
+import { Runtime } from "../utils/runtime";
+
+if (Runtime.isBun) {
+	this.instance = drizzle(process.env.<PREFIX>_DB_PATH ?? "./data/db.sqlite");
+} else {
+	const { drizzle } = await import("drizzle-orm/d1");
+	this.instance = drizzle((this as any).env.DB); // D1 binding
+}
+```
+
+- Three drizzle-kit configs: `drizzle/configs/{base,bun-sqlite,d1}.config.ts` (`base` is schema-only;
+  the other two target each runtime's migrations).
+- `nuxt.config.ts`: `nitro.rollupConfig.external: ["bun:sqlite", "cloudflare:sockets"]` and two build
+  presets — `build:bun` (`nitro.preset: "bun"`) and `build:cf` (`nitro.preset: "cloudflare_pages"`).
+- `Bun.password` is Bun-only; on D1, hash via the Web Crypto subtle API (PBKDF2/argon2 wasm) or
+  delegate to a Bun-only auth sidecar. `Runtime.Password` wraps whichever is available.
+
 ## `DB` static class
 
 The `DB` class is a static singleton holding the Drizzle instance. It exposes the tables through the
@@ -198,7 +222,9 @@ private static async createInitialAdminUserIfNeeded(configBaseDir: string) {
 ```
 
 Notes:
-- Hash passwords with `Bun.password.hash` (argon2id); store only the hash.
+- Hash passwords with `Bun.password.hash` / verify with `Bun.password.verify` (Bun's default
+  algorithm); store only the hash. The same helpers hash session/API-key token bases — see
+  [10 — Authentication](10-auth.md).
 - Store the **hashed** reset token in `password_resets` (the plaintext only appears in the written
   file + log, never in the DB).
 - `configBaseDir` is the `<PREFIX>_CONFIG_BASE_DIR` env var — a writable dir for runtime artifacts.

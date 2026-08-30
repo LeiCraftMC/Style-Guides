@@ -81,6 +81,12 @@ Biome is the org formatter and linter — one tool, Bun-native, fast. The ecosys
 enforced formatter before; this is the new standard (see [17](17-decisions.md)). Copy the root
 [`biome.json`](../biome.json) into every project.
 
+> **Adoption status:** the style-guide repo and the project templates here are Biome-clean. The
+> existing application repos are mid-adoption — most currently ship only `typecheck` + `bun test`.
+> The guide is the forward-looking rule: new projects and repos being touched should carry
+> `biome.json` + a `test:lint`/`bunx biome check` CI step. Don't remove Biome from a repo that has
+> it; do add it when you modernize one that doesn't.
+
 Defaults the guide adopts (Biome's defaults, with pragmatic relaxations):
 
 - **Indentation:** tabs. **Line width:** 100.

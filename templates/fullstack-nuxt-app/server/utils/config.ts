@@ -82,7 +82,9 @@ const schema = new ConfigSchema()
 	.add("FNA_LOG_LEVEL", false, ["debug", "info", "warn", "error", "critical"])
 	.add("FNA_API_DISABLE_DOCS", false, [true, false])
 	.add("FNA_DB_PATH", false)
-	.add("FNA_DB_AUTO_MIGRATE", false, [true, false]);
+	.add("FNA_DB_AUTO_MIGRATE", false, [true, false])
+	.add("FNA_APP_URL", false)
+	.add("FNA_CONFIG_BASE_DIR", false);
 
 export type ParsedConfig = ConfigLike<typeof schema.schema>;
 

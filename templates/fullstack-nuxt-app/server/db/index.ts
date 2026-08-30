@@ -16,7 +16,7 @@ export class DB {
 	static async init(
         path: string,
         autoMigrate: boolean = false,
-        configBaseDir: string
+        configBaseDir: string = "./data"
     ) {
 		await fs_mkdir(path_dirname(path), { recursive: true });
 
@@ -55,7 +55,7 @@ export class DB {
             expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 Days
         });
 
-		const APP_URL = ConfigHandler.getConfig()?.APPNAME_APP_URL || "https://{APP_URL}";
+		const APP_URL = ConfigHandler.getConfig()?.FNA_APP_URL || "https://{APP_URL}";
 
 		await Bun.write(`${configBaseDir}/initial_admin_password_reset_token.txt`, `${APP_URL}/auth/reset-password?token=${passwordResetToken}`, {
             mode: 0o600,

@@ -117,7 +117,7 @@ When asking an AI to work in a LeiCraftMC repo, include enough context:
 Example prompt:
 
 > Add a POST /v1/servers route for LeiOS following docs/04-backend-hono.md and docs/05-api-contract.md.
-> Use APIRouteSpec.authenticated + APIResponse.created. Derive the response schema from DB.Schema.servers
+> Use APIRouteSpec.authenticated + APIResponse.created. Derive the response schema from DB.Tables.servers
 > with drizzle-zod. Add tests with make-api-request.ts.
 
 ## Avoiding generic advice

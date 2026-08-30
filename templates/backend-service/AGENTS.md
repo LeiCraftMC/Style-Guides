@@ -13,10 +13,13 @@ https://github.com/LeiCraftMC/Style-Guides.
 
 ## Non-negotiable
 
-- Every route uses the `{ success, code, message, data }` envelope via `APIResponse.*` helpers.
+- Every route uses the `{ success, code, message, data }` envelope via `APIResponse.*` helpers
+  (errors omit `data`).
 - Validate with `zValidator` from `hono-openapi`.
-- Never hand-edit `*.gen.ts`.
-- Static classes for services (`API`, `DB`, `Logger`, `ConfigHandler`).
+- Auth uses opaque bearer tokens (`<prefix>_<kind>_<id>:<base>`, `Bun.password`-hashed) — not JWT.
+  Do not set `bearerFormat: "JWT"`. See docs/10-auth.md.
+- Never hand-edit `*.gen.ts` (an automated `patch-api-client.ts` script is the only exception).
+- Static classes for services (`API`, `DB`, `Logger`, `ConfigHandler`, `AuthHandler`).
 - Format with Biome before finishing (`bunx biome check`).
 - Conventional Commits.
 

@@ -1,8 +1,13 @@
 <script setup lang="ts">
-useSeoMeta({
+usePageSeo({
 	title: "<ProjectName>",
-	ogTitle: "<ProjectName>",
 	description: "A LeiCraftMC static site.",
+	jsonLd: {
+		"@type": "SoftwareApplication",
+		name: "<ProjectName>",
+		applicationCategory: "DeveloperApplication",
+		operatingSystem: "Web",
+	},
 });
 </script>
 

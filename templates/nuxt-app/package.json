@@ -10,7 +10,7 @@
 		"generate": "nuxt generate",
 		"preview": "nuxt preview",
 		"postinstall": "nuxt prepare",
-		"api-client:generate": "openapi-ts",
+		"api-client:generate": "openapi-ts && bun scripts/patch-api-client.ts",
 		"typecheck": "nuxt typecheck && tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 		"test": "bun test"
 	},

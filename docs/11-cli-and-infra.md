@@ -121,6 +121,43 @@ compile script uses `./scripts/entrypoint.ts` as the default entrypoint.
 Backend services run in `debian:stable-slim` with Bun installed, or in a multi-stage build that
 compiles the binary. See [14 — Deployment](14-deployment.md).
 
+## Infrastructure / backup tools
+
+Some repos are operational tooling, not user-facing apps — Vault is a Vaultwarden backup automation
+CLI plus Docker packaging. The CLI conventions above all apply; the additional patterns worth
+codifying:
+
+- **AES-256-GCM streaming crypto.** For encrypting large backup tarballs without buffering the whole
+  file, reserve the 16-byte auth-tag slot up front, stream the encrypted payload, and back-write the
+  tag after the pipeline finishes. PBKDF2 (100k iterations, sha256) derives the 32-byte key from a
+  passphrase + 16-byte salt; layout is `salt(16) | iv(12) | ciphertext | authTag(16)`.
+- **Binary envelope.** Pack the (optionally encrypted) payload into a custom container (`.lcmc`)
+  with a header (version + timestamp) and an unlimited-length-prefixed body. `flexbuf` +
+  `low-level` provide the typed binary encoding.
+- **S3 + notifications + retention.** Upload the stream to S3-compatible storage, then post a
+  result to an ntfy.sh-compatible endpoint: `notifySuccess` / `notifyWarning` / `notifyError`. The
+  error path includes `Logger.getLogHistory().slice(-20)` (the CLI logger's ring buffer) so the
+  alert carries recent context. Apply retention after every successful run:
+  `RETENTION_DAYS` deletes old backups but keeps at least `RETENTION_MIN_COUNT` newest.
+- **Compiled-binary-in-slim-image deploy.** `bun build --compile` → standalone binary →
+  `FROM debian:stable-slim` (or an upstream server image) with just the binary copied in — no Bun
+  runtime in the production image.
+- **cosign image signing.** Sign every published image tag with `cosign sign --yes <tag>@<digest>`;
+  pre-releases skip the `:latest` tag. Use GitHub Actions' `type=gha` build cache.
+- **supervisord for app + cron.** When a container must run both an app and scheduled backups, use
+  `supervisord` (`conf/services.ini`) to supervise `cron -f -l` and the app's `/start.sh` together,
+  logging both to `/dev/fd/{1,2}` so they appear in `docker logs`.
+- **Two-image split for branded web UI.** To layer a branded web vault onto an upstream server
+  image, build three image tags: `noweb` (server only), `onlyweb` (web vault from the upstream
+  release + local `web/patches/*.patch` + `web/resources/`), and `customweb` (`FROM noweb` +
+  `COPY --from=onlyweb /web-vault ./web-vault`).
+- **Config via env + mounted volume.** `<PREFIX>_*` env vars in compose; data dir mounted
+  read-write (snapshots are written there); loopback-only port mapping (`127.0.0.1:<port>:80`)
+  with a reverse proxy in front.
+
+CLI compile targets are **linux-only** (`linux-x64`, `linux-x64-baseline`, `linux-arm64`) — there is
+no Windows/macOS binary packaging, even though development happens on Windows.
+
 ## Checklist
 
 - [ ] CLI app uses `@cleverjs/cli` with a global `--log-level` flag.
@@ -129,3 +166,4 @@ compiles the binary. See [14 — Deployment](14-deployment.md).
 - [ ] Compile script in `scripts/compile/` with `auto`, `all`, and platform targets.
 - [ ] CLI uses `shared/cli/logger.ts` (with `logHistory` for crash dumps).
 - [ ] Env-file load uses non-overwriting `dotenv`.
+- [ ] (Infra tools) streaming AES-256-GCM, S3 + ntfy + retention, cosign-signed slim image.

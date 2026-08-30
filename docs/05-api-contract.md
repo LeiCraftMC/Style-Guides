@@ -14,19 +14,21 @@ it, and the generated client consumes it.
 }
 ```
 
-Errors use the same shape:
+Errors use a shape **without `data`** — the field is omitted, not `null`:
 
 ```json
 {
   "success": false,
   "code": 404,
-  "message": "User not found",
-  "data": null
+  "message": "User not found"
 }
 ```
 
 The `code` is the HTTP status code. It always matches the HTTP response status. `message` is a
-human-readable English string. `data` is typed per endpoint on success; on error it is `null`.
+human-readable English string. `data` is typed per endpoint on success (including `data: null` for
+the `*NoData` helpers); **on error it is omitted**. The `APIResponse.*` error helpers reflect this —
+they return `{ success, code, message }` only. The frontend `useAPI` catch synthesizes `data: null`
+on thrown exceptions, so client code can always read `result.data` safely.
 
 ## `APIResponse` helpers
 
@@ -118,41 +120,46 @@ Typical `package.json` scripts in a Nuxt app:
 ```json
 {
   "scripts": {
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --port <PORT>",
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "generate:api-client": "heyapi generate --config app/api-client/heyapi.config.ts"
+    "api-client:generate": "openapi-ts && bun scripts/patch-api-client.ts"
   }
 }
 ```
 
-Example `app/api-client/heyapi.config.ts`:
+Example `openapi-ts.config.ts` (project root) using the Nuxt client + SDK + Zod plugins:
 
 ```ts
 import { defineConfig } from "@hey-api/openapi-ts";
 
 export default defineConfig({
-	client: "@hey-api/client-fetch",
-	input: "app/api-client/openapi.json",
+	input: "http://localhost:<PORT>/docs/v1/openapi", // separate backend, or /api/docs/v1/openapi for full-stack
 	output: "app/api-client",
+	plugins: [
+		"@hey-api/client-nuxt", // baseURL + Authorization via client.setConfig
+		"@hey-api/typescript",
+		{ name: "@hey-api/sdk", asClass: false },
+		"zod",
+	],
 });
 ```
 
-During local development, point `input` at the running backend URL and re-run when routes change:
-
-```ts
-export default defineConfig({
-	client: "@hey-api/client-fetch",
-	input: "http://localhost:3000/docs/v1/openapi",
-	output: "app/api-client",
-});
-```
+> Drop the `&& bun scripts/patch-api-client.ts` suffix if you don't need to patch — see the
+> `patch-api-client.ts` exception below.
 
 The generated files are committed (they are build output, but they are also the source of truth for
 type-checking the app). Never edit them by hand. Add `app/api-client/*.gen.ts` to `.gitattributes`
 with `linguist-generated=true` if you want cleaner diffs.
+
+> **`patch-api-client.ts` exception.** `@hey-api/openapi-ts` occasionally emits typing bugs. An
+> **automated, idempotent post-generation script** (`scripts/patch-api-client.ts`, run as
+> `api-client:generate: openapi-ts && bun scripts/patch-api-client.ts`) may regex-patch
+> `*.gen.ts` — Hub-Website, Status-Page, and MindCode all do this. Hand-editing generated files
+> remains forbidden; the patch script is part of the generation pipeline, regenerated from scratch
+> every run.
 
 ## `updateAPIClient` and `useAPI`
 
@@ -205,7 +212,7 @@ export namespace UserModel {
 	});
 	export type Body = z.infer<typeof Body>;
 
-	export const Response = createSelectSchema(DB.Schema.users).omit({ passwordHash: true });
+	export const Response = createSelectSchema(DB.Tables.users).omit({ passwordHash: true });
 	export type Response = z.infer<typeof Response>;
 }
 ```
@@ -222,7 +229,7 @@ developed. Do not break v1 paths until you are ready to deprecate and communicat
 
 - [ ] Every route response uses `APIResponse.*` helpers (or the OpenAPI-equivalent schema).
 - [ ] The OpenAPI spec matches the runtime envelope (use `APIResponse.Schema.*` factories).
-- [ ] Error responses set `success: false` and `data: null`.
+- [ ] Error responses set `success: false` and **omit `data`** (the `APIResponse.*` error helpers do this).
 - [ ] Frontend client is generated from `openapi.json` and never hand-edited.
 - [ ] `updateAPIClient` sets `ignoreResponseError: true`.
 - [ ] Route models expose `Body`, `Query`, `Params`, `Response` namespaces with `z.infer` types.

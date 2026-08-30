@@ -95,7 +95,7 @@ objects. The `API` class then mounts the router at `/v1` and exposes:
 import { Hono } from "hono";
 import { openAPISpecs } from "hono-openapi";
 import { apiReference } from "@scalar/hono-api-reference";
-import { APIv1Router } from "./routes/v1/api-v1-router";
+import { APIv1Router } from "./versions/v1";
 import { Logger } from "./logger";
 
 export class API {
@@ -149,15 +149,18 @@ A route folder mirrors the URL path. It contains an `index.ts` for handlers and 
 Zod schemas + inferred types:
 
 ```
-routes/
+versions/
   v1/
-    api-v1-router.ts
-    auth/
-      index.ts          # POST /login, POST /logout, GET /me
-      model.ts          # AuthModel.Login.Body, AuthModel.Login.Response, ...
-    mail-accounts/
-      index.ts
-      model.ts
+    index.ts            # APIv1Router subclass (version, openAPIConfig, routes)
+    docs/index.ts       # DOCS_TAGS constant
+    middleware/auth.ts   # authMiddlewareV1
+    routes/
+      auth/
+        index.ts        # POST /login, POST /logout, GET /me
+        model.ts        # AuthModel.Login.Body, AuthModel.Login.Response, ...
+      mail-accounts/
+        index.ts
+        model.ts
 ```
 
 Within `index.ts`, register each endpoint with `zValidator` and `APIRouteSpec`:
@@ -267,7 +270,7 @@ openAPIConfig: {
 			bearerAuth: {
 				type: "http",
 				scheme: "bearer",
-				bearerFormat: "JWT",
+				// No bearerFormat: "JWT" — tokens are opaque. See 10 — Authentication.
 			},
 		},
 	},
@@ -391,6 +394,58 @@ Notes:
 - `routeRules` can set `ssr: false` for dashboard/auth pages while keeping SSR for public pages.
 - Tests still use `makeAPIRequest(API.getApp(), "/v1/...")` — drive the Hono app directly, no Nitro.
 
+### Realtime (WebSocket)
+
+A full-stack Nuxt app that needs push/streaming (MindCode's live Claude chat) adds a WebSocket
+transport alongside REST. Enable it in `nuxt.config.ts` (Bun preset required):
+
+```ts
+export default defineNuxtConfig({
+	nitro: {
+		preset: "bun",
+		experimental: { websocket: true },
+	},
+});
+```
+
+Add a WS route with `defineWebSocketHandler` (crossws) in `server/routes/ws/<name>.ts`:
+
+```ts
+export default defineWebSocketHandler({
+	async open(peer) { await MySessionRunner.handleOpen(peer); },
+	async message(peer, message) { await MySessionRunner.handleMessage(peer, message); },
+	async close(peer) { await MySessionRunner.handleClose(peer); },
+	error(peer, error) { Logger.error("WebSocket error:", error); },
+});
+```
+
+Drive the work from a static `<Name>SessionRunner` + `<Name>SessionRegistry` pair (the same
+static-class house style): the runner routes peers to sessions, the registry holds live state.
+**Re-validate the bearer token on every privileged WS message** — don't trust the connection once
+it's open. Isolate sessions per user (e.g. under `mindcode/user-{userId}/…`). The frontend talks to
+the socket through a `useXxxWebSocketManager` composable; REST is still used for listings/history.
+
+## Compatibility-proxy backend
+
+A service whose job is to be **protocol-compatible with an upstream vendor** (LeiAI API-Gateway
+speaking OpenAI/Anthropic) is a documented exception to the CRUD conventions. The rules relax:
+
+- **Responses are vendor-native, not the envelope.** `/v1/chat/completions` returns
+  `{ object: "list", data: [...] }`; Anthropic errors return `{ type: "error", error: { type, message } }`.
+  The `{ success, code, message, data }` envelope applies **only to `/health` and control-plane
+  endpoints**.
+- **No `hono-openapi` / no `zValidator` / no Drizzle.** Request validation is manual `JSON.parse` +
+  field checks; config lives in Zod-validated JSON files (`gateway.json`, `api-keys.json`), not a DB.
+- **Auth is gateway API keys**, not session tokens. `Authorization: Bearer <key>` **or**
+  `x-api-key: <key>` (match the client style); per-key model scoping via `allowedModels` **or**
+  `denyModels` (mutually exclusive), checked per-route. Error shape is chosen to match the client
+  (Anthropic-style vs OpenAI-style).
+- The static `API` class + `onError` + versioned-router skeleton still apply; the `prettyJSON` and
+  `cors` middleware may be dropped if the proxy is not browser-facing.
+
+This is a special case, not the default. Record the choice in the project's `CLAUDE.md` and
+[17 — Decisions › Compatibility-proxy backends](17-decisions.md#14-compatibility-proxy-backends-are-a-noted-exception).
+
 ## Environment, config, and logging
 
 - Load config at startup with [`shared/backend/config-schema.ts`](../shared/backend/config-schema.ts).
@@ -415,7 +470,7 @@ See [12 — Testing](12-testing.md) for the full harness (`preload.ts`, migratio
 ## Database touch points
 
 Route handlers should not import `drizzle-orm/sqlite-core` directly. Call `DB.instance()` and use
-the schemas exported in `DB.Schema.*`. Shared SQL helpers are in
+the schemas exported in `DB.Tables.*` (with row types via `DB.Models.*`). Shared SQL helpers are in
 [`shared/backend/sql-utils.ts`](../shared/backend/sql-utils.ts).
 
 ## Checklist

@@ -49,12 +49,15 @@ This co-locates related exports instead of scattering them across `types.ts` fil
 
 ```ts
 export namespace DB {
-	export namespace Schema { export const users = TableSchema.users; export const domains = TableSchema.domains; }
-	export namespace Models { export type User = typeof DB.Schema.users.$inferSelect; }
+	export namespace Tables { export const users = TableSchema.users; export const domains = TableSchema.domains; }
+	export namespace Models { export type User = typeof DB.Tables.users.$inferSelect; }
 }
 export namespace AuthHandler { export type AuthContext = { type: "session" … } | { type: "unauthenticated" }; }
 export namespace Logger { export type LogLevel = "debug" | "info" | "warn" | "error" | "critical"; }
 ```
+
+> `DB.Tables` / `DB.Models` is the current convention (older repos used `DB.Schema`); see
+> [08 — Database](08-database.md).
 
 ### `satisfies` for return shapes
 
@@ -68,17 +71,35 @@ const items = [{ label: "Home", icon: "i-lucide-home", to: "/" }] satisfies Navi
 
 ### Zod schemas with paired `z.infer` types
 
-Every Zod schema has a co-exported type. Models live in a `namespace <ResourceModel>.<Operation>`
-with `Body` / `Response` / `Query` / `Params` exports:
+Every Zod schema has a co-exported type. Models live in a namespace with `Body` / `Response` /
+`Query` / `Params` exports. Two shapes are used in the ecosystem — **pick by depth**:
 
-```ts
-export namespace AuthModel.Login {
-	export const Body = z.object({ username: z.string(), password: z.string() });
-	export type Body = z.infer<typeof Body>;
-	export const Response = createSelectSchema(DB.Schema.sessions).omit({ id: true, hashed_token: true }).extend({ token: z.string() });
-	export type Response = z.infer<typeof Response>;
-}
-```
+- **Nested** — one top-level `<Resource>Model` namespace with a nested namespace per operation. Use
+  this for small, tightly-grouped schemas (one level of nesting):
+  ```ts
+  export namespace UsersPublicModel {
+  	export namespace Search {
+  		export const Query = z.object({ q: z.string().min(2), limit: z.coerce.number().int().default(10) });
+  		export type Query = z.infer<typeof Query>;
+  		export const Response = z.array(SafeUser);
+  		export type Response = z.infer<typeof Response>;
+  	}
+  }
+  ```
+- **Dotted** — a top-level namespace *name* with a dot per operation: `namespace AuthModel.Login`.
+  Use this when nesting would go **two or more levels deep**, or when operations are read
+  independently — the flat dotted name reads better than `AuthModel.Operation.Sub`:
+  ```ts
+  export namespace AuthModel.Login {
+  	export const Body = z.object({ username: z.string(), password: z.string() });
+  	export type Body = z.infer<typeof Body>;
+  	export const Response = createSelectSchema(DB.Tables.sessions).omit({ id: true, hashed_token: true }).extend({ token: z.string() });
+  	export type Response = z.infer<typeof Response>;
+  }
+  ```
+
+Both pair every schema with `export type X = z.infer<typeof X>`. Don't mix the two inside one
+`model.ts`.
 
 ### Discriminated unions
 

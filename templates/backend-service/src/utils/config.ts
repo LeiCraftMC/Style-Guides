@@ -83,7 +83,9 @@ const schema = new ConfigSchema()
 	.add("SVC_API_PORT", false)
 	.add("SVC_API_DISABLE_DOCS", false, [true, false])
 	.add("SVC_DB_PATH", false)
-	.add("SVC_DB_AUTO_MIGRATE", false, [true, false]);
+	.add("SVC_DB_AUTO_MIGRATE", false, [true, false])
+	.add("SVC_APP_URL", false)
+	.add("SVC_CONFIG_BASE_DIR", false);
 
 export type ParsedConfig = ConfigLike<typeof schema.schema>;
 

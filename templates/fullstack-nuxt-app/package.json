@@ -10,7 +10,7 @@
 		"generate": "nuxt generate",
 		"preview": "nuxt preview",
 		"postinstall": "nuxt prepare",
-		"api-client:generate": "openapi-ts",
+		"api-client:generate": "openapi-ts && bun scripts/patch-api-client.ts",
 		"db:generate": "bun scripts/db-utils.ts && bunx --bun drizzle-kit generate --config=drizzle.config.ts",
 		"db:migrate": "bun scripts/db-utils.ts && bunx --bun drizzle-kit migrate --config=drizzle.config.ts",
 		"db:push": "bun scripts/db-utils.ts && bunx --bun drizzle-kit push --config=drizzle.config.ts",

@@ -11,8 +11,11 @@ https://github.com/LeiCraftMC/Style-Guides.
 ## Non-negotiable
 
 - Nuxt 4 `app/` srcDir.
-- Tailwind v4 CSS-first; no `tailwind.config.js`.
+- Tailwind v4 CSS-first; no `tailwind.config.js`. Dark-only (no toggle).
 - `nitro: { preset: "static" }`.
+- No `useAPI` / `api-client/` / `auth.global.ts` / `AbstractStore` — this shape has no backend.
+- Use the `usePageSeo` composable for per-page SEO (+ JSON-LD), not inlined `useSeoMeta`.
+- `@tailwindcss/typography` for prose content; static data in `app/data/`.
 - Lucide icons only (`i-lucide-*`).
 - Format with Biome before finishing.
 - Conventional Commits.

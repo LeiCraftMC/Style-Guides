@@ -15,6 +15,9 @@ export default defineNuxtConfig({
 		preset: "bun",
 		// Keep the native SQLite binding out of the bundle.
 		rollupConfig: { external: ["bun:sqlite"] },
+		// Optional: enable WebSocket for realtime routes under server/routes/ws/.
+		// See docs/04-backend-hono.md#realtime-websocket. Remove if unused.
+		experimental: { websocket: true },
 	},
 	runtimeConfig: {
 		public: {

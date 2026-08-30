@@ -1,6 +1,6 @@
 # 01 — Project structure
 
-There are five project shapes in the ecosystem. Use the matching
+There are six project shapes in the ecosystem. Use the matching
 [`templates/`](../templates/) as your starting point so the layout is correct from day one.
 
 ## Backend service (Hono + Zod + OpenAPI + Drizzle)
@@ -61,6 +61,38 @@ my-app/
 The Nuxt 4 `app/` srcDir is mandatory. API access goes through `useAPI` (never raw `$fetch`); state
 through `AbstractStore` over `useState`. This shape has **no `server/`** — the frontend talks to a
 separate backend service over HTTP. See [06](06-frontend-nuxt.md) and [07](07-state-and-data.md).
+
+## Split-repo (backend + frontend in separate repos)
+
+When the backend and frontend are owned and deployed independently, keep them in **two repos** — a
+backend service + a Nuxt app — and let the backend's OpenAPI spec be the contract between them.
+Delivr (`Delivr-API` + `Delivr-Web`) and LeiOS (`API-Server` + `Hub-Website`) use this shape.
+
+```
+my-org/
+├── my-service-api/        # the Backend service shape (above)
+│   └── … exposes /docs/v1/openapi
+└── my-service-web/        # the Nuxt app shape (above)
+    ├── openapi-ts.config.ts   # input: http://localhost:<BACKEND_PORT>/docs/v1/openapi
+    └── example.env            # NUXT_PUBLIC_API_URL=http://localhost:<BACKEND_PORT>
+```
+
+Rules:
+
+- The frontend `openapi-ts.config.ts` `input` points at the backend's `/docs/v1/openapi` (a live URL
+  in dev, or a committed `openapi.json` snapshot for reproducible generation). The
+  `api-client:generate` script may boot a throwaway API instance on **port + 1** to fetch it.
+- `NUXT_PUBLIC_API_URL` env configures the backend origin; `updateAPIClient` sets `baseURL` from it.
+- The backend enables **CORS** with `credentials: true` (cookie-bearing requests) and an explicit
+  `origin` allowlist; max age 600 for the preflight cache.
+- Each repo has its own `AGENTS.md` / `CLAUDE.md` pointing at this guide plus repo-specific notes.
+  The backend owns the Zod schemas and the envelope; the frontend consumes the generated SDK.
+- Bump the contract deliberately: change a backend route + schema, regenerate the client, commit the
+  regenerated `app/api-client/*.gen.ts` in the frontend repo.
+
+The existing `templates/nuxt-app` already targets a separate backend (port 12500), so a split-repo
+project is just `backend-service` + `nuxt-app` side by side. See
+[17 — Decisions › Split-repo and full-stack Nuxt are both first-class](17-decisions.md#13-split-repo-and-full-stack-nuxt-are-both-first-class).
 
 ## Full-stack Nuxt app (Nuxt + Hono in `server/`)
 

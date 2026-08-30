@@ -38,9 +38,13 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
-EXPOSE 3000
+EXPOSE <PORT>
 CMD ["bun", "run", "dist/index.js"]
 ```
+
+Use the project's 12xxx port, never `3000` (see [02 — Ports](02-tooling.md#ports--one-unique-port-per-app-dev--prod)).
+Sign every published image tag with **cosign** (`cosign sign --yes <tag>@<digest>`); pre-releases
+skip the `:latest` tag.
 
 ## Nuxt apps
 
@@ -56,7 +60,7 @@ Build and start:
 
 ```bash
 bun run build
-bun run .output/server/index.mjs --port 3000
+bun run .output/server/index.mjs --port <PORT>
 ```
 
 In production, run behind a reverse proxy (Nginx/Caddy/Traefik) that terminates TLS.
@@ -68,12 +72,28 @@ The full-stack Nuxt shape deploys as a **single** Nuxt app — the Hono backend 
 
 ```bash
 bun run build
-bun run .output/server/index.mjs --port 3000
+bun run .output/server/index.mjs --port <PORT>
 ```
 
 `/api/*` is served by Hono (via the catch-all Nitro route); everything else by Nuxt. Make sure
 `nuxt.config.ts` keeps `nitro.rollupConfig.external: ["bun:sqlite"]` so the native SQLite binding
 isn't bundled, and mount the database on a persistent volume.
+
+### Dual-target (Bun + Cloudflare Pages)
+
+When the same full-stack app ships to both Bun and Cloudflare Pages/D1 (Status-Page), provide two
+build scripts and let the deploy pipeline pick one:
+
+```json
+{
+  "build:bun": "nuxt build --preset=bun",
+  "build:cf": "nuxt build --preset=cloudflare_pages"
+}
+```
+
+Keep `nitro.rollupConfig.external: ["bun:sqlite", "cloudflare:sockets"]`, branch `DB.init` on
+`Runtime.isBun`, and maintain three drizzle-kit configs — see
+[08 — Dual-target runtime](08-database.md#dual-target-runtime-bun--cloudflared1).
 
 ## Static sites
 
@@ -118,7 +138,7 @@ git push origin v1.2.3
 
 - Pass config as environment variables in the container/systemd unit, not baked into the image.
 - Mount the SQLite database path or use a persistent volume.
-- Set `EXAMPLE_DB_AUTO_MIGRATE=true` only on one startup path to avoid migration races in a
+- Set `<PREFIX>_DB_AUTO_MIGRATE=true` only on one startup path to avoid migration races in a
   multi-replica setup; otherwise run migrations as a separate init job.
 
 ## Health checks
@@ -134,7 +154,9 @@ Use this in load balancer / container health checks.
 ## Checklist
 
 - [ ] Backend service has a production Dockerfile or compile + copy step.
+- [ ] Published Docker images are cosign-signed; `:latest` only on final releases.
 - [ ] Nuxt app uses `nitro: { preset: "bun" }`.
+- [ ] Dual-target app has `build:bun` + `build:cf` and branches `DB.init` on `Runtime.isBun`.
 - [ ] Static site uses `nitro: { preset: "static" }` and deploys `.output/public/`.
 - [ ] CLI releases binaries via GitHub Releases on `v*` tags.
 - [ ] Config is injected at runtime via env vars.

@@ -23,15 +23,21 @@ export default defineNuxtConfig({
 generated API client (see [05](05-api-contract.md)). Lucide icons come from `@iconify-json/lucide`
 (devDependency) and are used as `i-lucide-*`.
 
-Entry layout in `app/app.vue`:
+Entry layout in `app/app.vue` — `<NuxtRouteAnnouncer />` for a11y, then `<UApp>` wrapping the
+layout and page:
 
 ```vue
 <template>
+  <NuxtRouteAnnouncer />
   <UApp>
-    <NuxtLayout />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </UApp>
 </template>
 ```
+
+(Some apps also put a `<NuxtLoadingIndicator color="#<primary>" />` inside `<UApp>`; optional.)
 
 `app/error.vue` uses NuxtUI's error component:
 
@@ -76,7 +82,6 @@ Reference it in `nuxt.config.ts`:
 export default defineNuxtConfig({
 	css: ["~/assets/css/main.css"],
 	modules: ["@nuxt/ui"],
-	ui: { colorMode: true },
 	// ...
 });
 ```
@@ -115,12 +120,16 @@ Put the API URL and app URL in `runtimeConfig.public` so they are available on s
 export default defineNuxtConfig({
 	runtimeConfig: {
 		public: {
-			apiUrl: process.env.NUXT_PUBLIC_API_URL || "http://localhost:3000",
-			appUrl: process.env.NUXT_PUBLIC_APP_URL || "http://localhost:3001",
+			apiUrl: process.env.NUXT_PUBLIC_API_URL || "http://localhost:<BACKEND_PORT>",
+			appUrl: process.env.NUXT_PUBLIC_APP_URL || "http://localhost:<PORT>",
 		},
 	},
 });
 ```
+
+Use the project's own 12xxx ports — never `3000` (see [02 — Ports](02-tooling.md#ports--one-unique-port-per-app-dev--prod)).
+For the full-stack shape, `apiUrl` is omitted (same origin) and `updateAPIClient` sets `baseURL` to
+`<appUrl>/api/v1`.
 
 Access them via [`shared/frontend/useRuntimeAppConfigs.ts`](../shared/frontend/useRuntimeAppConfigs.ts):
 
@@ -245,6 +254,32 @@ useSeoMeta({
 	description: "Deploy, manage, and scale game servers from one dashboard.",
 });
 ```
+
+## Static content sites
+
+Marketing, legal, and portfolio sites (Website, Legal-Website, Personal-Website) are a different
+breed: **no API, no auth, no stores, no `useAPI`, no `api-client/`**. The rules above that depend on
+a backend simply don't apply. What they do share:
+
+- **Stack:** Nuxt 4 + NuxtUI v4 + Tailwind v4, same `app/` srcDir, same `app.config.ts`
+  (`primary`/`neutral`/`radius`/`blackAsPrimary`), same dark-only `main.css`. `nitro.preset: "static"`.
+- **Prose:** content-heavy sites add `@tailwindcss/typography` via `@plugin` in `main.css` (after
+  `@import "tailwindcss";`, before `@import "@nuxt/ui";`) and render legal/blog text with
+  `prose prose-invert max-w-none`.
+- **SEO:** prefer a shared `usePageSeo` composable (see
+  [`shared/frontend/usePageSeo.ts`](../shared/frontend/usePageSeo.ts)) over per-page inlined
+  `useSeoMeta`. It wraps `useSeoMeta` + a canonical `useHead` link + optional JSON-LD
+  (`SoftwareApplication`, `Person`, `BreadcrumbList`, …). Per-page inlining works but drifts.
+- **Static data:** typed content that isn't worth a backend lives in `app/data/<thing>.ts` as
+  exported interfaces + arrays + a `getById` helper, consumed via `computed`. (Personal-Website's
+  `app/data/projects.ts` is the reference.)
+- **Layout:** `UHeader` (`#title` logo NuxtLink, `UNavigationMenu :items`, `#body` vertical mobile
+  menu, `#right` social `UButton`s) + `UMain`/`UContainer` + `UFooter`/`UFooterColumns`. See the
+  public-site idiom in [15 — Design system](15-design-system.md).
+- **`@nuxtjs/sitemap` + `@nuxtjs/robots`** for SEO infra on larger sites.
+
+A static site may grow into a dynamic one; when it does, add `useAPI` + `api-client/` + `auth.global`
+then — don't scaffold them up front.
 
 ## Checklist
 
