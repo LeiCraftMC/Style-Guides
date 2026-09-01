@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { prettyJSON } from "hono/pretty-json";
+import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { openAPIRouteHandler } from "hono-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
 import { APIv1Router } from "./versions/v1";
 import { Logger } from "../utils/logger";
 import { type APIVersionRouter } from "../utils/api-version-router";
-import { ConfigHandler } from "../utils/config";
 
 export class API {
 	static app: Hono;
@@ -30,9 +30,25 @@ export class API {
 		}
 	}
 
-	static async init(port: number) {
+	/**
+	 * Build the Hono app: prettyJSON, CORS (allow the frontend origins), error handler,
+	 * versioned routes, docs, /health, and a `/` redirect to the latest docs. Does NOT
+	 * call Bun.serve — call `start(port, hostname)` for that.
+	 */
+	static async init(frontendUrls: string[] = [], disableDocs = false) {
 		this.app = new Hono();
 		this.app.use(prettyJSON());
+
+		this.app.use(
+			"*",
+			cors({
+				origin: frontendUrls,
+				allowHeaders: ["Content-Type", "Authorization"],
+				allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+				maxAge: 600,
+				credentials: true,
+			}),
+		);
 
 		this.app.onError((err, c) => {
 			if (err instanceof HTTPException) {
@@ -42,19 +58,40 @@ export class API {
 			return c.json({ success: false, code: 500, message: "Internal Server Error" }, 500);
 		});
 
-		const disableDocs = ConfigHandler.getConfig().API_DISABLE_DOCS === true;
 		this.registerVersion(new APIv1Router(), disableDocs);
 
 		this.app.get("/health", (c) =>
 			c.json({ success: true, code: 200, message: "healthy", data: null }),
 		);
 
-		this.server = Bun.serve({ port, fetch: this.app.fetch });
-		Logger.log(`API listening on http://localhost:${port}`);
+		if (!disableDocs) {
+			this.app.get("/", (c) => c.redirect(`/docs/v${this.latestVersion}`));
+		} else {
+			this.app.get("/", (c) =>
+				c.json({
+					success: true,
+					code: 200,
+					message: "API is running. Documentation is disabled.",
+					data: null,
+				}),
+			);
+		}
+	}
+
+	/** Start Bun.serve on `port`/`hostname` (default `::` for IPv6). */
+	static async start(port: number, hostname = "::") {
+		if (!this.app) await this.init();
+		this.server = Bun.serve({ port, hostname, fetch: this.app.fetch });
+		Logger.log(`API listening on http://${hostname}:${port}`);
 	}
 
 	static async stop() {
 		this.server?.stop(true);
 		this.server = null;
+	}
+
+	static getApp(): Hono {
+		if (!this.app) throw new Error("API not initialized. Call API.init() first.");
+		return this.app;
 	}
 }

@@ -1,11 +1,41 @@
-node_modules/
-.env
-.output/
+# Node
+node_modules
+
+# Build / compile output
 build/
-dist/
+out
+dist
+*.tgz
+
+# Drizzle artifacts
+.drizzle
+
+# Coverage
+coverage
+*.lcov
+
+# Logs
+logs
 *.log
-.drizzle/
-coverage/
-.idea/
-.vscode/settings.json
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Backend data & config (keep examples)
+data/
+config/*
+!config/*.example.json
+testdata/
+tmp*
+
+# TypeScript
+*.tsbuildinfo
+
+# Editor / OS
 .DS_Store
+.fleet
+.idea
+.vscode/*
+!.vscode/mcp.json

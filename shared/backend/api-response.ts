@@ -150,18 +150,4 @@ export namespace APIResponse.Types {
 		| ReturnType<typeof APIResponse.notFound>
 		| ReturnType<typeof APIResponse.conflict>
 		| ReturnType<typeof APIResponse.tooManyRequests>;
-
-	/** A Hono `Response` produced by any `APIResponse.*` helper. Used by helpers that
-	 *  return either a response or a narrowed value (e.g. `AuthHandler.requireSession`). */
-	export type Returnable =
-		| ReturnType<typeof APIResponse.serverError>
-		| ReturnType<typeof APIResponse.unauthorized>
-		| ReturnType<typeof APIResponse.forbidden>
-		| ReturnType<typeof APIResponse.badRequest>
-		| ReturnType<typeof APIResponse.notFound>
-		| ReturnType<typeof APIResponse.conflict>
-		| ReturnType<typeof APIResponse.tooManyRequests>
-		| ReturnType<typeof APIResponse.success>
-		| ReturnType<typeof APIResponse.created>
-		| ReturnType<typeof APIResponse.accepted>;
 }

@@ -42,7 +42,7 @@ export namespace Runtime {
 
 		/** Verify a secret against a hash produced by `hash()`. */
 		export async function verify(hash: string, secret: string): Promise<boolean> {
-			if (Runtime.isBun) return Bun.password.verify(hash, secret);
+			if (Runtime.isBun) return Bun.password.verify(secret, hash);
 			const parts = hash.split("$");
 			const scheme = parts[0];
 			const iterStr = parts[1];

@@ -99,14 +99,14 @@ export class AuthHandler {
 				await AuthHandler.deleteSession(row.id);
 				return { type: "unauthenticated" };
 			}
-			if (!(await Bun.password.verify(row.hashed_token, parsed.base))) {
+			if (!(await Bun.password.verify(parsed.base, row.hashed_token))) {
 				return { type: "unauthenticated" };
 			}
 			return { type: "session", sessionId: row.id, userId: row.user_id, role: row.user_role };
 		}
 		const row = await AuthHandler.lookupAPIKeyRow(parsed.id);
 		if (!row) return { type: "unauthenticated" };
-		if (!(await Bun.password.verify(row.hashed_token, parsed.base))) {
+		if (!(await Bun.password.verify(parsed.base, row.hashed_token))) {
 			return { type: "unauthenticated" };
 		}
 		return { type: "apiKey", keyId: row.id, permissions: row.permissions };
@@ -129,14 +129,14 @@ export class AuthHandler {
 	});
 
 	/** Narrow to a session context or return a 401 response. */
-	static requireSession(c: Context): APIResponse.Types.Returnable | AuthHandler.SessionContext {
+	static requireSession(c: Context): Response | AuthHandler.SessionContext {
 		const ctx = c.get("authContext") as AuthHandler.AuthContext;
 		if (ctx.type !== "session") return APIResponse.unauthorized(c, "Session required");
 		return ctx;
 	}
 
 	/** Narrow to an admin session or return a 401/403 response. */
-	static requireAdmin(c: Context): APIResponse.Types.Returnable | AuthHandler.SessionContext {
+	static requireAdmin(c: Context): Response | AuthHandler.SessionContext {
 		const ctx = c.get("authContext") as AuthHandler.AuthContext;
 		if (ctx.type !== "session") return APIResponse.unauthorized(c, "Session required");
 		if (ctx.role !== "admin") return APIResponse.forbidden(c, "Admin access required");

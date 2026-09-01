@@ -44,7 +44,7 @@ into static classes — `AuthHandler` (dispatch + context), `SessionHandler`, `A
 Responsibilities:
 
 - Parse `Authorization: Bearer <token>`, split `<prefix><id>:<base>`, dispatch by prefix.
-- Look up the row by `id`, verify `base` with `Bun.password.verify(row.hashed_base, base)`.
+- Look up the row by `id`, verify `base` with `Bun.password.verify(base, row.hashed_base)`.
 - For sessions: delete the row if `expires_at` has passed, else return the context.
 - Provide `authMiddlewareV1` (a `createMiddleware`) that attaches `c.set("authContext", ctx)`.
 - Provide `requireSession(c)` / `requireAdmin(c)` helpers that return a 401/403 response or the

@@ -2,11 +2,11 @@ services:
   api:
     build: .
     ports:
-      - "3000:3000"
+      - "12500:12500"
     environment:
       SVC_LOG_LEVEL: info
-      SVC_API_HOST: 0.0.0.0
-      SVC_API_PORT: 3000
+      SVC_API_HOST: "::"
+      SVC_API_PORT: "12500"
       SVC_DB_PATH: /data/db.sqlite
       SVC_DB_AUTO_MIGRATE: "true"
     volumes:

@@ -1,28 +1,29 @@
+/**
+ * Standalone script that generates the OpenAPI TypeScript client.
+ *
+ * 1. Builds the Hono app via API.init() and serves it on a fixed port.
+ * 2. Runs openapi-ts (reads openapi-ts.config.ts → fetches the live spec → generates app/api-client/).
+ * 3. Patches known generator typing bugs via scripts/patch-api-client.ts.
+ * 4. Stops the server (always, even on failure).
+ *
+ * The spec is served from the raw Hono app — no /api prefix (that is only applied when
+ * Hono is mounted inside Nitro), so openapi-ts.config.ts reads /docs/v1/openapi.
+ */
 import { API } from "../server/lib/api";
-import { existsSync, mkdirSync, rmSync } from "fs";
 
-if (!existsSync("./data/")) {
-	mkdirSync("./data/");
-}
+const PORT = 12520;
+const HOST = "127.0.0.1";
+
+await API.init();
+const apiServer = Bun.serve({ port: PORT, hostname: HOST, fetch: API.getApp().fetch });
 
 try {
-
-	await API.init(false);
-
-	const res = await API.getApp().request("/docs/v1/openapi");
-	if (!res.ok) {
-		console.error(`Failed to generate OpenAPI spec: HTTP ${res.status}`);
-		process.exit(1);
-	}
-
-	Bun.write("./data/temp-api-openapi.json", res);
-
+	console.log(`[api-client-generate] Server running at ${HOST}:${PORT}, generating client…`);
 	await Bun.$`bunx openapi-ts`;
-
-	rmSync("./data/temp-api-openapi.json", { force: true });
-
-} catch (err: any) {
-	console.error("[api-client-generate] Failed to generate OpenAPI spec:", err);
-	rmSync("./data/temp-api-openapi.json", { force: true });
-	process.exit(1);
+	console.log("[api-client-generate] openapi-ts succeeded, patching generated client…");
+	await Bun.$`bun scripts/patch-api-client.ts`;
+	console.log("[api-client-generate] Patch applied successfully.");
+} finally {
+	apiServer.stop();
+	console.log("[api-client-generate] Server stopped.");
 }

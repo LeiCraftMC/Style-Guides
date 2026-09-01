@@ -25,7 +25,14 @@ export class Main {
 			config.SVC_DB_AUTO_MIGRATE ?? true,
 			config.SVC_CONFIG_BASE_DIR ?? "./data",
 		);
-		await API.init(Number(config.SVC_API_PORT ?? 12500));
+
+		// CORS: allow the frontend origin(s) (comma-separated in SVC_APP_URL).
+		const frontendUrls = config.SVC_APP_URL
+			? config.SVC_APP_URL.split(",").map((u) => u.trim()).filter(Boolean)
+			: [];
+
+		await API.init(frontendUrls, config.SVC_API_DISABLE_DOCS === true);
+		await API.start(Number(config.SVC_API_PORT ?? 12500), config.SVC_API_HOST ?? "::");
 	}
 }
 
