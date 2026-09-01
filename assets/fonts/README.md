@@ -2,42 +2,30 @@
 
 ## Primary: Rubik
 
-Rubik is the default sans-serif font across LeiCraftMC apps and sites. Load it in one of these ways:
+Rubik is the default sans-serif font across LeiCraftMC apps and sites.
 
-1. **Self-host the variable font** in `public/fonts/rubik-var.woff2` and declare it in
-   `app/assets/css/main.css`:
+Every Nuxt template uses `@nuxt/ui`, which **registers `@nuxt/fonts` automatically** (`fonts: true`
+by default — no need to add it to `modules`). `@nuxt/fonts` scans `--font-*` CSS variables by
+default, so declaring the family in `app/assets/css/main.css` is all that's required:
 
-   ```css
-   @font-face {
-     font-family: "Rubik";
-     src: url("/fonts/rubik-var.woff2") format("woff2-variations");
-     font-weight: 300 900;
-     font-style: normal;
-     font-display: swap;
-   }
-   ```
+```css
+@import "tailwindcss";
+@import "@nuxt/ui";
 
-2. **Google Fonts** via `nuxt.config.ts` `app.head.link` (only if self-hosting is impractical):
+@theme {
+  --font-sans: "Rubik", sans-serif;
+}
+```
 
-   ```ts
-   app: {
-     head: {
-       link: [
-         { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap" },
-       ],
-     },
-   },
-   ```
+`@nuxt/fonts` resolves the family, downloads it from the default provider, and **self-hosts it
+locally** — no manual `@font-face`, no Google Fonts `<link>`, and no `processCSSVariables` toggle
+needed (not since @nuxt/fonts v0.11). Per-family overrides (provider, weights, subsets) go under
+the `fonts` key in `nuxt.config.ts` if a project ever needs them.
 
 ## Fallback
 
-Always include a system sans fallback:
-
-```css
-@theme {
-  --font-sans: "Rubik", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-```
+A system sans fallback is included via the `sans-serif` keyword above. `@nuxt/fonts` also injects
+automatic font-metric fallbacks (fontaine/capsize), so layout shift is minimized out of the box.
 
 ## Monospace
 

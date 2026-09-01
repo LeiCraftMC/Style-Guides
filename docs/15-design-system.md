@@ -7,13 +7,14 @@ Brand assets live in [`assets/`](../assets/):
 ```
 assets/
   logos/
-    lcms-logo.svg          # LeiCraftMC pixel-art logo
-    lcms-logo-mark.svg     # icon-only mark
-    lcms-wordmark.svg      # text-only wordmark
+    lcms-logo-mark.svg     # LeiCraftMC org mark — 8×8 pixel "LC" (the favicon base)
+    leios-logo.svg         # LeiOS — LC mark + "LeiOS" wordmark (primary: sky)
+    mindcode-logo.svg      # MindCode — braces-asterisk glyph + wordmark (primary: orange)
+    nowip-logo.svg         # NowIP — globe glyph + "NowIP" wordmark (primary: emerald)
   colors/
     palette.md             # hex values
   fonts/
-    rubik/                 # primary sans (variable if available)
+    README.md              # Rubik (primary sans); loaded automatically via @nuxt/fonts
 ```
 
 Use the official assets in apps and sites. Do not recreate the logo with a different font or shape.
@@ -48,8 +49,9 @@ Default sans font is **Rubik**. Declare it in `app/assets/css/main.css`:
 }
 ```
 
-Load the font via `nuxt.config.ts` `app.head.link` or self-host the variable font in
-`public/fonts/`.
+That's the whole setup. Every Nuxt template uses `@nuxt/ui`, which registers `@nuxt/fonts`
+automatically; `@nuxt/fonts` scans `--font-*` CSS variables by default, resolves the family, and
+self-hosts it locally — no manual `@font-face` or Google Fonts `<link>` required.
 
 ## NuxtUI configuration
 

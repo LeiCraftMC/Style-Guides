@@ -1,4 +1,4 @@
-# LeiCraftMC color palette
+# LeiCraft_MC color palette
 
 ## Neutral / background
 
@@ -15,13 +15,13 @@
 
 | Project | Tailwind | Hex | Usage |
 | --- | --- | --- | --- |
-| LeiOS, Delivr, LeiCraftMC sites | `sky` | `#0ea5e9` | CTAs, active states, links |
+| LeiOS, Delivr, LeiCraft_MC sites | `sky` | `#0ea5e9` | CTAs, active states, links |
 | NowIP | `emerald` | `#10b981` | CTAs, active states, links |
 | MindCode | `orange` | `#f97316` | CTAs, active states, links |
 
 ## Mark color
 
-The LeiCraftMC mark uses `sky-400` (`#38bdf8`) by default. Project logos replace this with the
+The LeiCraft_MC mark uses `sky-400` (`#38bdf8`) by default. Project logos replace this with the
 project primary.
 
 ## Usage

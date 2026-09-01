@@ -5,7 +5,7 @@ than recreating logos or picking arbitrary colors.
 
 ## Contents
 
-- [`logos/`](logos/) — SVG logo, mark, and wordmark.
+- [`logos/`](logos/) — LeiCraftMC org mark plus per-project SVG logos (LeiOS, MindCode, NowIP).
 - [`colors/`](colors/) — color palette and usage guidance.
 - [`fonts/`](fonts/) — Rubik (primary sans) and notes on self-hosting.
 
