@@ -8,6 +8,10 @@
 		"my-cli": "./src/index.ts"
 	},
 	"scripts": {
+		"check": "bunx --bun biome check",
+		"check:ci": "bunx --bun biome ci",
+		"format": "bunx --bun biome format --write",
+		"lint": "bunx --bun biome lint",
 		"clean": "rm -rf node_modules build .output",
 		"typecheck": "tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 		"test": "bun test",

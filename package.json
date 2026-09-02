@@ -5,9 +5,10 @@
 	"type": "module",
 	"description": "Style guide, shared utilities, brand assets, and project templates for the LeiCraftMC ecosystem (LeiOS, Delivr, NowIP, Vault, NetIgnite, ...).",
 	"scripts": {
-		"check": "biome check",
-		"format": "biome format --write",
-		"lint": "biome lint",
+		"check": "bunx --bun biome check",
+		"check:ci": "bunx --bun biome ci",
+		"format": "bunx --bun biome format --write",
+		"lint": "bunx --bun biome lint",
 		"typecheck": "tsc -p ./tsconfig.json && echo 'Typecheck passed!'",
 		"test": "bun test --path-ignore-patterns=\"templates/**\" --pass-with-no-tests"
 	},

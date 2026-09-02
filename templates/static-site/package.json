@@ -4,6 +4,10 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"check": "bunx --bun biome check",
+		"check:ci": "bunx --bun biome ci",
+		"format": "bunx --bun biome format --write",
+		"lint": "bunx --bun biome lint",
 		"build": "nuxt build",
 		"dev": "nuxt dev --port 12530",
 		"generate": "nuxt generate",
