@@ -1,14 +1,22 @@
 # Node
 node_modules
 
-# Build / compile output
+# Dev / Build / compile output
+.output
+.data
+.nuxt
+.nitro
+.cache
 build/
-out
-dist
+out/
+dist/
 *.tgz
 
 # Drizzle artifacts
 .drizzle
+
+# TypeScript
+*.tsbuildinfo
 
 # Coverage
 coverage
@@ -17,25 +25,24 @@ coverage
 # Logs
 logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.DS_Store
+.fleet
+.idea
 
 # Environment
 .env
 .env.*
 !.env.example
 
+#Tests
+tmp-data-*
+
 # Backend data & config (keep examples)
 data/
 config/*
-!config/*.example.json
-testdata/
-tmp*
-
-# TypeScript
-*.tsbuildinfo
-
-# Editor / OS
-.DS_Store
-.fleet
-.idea
-.vscode/*
-!.vscode/mcp.json
+!config/*.example.json  

@@ -1,25 +1,24 @@
 {
 	"name": "@leicraftmc/backend-service-template",
-	"version": "0.1.0",
 	"private": true,
 	"type": "module",
+	"description": "LeiCraft_MC Backend Service Template",
 	"scripts": {
 		"check": "bunx --bun biome check",
 		"check:ci": "bunx --bun biome ci",
 		"format": "bunx --bun biome format --write",
 		"lint": "bunx --bun biome lint",
-		"typecheck": "tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
+		"typecheck": "bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 		"test": "bun test",
+		"db:generate": "bun scripts/db-utils && bunx --bun drizzle-kit generate --config=drizzle.config.ts",
+		"db:migrate": "bun scripts/db-utils && bunx --bun drizzle-kit migrate --config=drizzle.config.ts",
 		"dev": "bun run --watch src/index.ts",
 		"start": "bun run scripts/entrypoint.ts",
-		"compile": "bun run ./scripts/compile",
-		"db:generate": "bun scripts/db-utils.ts && bunx --bun drizzle-kit generate --config=drizzle.config.ts",
-		"db:migrate": "bun scripts/db-utils.ts && bunx --bun drizzle-kit migrate --config=drizzle.config.ts",
-		"db:push": "bun scripts/db-utils.ts && bunx --bun drizzle-kit push --config=drizzle.config.ts"
+		"compile": "bun run ./scripts/compile"
 	},
 	"dependencies": {
-		"@cleverjs/utils": "^1.1.9",
-		"@hono/standard-validator": "^0.2.2",
+		"@cleverjs/utils": "^1.2.5",
+		"@hono/standard-validator": "^0.3.0",
 		"@scalar/hono-api-reference": "^0.11.9",
 		"drizzle-orm": "^0.45.2",
 		"drizzle-zod": "^0.8.3",
@@ -30,8 +29,9 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.0",
 		"@cleverjs/cli": "^2.4.0",
-		"@types/bun": "^1.3.14",
+		"@libsql/client": "^0.17.4",
 		"drizzle-kit": "^0.31.10",
+		"bun-types": "^1.3.14",
 		"typescript": "^6.0.3"
 	},
 	"peerDependencies": {
