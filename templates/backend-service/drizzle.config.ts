@@ -9,5 +9,5 @@ export default defineConfig({
 		url: process.env.APPPREFIX_DB_PATH || "./data/db.sqlite",
 	},
 	verbose: true,
-    strict: true
+	strict: true,
 });

@@ -52,7 +52,10 @@ export class API {
 
 		this.app.onError((err, c) => {
 			if (err instanceof HTTPException) {
-				return c.json({ success: false, code: err.status, message: "Your input is invalid" }, err.status);
+				return c.json(
+					{ success: false, code: err.status, message: "Your input is invalid" },
+					err.status,
+				);
 			}
 			Logger.error("Unhandled error:", err);
 			return c.json({ success: false, code: 500, message: "Internal Server Error" }, 500);

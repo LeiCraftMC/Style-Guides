@@ -31,10 +31,9 @@ const DUMMY_HASH = "$2b$10$O0.00000000000000000000000000000000000000000000000";
 export namespace AuthUtils {
 	/** 32 random bytes as 64-char hex. */
 	export function randomTokenPart(): string {
-		return crypto.getRandomValues(new Uint8Array(32)).reduce(
-			(hex, b) => hex + b.toString(16).padStart(2, "0"),
-			"",
-		);
+		return crypto
+			.getRandomValues(new Uint8Array(32))
+			.reduce((hex, b) => hex + b.toString(16).padStart(2, "0"), "");
 	}
 
 	/** Build `<prefix><kind>_<id>:<base>` and the hash to persist for `base`. */
@@ -141,9 +140,13 @@ export class AuthHandler {
 	}
 
 	// --- project-specific stubs ------------------------------------------------
-	private static async lookupSessionRow(
-		_id: string,
-	): Promise<{ id: string; user_id: number; user_role: string; hashed_token: string; expires_at: number } | null> {
+	private static async lookupSessionRow(_id: string): Promise<{
+		id: string;
+		user_id: number;
+		user_role: string;
+		hashed_token: string;
+		expires_at: number;
+	} | null> {
 		// const row = await DB.instance().select().from(DB.Tables.sessions).where(eq(DB.Tables.sessions.id, _id)).get();
 		// return row ?? null;
 		return null;
@@ -179,7 +182,10 @@ export namespace AuthRateLimiter {
 		const entry = attempts.get(key);
 		if (entry && now - entry.firstAt < WINDOW_MS) {
 			if (entry.count >= MAX) {
-				return { allowed: false, retryAfter: Math.ceil((WINDOW_MS - (now - entry.firstAt)) / 1000) };
+				return {
+					allowed: false,
+					retryAfter: Math.ceil((WINDOW_MS - (now - entry.firstAt)) / 1000),
+				};
 			}
 			entry.count++;
 		} else {

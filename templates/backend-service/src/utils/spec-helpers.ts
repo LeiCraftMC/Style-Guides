@@ -22,7 +22,9 @@ export class APIRouteSpec {
 		return describeRoute(spec);
 	}
 
-	static authenticated(spec: APIResponseSpec.Types.DescribeRouteOptionsWithResponses): MiddlewareHandler {
+	static authenticated(
+		spec: APIResponseSpec.Types.DescribeRouteOptionsWithResponses,
+	): MiddlewareHandler {
 		return describeRoute({
 			...spec,
 			security: [{ bearerAuth: [] }],
@@ -40,9 +42,7 @@ export class APIRouteSpec {
 }
 
 export class APIResponseSpec {
-	static describeBasic<T extends APIResponseSpec.Types.BasicDescription[]>(
-		...responseSchemas: T
-	) {
+	static describeBasic<T extends APIResponseSpec.Types.BasicDescription[]>(...responseSchemas: T) {
 		return Object.assign({}, ...responseSchemas);
 	}
 
@@ -56,9 +56,10 @@ export class APIResponseSpec {
 		);
 	}
 
-	static success<
-		Data extends z.ZodType<APIResponse.Types.NonRequiredReturnData>,
-	>(description: string, dataSchema: Data) {
+	static success<Data extends z.ZodType<APIResponse.Types.NonRequiredReturnData>>(
+		description: string,
+		dataSchema: Data,
+	) {
 		return {
 			200: {
 				description,
@@ -75,9 +76,10 @@ export class APIResponseSpec {
 		return this.success(description, z.null());
 	}
 
-	static created<
-		Data extends z.ZodType<APIResponse.Types.NonRequiredReturnData>,
-	>(description: string, dataSchema: Data) {
+	static created<Data extends z.ZodType<APIResponse.Types.NonRequiredReturnData>>(
+		description: string,
+		dataSchema: Data,
+	) {
 		return {
 			201: {
 				description,
@@ -94,9 +96,10 @@ export class APIResponseSpec {
 		return this.created(description, z.null());
 	}
 
-	static accepted<
-		Data extends z.ZodType<APIResponse.Types.RequiredReturnData>,
-	>(description: string, dataSchema: Data) {
+	static accepted<Data extends z.ZodType<APIResponse.Types.RequiredReturnData>>(
+		description: string,
+		dataSchema: Data,
+	) {
 		return {
 			202: {
 				description,
@@ -130,9 +133,7 @@ export class APIResponseSpec {
 		};
 	}
 
-	static serverError(
-		message = "Internal Server Error: An unexpected error occurred on the server",
-	) {
+	static serverError(message = "Internal Server Error: An unexpected error occurred on the server") {
 		return this.genericError(500, message);
 	}
 

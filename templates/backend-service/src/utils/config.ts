@@ -6,11 +6,10 @@ interface ConfigSchemaSettings {
 }
 
 type ConfigLike<T extends ConfigSchemaSettings> = {
-    [K in keyof T]: z.infer<T[K]["_schema"]>;
-}
+	[K in keyof T]: z.infer<T[K]["_schema"]>;
+};
 
 class CS {
-
 	private constructor() {}
 
 	static string() {
@@ -30,20 +29,22 @@ class CS {
 	}
 
 	static array() {
-		return new CS.ConfigItem(z.string().transform<string[]>((val) => {
-			if (typeof val === "string") {
-				return val.split(",").map(v => v.trim()).filter(Boolean);
-			}
-			return [];
-		}));
+		return new CS.ConfigItem(
+			z.string().transform<string[]>((val) => {
+				if (typeof val === "string") {
+					return val
+						.split(",")
+						.map((v) => v.trim())
+						.filter(Boolean);
+				}
+				return [];
+			}),
+		);
 	}
-
 }
 
 namespace CS {
-
 	export class ConfigItem<const Schema extends z.ZodType> {
-
 		constructor(public _schema: Schema) {}
 
 		public parse(value: unknown) {
@@ -59,51 +60,41 @@ namespace CS {
 			this._schema = this._schema.optional() as any;
 			return this as any as ConfigItem<z.ZodOptional<Schema>>;
 		}
-
 	}
-
 }
 
 class ConfigSchema<T extends ConfigSchemaSettings> {
-
 	readonly schema: T;
 
 	constructor(schema: T) {
 		this.schema = schema;
 	}
 
-    public parse() {
-		
-        const result: ConfigLike<T> = {} as ConfigLike<T>;
+	public parse() {
+		const result: ConfigLike<T> = {} as ConfigLike<T>;
 
-        for (const [key, settings] of Object.entries(this.schema)) {
-            
-            const value = process.env[key];
+		for (const [key, settings] of Object.entries(this.schema)) {
+			const value = process.env[key];
 
 			const parseResult = settings.parse(value);
 			if (!parseResult.success) {
-				Logger.error(`Failed to read the environment variable ${key}: ${parseResult.error.issues[0]?.message}`);
+				Logger.error(
+					`Failed to read the environment variable ${key}: ${parseResult.error.issues[0]?.message}`,
+				);
 				process.exit(1);
 			}
 
-
-            (result[key] as any) = value;
-
-        }
-        return result;
-    }
-
+			(result[key] as any) = value;
+		}
+		return result;
+	}
 }
-
-
 
 // @ts-ignore
 export type ParsedConfig = ConfigLike<typeof ConfigHandler.schema.schema>;
 
 export class ConfigHandler {
-
-    private static schema = new ConfigSchema({
-
+	private static schema = new ConfigSchema({
 		APPPREFIX_LOG_LEVEL: CS.enum(["debug", "info", "warn", "error", "critical"]).default("info"),
 
 		APPPREFIX_API_HOST: CS.string().default("::"),
@@ -124,21 +115,18 @@ export class ConfigHandler {
 		APPPREFIX_SMTP_PASSWORD: CS.string().optional(),
 		APPPREFIX_SMTP_FROM: CS.string().optional(),
 		APPPREFIX_SMTP_SECURE: CS.boolean().optional(),
-		
 	});
 
+	private static config: ParsedConfig | null = null;
 
-    private static config: ParsedConfig | null = null;
+	/** You have to call {@link ConfigHandler.parseConfigFile} before trying to access the config. */
+	static getConfig() {
+		return this.config;
+	}
 
-    /** You have to call {@link ConfigHandler.parseConfigFile} before trying to access the config. */
-    static getConfig() {
-        return this.config;
-    }
-
-    static async loadConfig() {
-        if (this.config) return this.config;
-        this.config = this.schema.parse();
-        return this.config;
-    }
-
+	static async loadConfig() {
+		if (this.config) return this.config;
+		this.config = this.schema.parse();
+		return this.config;
+	}
 }

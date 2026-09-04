@@ -6,17 +6,16 @@ import { Logger } from "./utils/logger";
 import { Utils } from "./utils";
 import { EmailService } from "./api/utils/email";
 
+// biome-ignore format
 export class Main {
+	static async main() {
+		process.once("SIGINT", (type) => Main.gracefulShutdown(type, 0));
+		process.once("SIGTERM", (type) => Main.gracefulShutdown(type, 0));
 
-    static async main() {
+		process.once("uncaughtException", Main.handleUncaughtException);
+		process.once("unhandledRejection", Main.handleUnhandledRejection);
 
-        process.once("SIGINT", (type) => Main.gracefulShutdown(type, 0));
-        process.once("SIGTERM", (type) => Main.gracefulShutdown(type, 0));
-
-        process.once("uncaughtException", Main.handleUncaughtException);
-        process.once("unhandledRejection", Main.handleUnhandledRejection);
-
-        const config = await ConfigHandler.loadConfig();
+		const config = await ConfigHandler.loadConfig();
 
 		Logger.setLogLevel(config.APPPREFIX_LOG_LEVEL ?? "info");
 		Logger.log("Starting <ProjectName> API...");
@@ -29,61 +28,57 @@ export class Main {
 
 		await Utils.ensureDirectoryExists(config.APPPREFIX_LOG_DIR ?? "./data/logs");
 
-        await TaskScheduler.processQueue();
+		await TaskScheduler.processQueue();
 
 		await EmailService.init();
 
 		await CronJobHandler.init();
-        await CronJobHandler.startAll();
+		await CronJobHandler.startAll();
 
-		await API.init(
-			[config.APPPREFIX_APP_URL || "https://api.app.local"],
-			config.APPPREFIX_API_DISABLE_DOCS === true
-		);
+		await API.init([config.APPPREFIX_APP_URL], config.APPPREFIX_API_DISABLE_DOCS === true);
 
-		await API.start(
-			parseInt(config.APPPREFIX_API_PORT ?? "12500"),
-            config.APPPREFIX_API_HOST ?? "::"
-		);
+		await API.start(config.APPPREFIX_API_PORT, config.APPPREFIX_API_HOST);
 	}
 
 	private static async gracefulShutdown(type: NodeJS.Signals, code: number) {
-        try {
-            Logger.log(`Received ${type}, shutting down...`);
+		try {
+			Logger.log(`Received ${type}, shutting down...`);
 
 			await CronJobHandler.stopAll();
-            await API.stop();
-			
-            await EmailService.reset();
-            await TaskScheduler.stopProcessing();
-            await DB.close();
+			await API.stop();
 
-            Logger.log("Shutdown complete, exiting.");
-            process.exit(code);
-        } catch {
-            Logger.critical("Error during shutdown, forcing exit");
-            Main.forceShutdown();
-        }
-        }
+			await EmailService.reset();
+			await TaskScheduler.stopProcessing();
+			await DB.close();
 
-    private static forceShutdown() {
-        process.once("SIGTERM", ()=>{});
-        process.exit(1);
-    }
+			Logger.log("Shutdown complete, exiting.");
+			process.exit(code);
+		} catch {
+			Logger.critical("Error during shutdown, forcing exit");
+			Main.forceShutdown();
+		}
+	}
 
-    private static async handleUncaughtException(error: Error) {
-        Logger.critical(`Uncaught Exception:\n${Error.isError(error) ? error.stack ? error.stack : error.message : error}`);
-        Main.gracefulShutdown("SIGTERM", 1);
-    }
+	private static forceShutdown() {
+		process.once("SIGTERM", () => {});
+		process.exit(1);
+	}
 
-    private static async handleUnhandledRejection(reason: any) {
-        if (Error.isError(reason)) {
-            // reason is an error
-            return Main.handleUncaughtException(reason);
-        }
-        Logger.critical(`Unhandled Rejection:\n${reason}`);
-        Main.gracefulShutdown("SIGTERM", 1);
-    }
+	private static async handleUncaughtException(error: Error) {
+		Logger.critical(
+			`Uncaught Exception:\n${Error.isError(error) ? (error.stack ? error.stack : error.message) : error}`,
+		);
+		Main.gracefulShutdown("SIGTERM", 1);
+	}
+
+	private static async handleUnhandledRejection(reason: any) {
+		if (Error.isError(reason)) {
+			// reason is an error
+			return Main.handleUncaughtException(reason);
+		}
+		Logger.critical(`Unhandled Rejection:\n${reason}`);
+		Main.gracefulShutdown("SIGTERM", 1);
+	}
 }
 
 Main.main().catch((err) => {
