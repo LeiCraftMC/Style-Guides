@@ -16,7 +16,7 @@ export class DB {
 	static async init(
         path: string,
         autoMigrate: boolean = false,
-        configBaseDir: string = "./data"
+        configBaseDir: string = "./config"
     ) {
 		await fs_mkdir(path_dirname(path), { recursive: true });
 

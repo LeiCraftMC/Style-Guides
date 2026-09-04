@@ -10,6 +10,8 @@
         // "allowJs": true,
         // "checkJs": true,
 
+        "types": ["bun-types", "node"],
+
         // Module and Emit options
         "moduleResolution": "bundler",
         // "declaration": true,

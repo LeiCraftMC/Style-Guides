@@ -1,10 +1,3 @@
-/**
- * Logger — leveled logging with ISO timestamps.
- *
- * The backend services use this clean form. CLI tools use the `logHistory`-extended
- * version in `shared/cli/logger.ts` so they can dump recent logs on a critical crash.
- * Gate the level at startup with `Logger.setLogLevel(config.<PREFIX>_LOG_LEVEL ?? "info")`.
- */
 
 export class Logger {
 
