@@ -34,3 +34,5 @@ yarn-error.log*
 
 # Reference clones (never commit)
 lcmc-refs/
+
+templates/*/bun.lock

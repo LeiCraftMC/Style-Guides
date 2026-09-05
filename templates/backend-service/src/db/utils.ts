@@ -1,17 +1,21 @@
-/**
- * SQLUtils — dialect-aware Drizzle column helpers.
- *
- * The ecosystem defaults to SQLite (bun-sqlite). For PostgreSQL or MySQL, mirror these with
- * that dialect's column builders and keep the per-dialect schema files in sync
- * (see Delivr-API's `src/db/schema/{sqlite,postgresql,mysql}.ts`). See docs/08-database.md.
- */
-import { sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import { integer } from "drizzle-orm/sqlite-core";
+import { type entityKind, sql } from 'drizzle-orm';
+import type { drizzle as drizzle_d1 } from 'drizzle-orm/d1';
+import type { drizzle as drizzle_bun } from 'drizzle-orm/bun-sqlite';
+import { BaseSQLiteDatabase, integer } from 'drizzle-orm/sqlite-core';
 
-export type DrizzleDB = ReturnType<typeof drizzle>;
+export declare class DrizzleDB extends BaseSQLiteDatabase<"async" | "sync", void, Record<string, never>> {
+    static readonly [entityKind]: string;
+    $client?: any;
+    batch?: any;
+}
+
+export namespace DrizzleDB {
+    export type BunSQLite = ReturnType<typeof drizzle_bun>;
+    export type D1 = ReturnType<typeof drizzle_d1>;
+}
 
 export class SQLUtils {
+
 	/** `created_at` column: unix-epoch milliseconds, non-null, defaulted to now. */
 	static getCreatedAtColumn(name: string = "created_at") {
 		return integer(name, { mode: "number" }).notNull().default(sql`(unixepoch() * 1000)`);

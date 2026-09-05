@@ -1,6 +1,7 @@
 import z from "zod";
 
 export namespace UserDataPolicys {
+
 	export const Username = z
 		.string()
 		.min(5, "Must be at least 5 characters")
@@ -32,7 +33,9 @@ export namespace UserDataPolicys {
 }
 
 export namespace UserAccountSettings {
+
 	export const Roles = ["admin", "user"] as const;
 	export const Role = z.enum(Roles);
 	export type Role = z.infer<typeof Role>;
+	
 }

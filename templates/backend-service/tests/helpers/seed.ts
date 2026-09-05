@@ -27,7 +27,7 @@ export async function seedUser(
 	return { ...user, password } satisfies SeededUser;
 }
 
-async function seedSession(user_id: number): Promise<SeededSession> {
+export async function seedSession(user_id: number): Promise<SeededSession> {
 	const session = await SessionHandler.createSession(user_id);
 	return session satisfies SeededSession;
 }

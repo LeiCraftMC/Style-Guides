@@ -7,6 +7,7 @@ import fs from "fs";
 import { Utils } from "../utils";
 import { dirname } from "path";
 import { SampleTask } from "./sampleTask";
+import { TaskUtils } from "./utils";
 
 type AdditionalTaskMeta = {
 	created_by_user_id: number | null;
@@ -183,8 +184,7 @@ class PersistentLogger implements TaskHandler.PersistentTaskLoggerLike {
 	private readonly writeStream?: fs.WriteStream;
 	constructor(taskID: number) {
 		try {
-			const filePath =
-				(ConfigHandler.getConfig()?.APPPREFIX_LOG_DIR || "./data/logs") + `/tasks/task-${taskID}.log`;
+			const filePath = TaskUtils.getTaskLogFilePath(taskID);
 			Utils.ensureDirectoryExists(dirname(filePath));
 
 			// this.writeStream = fs.createWriteStream(filePath, { flags: "a" });

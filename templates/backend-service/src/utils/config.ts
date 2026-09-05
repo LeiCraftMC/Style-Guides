@@ -1,3 +1,4 @@
+import { AppConstants } from "./constants";
 import { Logger } from "./logger";
 import { z } from "zod";
 
@@ -44,7 +45,9 @@ class CS {
 }
 
 namespace CS {
+
 	export class ConfigItem<const Schema extends z.ZodType> {
+
 		constructor(public _schema: Schema) {}
 
 		public parse(value: unknown) {
@@ -64,6 +67,7 @@ namespace CS {
 }
 
 class ConfigSchema<T extends ConfigSchemaSettings> {
+	
 	readonly schema: T;
 
 	constructor(schema: T) {
@@ -74,7 +78,7 @@ class ConfigSchema<T extends ConfigSchemaSettings> {
 		const result: ConfigLike<T> = {} as ConfigLike<T>;
 
 		for (const [key, settings] of Object.entries(this.schema)) {
-			const value = process.env[key];
+			const value = process.env[`${AppConstants.APP_ENV_PREFIX}_${key}`];
 
 			const parseResult = settings.parse(value);
 			if (!parseResult.success) {
@@ -90,31 +94,45 @@ class ConfigSchema<T extends ConfigSchemaSettings> {
 	}
 }
 
+
+// @ts-ignore
+export type ENVConfigLike = {
+	// @ts-ignore
+	[K in Extract<keyof typeof ConfigHandler.schema.schema, string> as `${typeof AppConstants.APP_ENV_PREFIX}_${K}`]: z.infer<
+		// @ts-ignore
+		typeof ConfigHandler.schema.schema[K]["_schema"]
+	>;
+}
+
 // @ts-ignore
 export type ParsedConfig = ConfigLike<typeof ConfigHandler.schema.schema>;
 
+
 export class ConfigHandler {
+
 	private static schema = new ConfigSchema({
-		APPPREFIX_LOG_LEVEL: CS.enum(["debug", "info", "warn", "error", "critical"]).default("info"),
 
-		APPPREFIX_API_HOST: CS.string().default("::"),
-		APPPREFIX_API_PORT: CS.number().default(12500),
-		APPPREFIX_API_DISABLE_DOCS: CS.boolean().default(false),
+		LOG_LEVEL: CS.enum(["debug", "info", "warn", "error", "critical"]).default("info"),
 
-		APPPREFIX_DB_PATH: CS.string().default("./data/db.sqlite"),
-		APPPREFIX_DB_AUTO_MIGRATE: CS.boolean().default(true),
+		API_HOST: CS.string().default("::"),
+		API_PORT: CS.number().default(12500),
+		API_DISABLE_DOCS: CS.boolean().default(false),
 
-		APPPREFIX_LOG_DIR: CS.string().default("./data/logs"),
-		APPPREFIX_CONFIG_BASE_DIR: CS.string().default("./config"),
+		DB_PATH: CS.string().default("./data/db.sqlite"),
+		DB_AUTO_MIGRATE: CS.boolean().default(true),
 
-		APPPREFIX_APP_URL: CS.string(),
+		LOG_DIR: CS.string().default("./data/logs"),
+		CONFIG_BASE_DIR: CS.string().default("./config"),
 
-		APPPREFIX_SMTP_HOST: CS.string().optional(),
-		APPPREFIX_SMTP_PORT: CS.number().optional(),
-		APPPREFIX_SMTP_USERNAME: CS.string().optional(),
-		APPPREFIX_SMTP_PASSWORD: CS.string().optional(),
-		APPPREFIX_SMTP_FROM: CS.string().optional(),
-		APPPREFIX_SMTP_SECURE: CS.boolean().optional(),
+		APP_URL: CS.string(),
+
+		SMTP_HOST: CS.string().optional(),
+		SMTP_PORT: CS.number().optional(),
+		SMTP_USERNAME: CS.string().optional(),
+		SMTP_PASSWORD: CS.string().optional(),
+		SMTP_FROM: CS.string().optional(),
+		SMTP_SECURE: CS.boolean().optional()
+
 	});
 
 	private static config: ParsedConfig | null = null;

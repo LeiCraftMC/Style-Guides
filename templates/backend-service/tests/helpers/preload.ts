@@ -1,13 +1,15 @@
 import fs from "fs/promises";
 import path from "path";
 import { afterAll, beforeAll } from "bun:test";
-import { ConfigHandler, type ParsedConfig } from "../../src/utils/config";
+import { ConfigHandler, type ENVConfigLike } from "../../src/utils/config";
 import { DB } from "../../src/db";
 import { API } from "../../src/api";
 import { Utils } from "../../src/utils";
 
 function setTestEnv(rootDir: string) {
+
 	const envVars = {
+		
 		APPPREFIX_LOG_LEVEL: "debug",
 
 		APPPREFIX_API_HOST: "::",
@@ -27,8 +29,9 @@ function setTestEnv(rootDir: string) {
 		APPPREFIX_SMTP_USERNAME: "",
 		APPPREFIX_SMTP_PASSWORD: "",
 		APPPREFIX_SMTP_FROM: '"App Test" <test@app.local>',
-		APPPREFIX_SMTP_SECURE: false,
-	} as const satisfies ParsedConfig;
+		APPPREFIX_SMTP_SECURE: false
+
+	} as const satisfies ENVConfigLike;
 
 	for (const [key, value] of Object.entries(envVars)) {
 		process.env[key] = String(value);

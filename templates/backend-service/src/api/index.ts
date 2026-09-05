@@ -1,32 +1,40 @@
+import { Logger } from "../utils/logger";
 import { Hono } from "hono";
 import { prettyJSON } from "hono/pretty-json";
 import { cors } from "hono/cors";
-import { HTTPException } from "hono/http-exception";
+import { HTTPException } from 'hono/http-exception'
+import type { APIVersionRouter } from "./utils/apiVersionRouter";
+import { APIv1Router } from "./versions/v1";
 import { openAPIRouteHandler } from "hono-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
-import { APIv1Router } from "./versions/v1";
-import { Logger } from "../utils/logger";
-import { type APIVersionRouter } from "../utils/api-version-router";
 
 export class API {
-	static app: Hono;
-	static server: ReturnType<typeof Bun.serve> | null = null;
+
+	protected static server: Bun.Server<undefined>;
+	protected static app: Hono;
+
 	protected static latestVersion: number | null = null;
 
-	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs = false) {
+	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs: boolean = false) {
+
 		this.app.route(`/v${versionRouter.version}`, versionRouter.router);
+
 		if (!this.latestVersion || versionRouter.version > this.latestVersion) {
 			this.latestVersion = versionRouter.version;
 		}
+
 		if (!disableDocs) {
+
 			this.app.get(
 				`/docs/v${versionRouter.version}/openapi`,
 				openAPIRouteHandler(versionRouter.router, versionRouter.openAPIConfig),
 			);
+
 			this.app.get(
 				`/docs/v${versionRouter.version}`,
 				Scalar({ url: `/docs/v${versionRouter.version}/openapi` }),
 			);
+
 		}
 	}
 

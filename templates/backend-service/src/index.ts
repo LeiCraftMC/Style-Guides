@@ -1,14 +1,17 @@
 import { API } from "./api";
-
 import { DB } from "./db";
 import { ConfigHandler } from "./utils/config";
 import { Logger } from "./utils/logger";
 import { Utils } from "./utils";
 import { EmailService } from "./api/utils/email";
+import { CronJobHandler } from "./utils/cron";
+import { TaskScheduler } from "./tasks";
 
 // biome-ignore format
 export class Main {
+
 	static async main() {
+		
 		process.once("SIGINT", (type) => Main.gracefulShutdown(type, 0));
 		process.once("SIGTERM", (type) => Main.gracefulShutdown(type, 0));
 
@@ -17,16 +20,16 @@ export class Main {
 
 		const config = await ConfigHandler.loadConfig();
 
-		Logger.setLogLevel(config.APPPREFIX_LOG_LEVEL ?? "info");
+		Logger.setLogLevel(config.LOG_LEVEL ?? "info");
 		Logger.log("Starting <ProjectName> API...");
 
 		await DB.init(
-			config.APPPREFIX_DB_PATH ?? "./data/db.sqlite",
-			config.APPPREFIX_DB_AUTO_MIGRATE,
-			config.APPPREFIX_CONFIG_BASE_DIR ?? "./config",
+			config.DB_PATH,
+			config.DB_AUTO_MIGRATE,
+			config.CONFIG_BASE_DIR,
 		);
 
-		await Utils.ensureDirectoryExists(config.APPPREFIX_LOG_DIR ?? "./data/logs");
+		await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 
 		await TaskScheduler.processQueue();
 
@@ -35,21 +38,25 @@ export class Main {
 		await CronJobHandler.init();
 		await CronJobHandler.startAll();
 
-		await API.init([config.APPPREFIX_APP_URL], config.APPPREFIX_API_DISABLE_DOCS === true);
+		await API.init([config.APP_URL], config.API_DISABLE_DOCS === true);
 
-		await API.start(config.APPPREFIX_API_PORT, config.APPPREFIX_API_HOST);
+		await API.start(config.API_PORT, config.API_HOST);
 	}
 
 	private static async gracefulShutdown(type: NodeJS.Signals, code: number) {
 		try {
 			Logger.log(`Received ${type}, shutting down...`);
 
+
 			await CronJobHandler.stopAll();
+
 			await API.stop();
 
 			await EmailService.reset();
 			await TaskScheduler.stopProcessing();
+
 			await DB.close();
+
 
 			Logger.log("Shutdown complete, exiting.");
 			process.exit(code);

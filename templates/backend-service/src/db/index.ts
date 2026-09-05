@@ -1,19 +1,21 @@
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as TableSchema from "./schema";
-import { randomBytes as crypto_randomBytes, createHash as crypto_createHash } from "crypto";
 import { type DrizzleDB } from "./utils";
 import { Logger } from "../utils/logger";
-import { eq } from "drizzle-orm";
 import { ConfigHandler } from "../utils/config";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { mkdir as fs_mkdir } from "fs/promises";
 import { dirname as path_dirname } from "path";
+import { AppConstants } from "../utils/constants";
+import { LCrypt } from "../utils/crypto/lcrypt";
 
 export class DB {
-	protected static db: DrizzleDB;
+	protected static db: DrizzleDB.BunSQLite;
 
-	static async init(path: string, autoMigrate: boolean = false, configBaseDir: string = "./config") {
+	static async init(path: string, autoMigrate: boolean, configBaseDir: string) {
+
 		await fs_mkdir(path_dirname(path), { recursive: true });
+		await fs_mkdir(path_dirname(configBaseDir), { recursive: true });
 
 		this.db = drizzle(path);
 		if (autoMigrate) {
@@ -28,6 +30,7 @@ export class DB {
 	}
 
 	private static async createInitialAdminUserIfNeeded(configBaseDir: string) {
+
 		const usersTableEmpty = (await this.db.select().from(DB.Tables.users).limit(1)).length === 0;
 		if (!usersTableEmpty) return;
 
@@ -37,37 +40,36 @@ export class DB {
 			.insert(DB.Tables.users)
 			.values({
 				username,
-				email: "admin@appname.local",
-				password_hash: await Bun.password.hash(crypto_randomBytes(32).toString("hex")),
+				email: `${username}@${AppConstants.DEFAULT_EMAIL_FROM_HOST}`,
+				password_hash: await Bun.password.hash(LCrypt.randomBytes(32).toString("hex")),
 				display_name: "Default Administrator",
 				role: "admin",
 			})
-			.returning()
-			.get().id;
+			.returning().get().id;
 
-		const passwordResetToken = crypto_randomBytes(64).toString("hex");
+		const passwordResetToken = LCrypt.randomBytes(64).toString("hex");
 
 		await this.db.insert(DB.Tables.passwordResets).values({
-			token: crypto_createHash("sha256").update(passwordResetToken).digest("hex"),
+			token: LCrypt.sha256(passwordResetToken).toHex(),
 			user_id: admin_user_id,
 			expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 Days
 		});
 
-		const APP_URL = ConfigHandler.getConfig()?.SVC_APP_URL || "https://{APP_URL}";
+		const APP_URL = ConfigHandler.getConfig()?.APP_URL || "https://{APP_URL}";
 
 		await Bun.write(
 			`${configBaseDir}/initial_admin_password_reset_token.txt`,
 			`${APP_URL}/auth/reset-password?token=${passwordResetToken}`,
 			{
 				mode: 0o600,
-				createPath: true,
+				createPath: true
 			},
 		);
 
 		Logger.info(
 			`Initial admin user created with username: ${username}.\n` +
-				`You can set the password under ${APP_URL}/auth/reset-password?token=${passwordResetToken}\n` +
-				`The url is also saved at ${configBaseDir}/initial_admin_password_reset_token.txt\n`,
+			`You can set the password under ${APP_URL}/auth/reset-password?token=${passwordResetToken}\n` +
+			`The url is also saved at ${configBaseDir}/initial_admin_password_reset_token.txt\n`,
 		);
 
 		return admin_user_id;
@@ -90,15 +92,33 @@ export class DB {
 }
 
 export namespace DB.Tables {
+
 	export const users = TableSchema.users;
 	export const sessions = TableSchema.sessions;
 	export const passwordResets = TableSchema.passwordResets;
+	export const apiKeys = TableSchema.apiKeys;
+
+	
+
+	export const scheduled_tasks = TableSchema.scheduled_tasks;
+    export const scheduled_tasks_paused_state = TableSchema.scheduled_tasks_paused_state;
+
 	export const metadata = TableSchema.metadata;
+
 }
 
 export namespace DB.Models {
+
 	export type User = typeof DB.Tables.users.$inferSelect;
 	export type Session = typeof DB.Tables.sessions.$inferSelect;
 	export type PasswordReset = typeof DB.Tables.passwordResets.$inferSelect;
-	export type Metadata = typeof DB.Tables.metadata.$inferSelect;
+	export type ApiKey = typeof DB.Tables.apiKeys.$inferSelect;
+
+
+
+	export type ScheduledTask = typeof DB.Tables.scheduled_tasks.$inferSelect;
+    export type ScheduledTaskPausedState = typeof DB.Tables.scheduled_tasks_paused_state.$inferSelect;
+
+    export type Metadata = typeof DB.Tables.metadata.$inferSelect;
+
 }
