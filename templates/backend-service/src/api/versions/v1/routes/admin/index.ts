@@ -14,7 +14,7 @@ router.use('*', async (c, next) => {
     }
 
     if (authContext.user_role !== 'admin') {
-        return APIResponse.unauthorized(c, "This endpoint is restricted to admins.");
+        return APIResponse.forbidden(c, "This endpoint is restricted to administrators");
     }
 
     await next();

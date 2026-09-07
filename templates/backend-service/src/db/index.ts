@@ -86,7 +86,13 @@ export class DB {
 		if (!this.db) return;
 
 		Logger.info("Database connection closed.");
-		this.db.$client.close();
+		await this.db.$client.close();
+
+		// `close()` calls sqlite3_close_v2, which defers releasing the OS file
+        // handle until any unfinalized prepared statements are garbage collected.
+        // Force that now so the underlying file is actually free (e.g. for tests
+        // that remove the DB file/directory right after closing).
+        Bun.gc(true);
 		await Bun.sleep(500);
 	}
 }

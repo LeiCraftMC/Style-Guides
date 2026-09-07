@@ -7,7 +7,8 @@ import { hashResetToken } from "../src/api/versions/v1/routes/auth/reset-passwor
 import { makeAPIRequest } from "./helpers/api";
 import { seedUser, seedSession } from "./helpers/seed";
 import { createMemoryTransport } from "./helpers/memory-transport";
-import type { SeededUser } from "./helpers/seed";
+import type { SeededSession, SeededUser } from "./helpers/seed";
+import { AppConstants } from "../src/utils/constants";
 
 /** Emails captured by the in-memory transport, isolated to this file. */
 const capturedEmails: CapturedEmail[] = [];
@@ -36,7 +37,7 @@ describe("EmailService", () => {
 describe("Password reset email integration", () => {
 
     let resetUser: SeededUser;
-    let resetSessionToken: string;
+    let resetSession: SeededSession;
 
     beforeAll(async () => {
         // Ensure the memory transport is active for this describe block too.
@@ -44,7 +45,7 @@ describe("Password reset email integration", () => {
         EmailService.init(createMemoryTransport(capturedEmails));
 
         resetUser = await seedUser("user");
-        resetSessionToken = await seedSession(resetUser.id);
+        resetSession = await seedSession(resetUser.id);
         capturedEmails.length = 0;
     });
 
@@ -131,7 +132,7 @@ describe("Password reset email integration", () => {
 
         await makeAPIRequest("/v1/auth/reset-password/request", {
             method: "POST",
-            authToken: resetSessionToken,
+            authToken: resetSession.token,
             body: { email: resetUser.email },
         }, 401);
 
@@ -169,7 +170,7 @@ describe("Password reset email integration", () => {
         }, 200);
 
         // 5. Verify old session is invalidated
-        await makeAPIRequest("/v1/auth/session", { authToken: oldSession }, 401);
+        await makeAPIRequest("/v1/auth/session", { authToken: oldSession.token }, 401);
 
         // 6. Verify new password works
         const login = await makeAPIRequest("/v1/auth/login", {
@@ -180,7 +181,7 @@ describe("Password reset email integration", () => {
             },
         }, 200);
 
-        expect(login.token).toStartWith("lra_sess_");
+        expect(login.token).toStartWith(`${AppConstants.APP_KEYS_PREFIX}_sess_`);
     });
 
     test("Expired reset token is rejected", async () => {

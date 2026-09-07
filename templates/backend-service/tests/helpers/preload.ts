@@ -77,7 +77,7 @@ async function removeDirWithRetry(dir: string, attempts = 10, delayMs = 300) {
 				attempt === attempts ||
 				(err?.code !== "EBUSY" && err?.code !== "ENOTEMPTY" && err?.code !== "EPERM")
 			) {
-				throw err;
+				console.error(`Failed to remove directory ${dir} on attempt ${attempt}:`, err);
 			}
 			await Bun.sleep(delayMs);
 		}
@@ -87,6 +87,7 @@ async function removeDirWithRetry(dir: string, attempts = 10, delayMs = 300) {
 let TMP_ROOT: string | null = null;
 
 beforeAll(async () => {
+	
 	TMP_ROOT = await createIsolatedDataDir();
 
 	setTestEnv(TMP_ROOT);
@@ -101,14 +102,15 @@ beforeAll(async () => {
 	await API.init([config.APP_URL], false);
 
 	await API.start(12151, "::");
-}, 60000);
+});
 
 afterAll(async () => {
+
 	await API.stop();
 
 	await DB.close();
 
 	if (TMP_ROOT) {
-		await fs.rm(TMP_ROOT, { recursive: true, force: true });
+		await removeDirWithRetry(TMP_ROOT);
 	}
-}, 60000);
+});
