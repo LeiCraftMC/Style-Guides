@@ -98,7 +98,7 @@ beforeAll(async () => {
 	// EmailService is NOT initialised here — tests that need it call
 	// EmailService.init(mockTransport) in their own beforeAll.
 
-	await API.init();
+	await API.init([config.APP_URL], false);
 
 	await API.start(12151, "::");
 }, 60000);

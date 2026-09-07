@@ -70,6 +70,21 @@ export const apiKeys = sqliteTable('api_keys', {
 });
 
 
+/**
+ * @deprecated Use DB.Tables.userPreferences to access this table.
+ */
+export const userPreferences = sqliteTable('user_preferences', {
+    id: SQLUtils.primaryKeyIntAutoIncrement('id'),
+    user_id: integer().notNull().references(() => users.id),
+    created_at: SQLUtils.getCreatedAtColumn(),
+
+    // Preference key, e.g. "remote-content-policy".
+    key: text().notNull(),
+    data: text({ mode: 'json' }).$type<Record<string, any> | Array<any>>().notNull()
+});
+
+
+
 
 /**
  * @deprecated Use DB.Tables.scheduled_tasks to access this table.

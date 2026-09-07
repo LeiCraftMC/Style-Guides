@@ -3,7 +3,7 @@ import type { drizzle as drizzle_d1 } from 'drizzle-orm/d1';
 import type { drizzle as drizzle_bun } from 'drizzle-orm/bun-sqlite';
 import { BaseSQLiteDatabase, integer } from 'drizzle-orm/sqlite-core';
 
-export declare class DrizzleDB extends BaseSQLiteDatabase<"async" | "sync", void, Record<string, never>> {
+export declare class DrizzleDB extends BaseSQLiteDatabase<"async" | "sync", void, Record<string, unknown>> {
     static readonly [entityKind]: string;
     $client?: any;
     batch?: any;

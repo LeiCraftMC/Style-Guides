@@ -20,7 +20,7 @@ export class DB {
 		this.db = drizzle(path);
 		if (autoMigrate) {
 			Logger.info("Running database migrations...");
-			await migrate(this.db, { migrationsFolder: "drizzle" });
+			await migrate(this.db, { migrationsFolder: "drizzle/migrations" });
 			Logger.info("Database migrations completed.");
 		}
 
@@ -98,7 +98,9 @@ export namespace DB.Tables {
 	export const passwordResets = TableSchema.passwordResets;
 	export const apiKeys = TableSchema.apiKeys;
 
+	export const userPreferences = TableSchema.userPreferences;
 	
+
 
 	export const scheduled_tasks = TableSchema.scheduled_tasks;
     export const scheduled_tasks_paused_state = TableSchema.scheduled_tasks_paused_state;
@@ -114,6 +116,7 @@ export namespace DB.Models {
 	export type PasswordReset = typeof DB.Tables.passwordResets.$inferSelect;
 	export type ApiKey = typeof DB.Tables.apiKeys.$inferSelect;
 
+	export type UserPreference = typeof DB.Tables.userPreferences.$inferSelect;
 
 
 	export type ScheduledTask = typeof DB.Tables.scheduled_tasks.$inferSelect;

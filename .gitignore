@@ -35,4 +35,6 @@ yarn-error.log*
 # Reference clones (never commit)
 lcmc-refs/
 
+# only for dev of the templates to keep this out of the templates. templates have their own individual .gitignore file
 templates/*/bun.lock
+templates/*/drizzle/migrations/

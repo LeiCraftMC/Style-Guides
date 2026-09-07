@@ -7,6 +7,7 @@ import type { APIVersionRouter } from "./utils/apiVersionRouter";
 import { APIv1Router } from "./versions/v1";
 import { openAPIRouteHandler } from "hono-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
+import { AppConstants } from "../utils/constants";
 
 export class API {
 
@@ -15,7 +16,7 @@ export class API {
 
 	protected static latestVersion: number | null = null;
 
-	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs: boolean = false) {
+	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs: boolean) {
 
 		this.app.route(`/v${versionRouter.version}`, versionRouter.router);
 
@@ -43,8 +44,10 @@ export class API {
 	 * versioned routes, docs, /health, and a `/` redirect to the latest docs. Does NOT
 	 * call Bun.serve — call `start(port, hostname)` for that.
 	 */
-	static async init(frontendUrls: string[] = [], disableDocs = false) {
+	static async init(frontendUrls: string[], disableDocs: boolean) {
+
 		this.app = new Hono();
+		
 		this.app.use(prettyJSON());
 
 		this.app.use(
@@ -59,50 +62,73 @@ export class API {
 		);
 
 		this.app.onError((err, c) => {
+
 			if (err instanceof HTTPException) {
-				return c.json(
-					{ success: false, code: err.status, message: "Your input is invalid" },
-					err.status,
-				);
+				// Return only safe error metadata — never leak Zod validation details
+				return c.json({
+					success: false,
+					code: err.status,
+					message: "Your input is invalid",
+				}, err.status)
 			}
-			Logger.error("Unhandled error:", err);
+
+			Logger.error("Unhandled API error:", err);
 			return c.json({ success: false, code: 500, message: "Internal Server Error" }, 500);
 		});
 
 		this.registerVersion(new APIv1Router(), disableDocs);
 
-		this.app.get("/health", (c) =>
-			c.json({ success: true, code: 200, message: "healthy", data: null }),
-		);
+		this.app.get("/health", (c) => {
+			return c.json({
+				success: true,
+				code: 200,
+				message: `${AppConstants.APP_NAME} API is running`,
+				data: null
+			});
+		});
+
 
 		if (!disableDocs) {
-			this.app.get("/", (c) => c.redirect(`/docs/v${this.latestVersion}`));
+
+			this.app.get("/", (c) => {
+				return c.redirect(`/docs/v${this.latestVersion}`);
+			});
+
 		} else {
-			this.app.get("/", (c) =>
-				c.json({
+
+			this.app.get("/", (c) => {
+				return c.json({
 					success: true,
 					code: 200,
-					message: "API is running. Documentation is disabled.",
-					data: null,
-				}),
-			);
+					message: `${AppConstants.APP_NAME} API is running. Documentation is disabled.`,
+					data: null
+				});
+			});
 		}
 	}
 
-	/** Start Bun.serve on `port`/`hostname` (default `::` for IPv6). */
-	static async start(port: number, hostname = "::") {
-		if (!this.app) await this.init();
+	static async start(port: number, hostname: string) {
+
+		if (!this.app) {
+			throw new Error(`${AppConstants.APP_NAME} API not initialized. Call API.init() first.`);
+		}
+
 		this.server = Bun.serve({ port, hostname, fetch: this.app.fetch });
-		Logger.log(`API listening on http://${hostname}:${port}`);
+
+		Logger.log(`${AppConstants.APP_NAME} API listening on http://${this.server?.hostname}:${this.server?.port}`);
 	}
 
 	static async stop() {
-		this.server?.stop(true);
-		this.server = null;
+		if (this.server) {
+			this.server.stop();
+			Logger.log(`${AppConstants.APP_NAME} API server stopped.`);
+		}
 	}
 
-	static getApp(): Hono {
-		if (!this.app) throw new Error("API not initialized. Call API.init() first.");
+	static getApp(): typeof API.app {
+		if (!this.app) {
+			throw new Error(`${AppConstants.APP_NAME} API not initialized. Call API.init() first.`);
+		}
 		return this.app;
 	}
 }
