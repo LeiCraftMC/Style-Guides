@@ -1,14 +1,7 @@
-/**
- * APIVersionRouter — abstract base for mounting a versioned API (`/v1`, `/v2`, …).
- *
- * A concrete `APIv1Router extends APIVersionRouter { constructor() { super({ version: 1,
- * openAPIConfig, routes }); } }`. The `API` class mounts it at `/v${version}` and serves its
- * OpenAPI spec at `/docs/v${version}/openapi` + Scalar at `/docs/v${version}`.
- * See docs/04-backend-hono.md.
- */
 import { Hono } from "hono";
-import { HonoBase } from "hono/hono-base";
 import type { GenerateSpecOptions } from "hono-openapi";
+import { HonoBase } from "hono/hono-base";
+import { Logger } from "../../utils/logger";
 
 export abstract class APIVersionRouter<
 	T extends APIVersionRouter.InitSettings = APIVersionRouter.InitSettings,
@@ -25,20 +18,25 @@ export abstract class APIVersionRouter<
 			this.router = settings.routes;
 		} else if (Array.isArray(settings.routes)) {
 			this.router = new Hono();
+
 			for (const route of settings.routes as Array<{ router: HonoBase } | HonoBase>) {
 				if (route instanceof HonoBase) {
 					this.router.route("/", route);
 				} else if ("router" in route && route.router instanceof HonoBase) {
 					this.router.route("/", route.router);
 				} else {
+					Logger.error(
+						"Invalid route configuration: Each route must be a Hono instance or an object with a 'router' property that is a Hono instance.",
+						route,
+					);
 					throw new Error(
-						"Invalid route configuration: each route must be a Hono instance or an object with a 'router' property that is a Hono instance.",
+						"Invalid route configuration: Each route must be a Hono instance or an object with a 'router' property that is a Hono instance.",
 					);
 				}
 			}
 		} else {
 			throw new Error(
-				"Invalid route configuration: 'routes' must be a Hono instance or an array of Hono instances / objects with a 'router' property.",
+				"Invalid route configuration: 'routes' must be either a Hono instance or an array of Hono instances or objects with a 'router' property that is a Hono instance.",
 			);
 		}
 	}

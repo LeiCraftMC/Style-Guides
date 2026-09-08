@@ -1,11 +1,4 @@
-/**
- * APIResponse — the universal `{ success, code, message, data }` envelope.
- *
- * Every route returns through `APIResponse.success/created/...`. The matching
- * `APIResponse.Schema.*` factories produce Zod schemas so the OpenAPI spec and the
- * generated client mirror the runtime shape exactly. See docs/05-api-contract.md.
- */
-import type { Context } from "hono";
+import { type Context } from "hono";
 import { z } from "zod";
 
 export class APIResponse {
@@ -48,7 +41,6 @@ export class APIResponse {
 	static unauthorized(c: Context, message: string) {
 		return c.json({ success: false, code: 401, message }, 401);
 	}
-
 	static forbidden(c: Context, message: string) {
 		return c.json({ success: false, code: 403, message }, 403);
 	}
@@ -83,7 +75,9 @@ export namespace APIResponse.Utils {
 	}
 
 	export function createErrorSchemaFactory<Code extends number>(code: Code) {
-		return <Message extends string>(message: Message) => genericErrorSchema(code, message);
+		return function <Message extends string>(message: Message) {
+			return genericErrorSchema(code, message);
+		};
 	}
 }
 
@@ -134,7 +128,7 @@ export namespace APIResponse.Schema {
 }
 
 export namespace APIResponse.Types {
-	// Can be a JSON object or array.
+	// Can be JSON object or Array
 	export type RequiredReturnData = { [key: string]: any } | Array<any>;
 
 	export type NonRequiredReturnData = null | RequiredReturnData;
@@ -150,4 +144,16 @@ export namespace APIResponse.Types {
 		| ReturnType<typeof APIResponse.notFound>
 		| ReturnType<typeof APIResponse.conflict>
 		| ReturnType<typeof APIResponse.tooManyRequests>;
+
+	export type BasicResponseSchema =
+		| z.infer<ReturnType<typeof APIResponse.Schema.success<any, z.ZodType<NonRequiredReturnData>>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.accepted<any, z.ZodType<RequiredReturnData>>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.created<any, z.ZodType<RequiredReturnData>>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.serverError<any>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.unauthorized<any>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.forbidden<any>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.badRequest<any>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.notFound<any>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.conflict<any>>>
+		| z.infer<ReturnType<typeof APIResponse.Schema.tooManyRequests<any>>>;
 }

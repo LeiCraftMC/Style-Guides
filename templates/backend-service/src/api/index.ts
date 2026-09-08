@@ -11,11 +11,16 @@ import { AppConstants } from "../utils/constants";
 
 export class API {
 	protected static server: Bun.Server<undefined>;
-	protected static app: Hono;
+	protected static app: Hono | undefined;
 
 	protected static latestVersion: number | null = null;
 
 	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs: boolean) {
+
+		if (!this.app) {
+			throw new Error("API not initialized. Call API.init() first.");
+		}
+
 		this.app.route(`/v${versionRouter.version}`, versionRouter.router);
 
 		if (!this.latestVersion || versionRouter.version > this.latestVersion) {

@@ -1,20 +1,13 @@
-/**
- * APIRouteSpec / APIResponseSpec — declarative OpenAPI route + response builders.
- *
- * Wrap a route with `APIRouteSpec.authenticated({ summary, description, tags, responses })`
- * and build the `responses` map with `APIResponseSpec.success/created/badRequest/...`.
- * `describeBasic(...)` merges response entries; `describeWithWrongInputs(...)` also appends
- * a 400. Used together with `zValidator` from `hono-openapi` so validation is reflected in the
- * spec. See docs/04-backend-hono.md and docs/05-api-contract.md.
- */
-
-import type { MiddlewareHandler } from "hono";
-import { type DescribeRouteOptions, describeRoute, resolver } from "hono-openapi";
+import { describeRoute, type DescribeRouteOptions, resolver } from "hono-openapi";
+import { type MiddlewareHandler } from "hono";
+import { APIResponse } from "./api-res";
 import { z } from "zod";
-import { APIResponse } from "./api-response";
+import { Utils } from "../../utils";
 
 export class APIRouteSpec {
-	/** @deprecated Use `custom`, `authenticated`, or `unauthenticated` instead. */
+	/**
+	 * @deprecated Use more specific methods like `authenticated` or `custom` instead.
+	 */
 	static basic(spec: APIResponseSpec.Types.DescribeRouteOptionsWithResponses): MiddlewareHandler {
 		return describeRoute(spec);
 	}
@@ -28,7 +21,11 @@ export class APIRouteSpec {
 	): MiddlewareHandler {
 		return describeRoute({
 			...spec,
-			security: [{ bearerAuth: [] }],
+			security: [
+				{
+					bearerAuth: [],
+				},
+			],
 		});
 	}
 
@@ -44,14 +41,13 @@ export class APIRouteSpec {
 
 export class APIResponseSpec {
 	static describeBasic<T extends APIResponseSpec.Types.BasicDescription[]>(...responseSchemas: T) {
-		return Object.assign({}, ...responseSchemas);
+		return Utils.mergeObjects(...responseSchemas);
 	}
 
 	static describeWithWrongInputs<T extends APIResponseSpec.Types.BasicDescription[]>(
 		...responseSchemas: T
 	) {
-		return Object.assign(
-			{},
+		return Utils.mergeObjects(
 			...responseSchemas,
 			APIResponseSpec.badRequest("Bad Request: Syntax or validation error in request"),
 		);
@@ -74,7 +70,7 @@ export class APIResponseSpec {
 	}
 
 	static successNoData(description: string) {
-		return APIResponseSpec.success(description, z.null());
+		return this.success(description, z.null());
 	}
 
 	static created<Data extends z.ZodType<APIResponse.Types.NonRequiredReturnData>>(
@@ -94,7 +90,7 @@ export class APIResponseSpec {
 	}
 
 	static createdNoData(description: string) {
-		return APIResponseSpec.created(description, z.null());
+		return this.created(description, z.null());
 	}
 
 	static accepted<Data extends z.ZodType<APIResponse.Types.RequiredReturnData>>(
@@ -113,7 +109,9 @@ export class APIResponseSpec {
 		};
 	}
 
-	/** @deprecated Use the specific error methods (`badRequest`, `unauthorized`, …) instead. */
+	/**
+	 * @deprecated Use more specific error methods like `badRequest`, `unauthorized`, etc. instead.
+	 */
 	static genericError<StatusCode extends APIResponseSpec.Types.HTTP_ERROR_CODES>(
 		statusCode: StatusCode,
 		description: string,
@@ -134,42 +132,39 @@ export class APIResponseSpec {
 		};
 	}
 
-	static serverError(
-		message = "Internal Server Error: An unexpected error occurred on the server",
-	) {
-		return APIResponseSpec.genericError(500, message);
+	static serverError(message = "Internal Server Error: An unexpected error occurred on the server") {
+		return this.genericError(500, message);
 	}
 
 	static unauthorized(
 		message = "Unauthorized: Authentication is required and has failed or has not yet been provided",
 	) {
-		return APIResponseSpec.genericError(401, message);
+		return this.genericError(401, message);
 	}
-
 	static forbidden(
 		message = "Forbidden: You do not have permission to access the requested resource",
 	) {
-		return APIResponseSpec.genericError(403, message);
+		return this.genericError(403, message);
 	}
 
 	static badRequest(message = "Bad Request: Syntax or validation error in request") {
-		return APIResponseSpec.genericError(400, message);
+		return this.genericError(400, message);
 	}
 
 	static notFound(message = "Not Found: The requested resource could not be found") {
-		return APIResponseSpec.genericError(404, message);
+		return this.genericError(404, message);
 	}
 
 	static conflict(
 		message = "Conflict: The request could not be completed due to a conflict with the current state of the resource",
 	) {
-		return APIResponseSpec.genericError(409, message);
+		return this.genericError(409, message);
 	}
 
 	static tooManyRequests(
 		message = "Too Many Requests: You have sent too many requests in a given amount of time",
 	) {
-		return APIResponseSpec.genericError(429, message);
+		return this.genericError(429, message);
 	}
 }
 

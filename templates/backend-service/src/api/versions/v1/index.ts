@@ -54,8 +54,8 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 				tags: ["Account", "Account / API Keys", "Account / Preferences", "Authentication"],
 			},
 			{
-				name: "Admin API",
-				tags: ["Admin API / Users"],
+				name: "Admin",
+				tags: ["Admin / Users"],
 			},
 		],
 
@@ -87,11 +87,11 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 			},
 
 			{
-				name: "Admin API / Users",
+				name: "Admin / Users",
 				// @ts-ignore
 				"x-displayName": "Users",
 				summary: "Users",
-				parent: "Admin API",
+				parent: "Admin",
 				description: "Endpoints for user management",
 			},
 		],
