@@ -1,78 +1,78 @@
-/**
- * SimpleRouteMatcher — Nuxt-style `[param]` route matching for allowlists.
- *
- * Used by route guards that need to know whether a path is public (`/auth/login`,
- * `/docs`, …) without importing the full router. Static routes match exactly; dynamic
- * routes (`/dashboard/[id]`) match by regex and extract params.
- */
+import { createRouterMatcher } from "vue-router";
+
 type RouteMatch = {
-	route: string;
-	params: Record<string, string>;
+    route: string;
+    params: Record<string, string>;
 } | null;
 
 export class SimpleRouteMatcher {
-	constructor(protected readonly routes: string[]) {}
 
-	match(path: string): RouteMatch {
-		return SimpleRouteMatcher.match(path, this.routes);
-	}
+    constructor(
+        protected readonly routes: string[]
+    ) {}
 
-	addRoute(route: string): void {
-		this.routes.push(route);
-	}
+    match(path: string): RouteMatch {
+        return SimpleRouteMatcher.match(path, this.routes);
+    }
 
-	removeRoute(route: string): void {
-		const index = this.routes.indexOf(route);
-		if (index !== -1) {
-			this.routes.splice(index, 1);
-		}
-	}
+    addRoute(route: string): void {
+        this.routes.push(route);
+    }
 
-	static match(path: string, routes: string[]): RouteMatch | null {
-		const normalizedPath = path.replace(/\/+$/, "") || "/";
+    removeRoute(route: string): void {
+        const index = this.routes.indexOf(route);
+        if (index !== -1) {
+            this.routes.splice(index, 1);
+        }
+    }
 
-		const staticRoutes: string[] = [];
-		const dynamicRoutes: string[] = [];
+    static match(path: string, routes: string[]): RouteMatch | null {
+        const normalizedPath = path.replace(/\/+$/, '') || '/';
 
-		for (const route of routes) {
-			if (route.includes("[")) {
-				dynamicRoutes.push(route);
-			} else {
-				staticRoutes.push(route);
-			}
-		}
+        const staticRoutes: string[] = [];
+        const dynamicRoutes: string[] = [];
 
-		// 1) Exact match for static routes
-		for (const route of staticRoutes) {
-			if (route === normalizedPath) {
-				return { route, params: {} };
-			}
-		}
+        for (const route of routes) {
+            if (route.includes('[')) {
+                dynamicRoutes.push(route);
+            } else {
+                staticRoutes.push(route);
+            }
+        }
 
-		// 2) Dynamic routes
-		for (const route of dynamicRoutes) {
-			const paramNames: string[] = [];
+        // 1) Exact match for static routes
+        for (const route of staticRoutes) {
+            if (route === normalizedPath) {
+                return { route, params: {} };
+            }
+        }
 
-			const regexStr = route
-				.replace(/\//g, "\\/")
-				.replace(/\[([^\]]+)\]/g, (_, paramName) => {
-					paramNames.push(paramName);
-					return "([^\\/]+)";
-				});
+        // 2) Dynamic routes
+        for (const route of dynamicRoutes) {
+            const paramNames: string[] = [];
 
-			const regex = new RegExp(`^${regexStr}$`);
-			const match = normalizedPath.match(regex);
+            const regexStr = route
+                .replace(/\//g, '\\/')
+                .replace(/\[([^\]]+)\]/g, (_, paramName) => {
+                    paramNames.push(paramName);
+                    return '([^\\/]+)';
+                });
 
-			if (match) {
-				const params: Record<string, string> = {};
-				paramNames.forEach((name, index) => {
-					(params[name] as any) = match[index + 1];
-				});
+            const regex = new RegExp(`^${regexStr}$`);
+            const match = normalizedPath.match(regex);
 
-				return { route, params };
-			}
-		}
+            if (match) {
+                const params: Record<string, string> = {};
+                paramNames.forEach((name, index) => {
+                    (params[name] as any) = match[index + 1];
+                });
 
-		return null;
-	}
+                return { route, params };
+            }
+        }
+
+        return null;
+    }
+
 }
+

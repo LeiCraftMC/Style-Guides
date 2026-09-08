@@ -124,7 +124,7 @@ export class API {
 		}
 	}
 
-	static getApp(): typeof API.app {
+	static getApp(): Hono {
 		if (!this.app) {
 			throw new Error(`${AppConstants.APP_NAME} API not initialized. Call API.init() first.`);
 		}

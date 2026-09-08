@@ -7,7 +7,7 @@ if (!existsSync("./data/")) {
 
 try {
 
-	await API.init(false);
+	await API.init([], false);
 
 	const res = await API.getApp().request("/docs/v1/openapi");
 	if (!res.ok) {
