@@ -2,7 +2,6 @@ import { randomBytes as crypto_randomBytes } from "crypto";
 import { mkdir as fs_mkdir } from "fs/promises";
 
 export class Utils {
-	
 	static getRandomU32() {
 		const timeComponent = Date.now() % 0x100000000;
 		const randomComponent = crypto_randomBytes(4).readUInt32BE(0);
@@ -45,11 +44,9 @@ export class Utils {
 	static asExact<Shape>() {
 		return <T extends Shape>(obj: T & Utils.DeepExact<Shape, T>): T => obj;
 	}
-
 }
 
 export namespace Utils {
-	
 	export type MergeArray<T extends object[]> = T extends [infer First, ...infer Rest]
 		? First & MergeArray<Rest extends object[] ? Rest : []>
 		: {};

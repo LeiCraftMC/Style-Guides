@@ -1,6 +1,4 @@
-
 export class Logger {
-
 	private static readonly logLevelMap = {
 		debug: 0,
 		info: 1,

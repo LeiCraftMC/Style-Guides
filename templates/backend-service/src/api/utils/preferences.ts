@@ -3,24 +3,19 @@ import { DB } from "../../db";
 import type { DrizzleDB } from "../../db/utils";
 import { z } from "zod";
 
-const RemoteContentDecision = z.enum(["allow", "block"]);
-
 export namespace UserPreferences {
+	// Each preference key maps to a fixed zod schema, so clients can't store
+	// arbitrary data. Add new keys here, then expose typed getters/setters below.
+	export const schemas = {
+		onboarding: z.object({
+			// Whether the user has completed the one-time, platform-wide welcome
+			// onboarding (preferences setup). Drives the first-login redirect,
+			// so it defaults to false until the user finishes or skips it.
+			completed: z.boolean().default(false),
+		}),
+	} as const;
 
-    export const schemas = {
-        
-        //something like this
-
-        "onboarding": z.object({
-            // Whether the user has completed the one-time, platform-wide welcome
-            // onboarding (preferences setup). Drives the first-login redirect,
-            // so it defaults to false until the user finishes or skips it.
-            completed: z.boolean().default(false),
-        }),
-    } as const;
-
-    export type Key = keyof typeof schemas;
-
+	export type Key = keyof typeof schemas;
 }
 
 /**
@@ -29,64 +24,65 @@ export namespace UserPreferences {
  * Each key has a fixed zod schema so clients cannot store arbitrary data.
  */
 export class UserPreferencesHandler {
+	static async get<T extends UserPreferences.Key>(
+		userID: number,
+		key: T,
+		tx: DrizzleDB = DB.instance(),
+	): Promise<z.infer<(typeof UserPreferences.schemas)[T]>> {
+		const record = await tx
+			.select()
+			.from(DB.Tables.userPreferences)
+			.where(
+				and(eq(DB.Tables.userPreferences.user_id, userID), eq(DB.Tables.userPreferences.key, key)),
+			)
+			.get();
 
-    static async get<T extends UserPreferences.Key>(
-        userID: number,
-        key: T,
-        tx: DrizzleDB = DB.instance()
-    ): Promise<z.infer<(typeof UserPreferences.schemas)[T]>> {
+		// Indexing the heterogeneous `schemas` record by the generic key widens the
+		// parse result to a union, so narrow it back to this key's inferred type.
+		type Parsed = z.infer<(typeof UserPreferences.schemas)[T]>;
 
-        const record = await tx.select().from(DB.Tables.userPreferences).where(
-            and(
-                eq(DB.Tables.userPreferences.user_id, userID),
-                eq(DB.Tables.userPreferences.key, key)
-            )
-        ).get();
+		if (!record) {
+			// schemas[key] has per-field (not top-level) defaults, so it must be
+			// parsed against `{}` rather than `undefined` to fill them in.
+			return UserPreferences.schemas[key].parse({}) as Parsed;
+		}
 
-        // Indexing the heterogeneous `schemas` record by the generic key widens the
-        // parse result to a union, so narrow it back to this key's inferred type.
-        type Parsed = z.infer<(typeof UserPreferences.schemas)[T]>;
+		return UserPreferences.schemas[key].parse(record.data) as Parsed;
+	}
 
-        if (!record) {
-            // schemas[key] has per-field (not top-level) defaults, so it must be
-            // parsed against `{}` rather than `undefined` to fill them in.
-            return UserPreferences.schemas[key].parse({}) as Parsed;
-        }
+	static async set<T extends UserPreferences.Key>(
+		userID: number,
+		key: T,
+		data: z.infer<(typeof UserPreferences.schemas)[T]>,
+		tx: DrizzleDB = DB.instance(),
+	): Promise<void> {
+		const parsed = UserPreferences.schemas[key].parse(data);
 
-        return UserPreferences.schemas[key].parse(record.data) as Parsed;
-    }
+		await tx
+			.insert(DB.Tables.userPreferences)
+			.values({
+				user_id: userID,
+				key,
+				data: parsed,
+			})
+			.onConflictDoUpdate({
+				target: [DB.Tables.userPreferences.user_id, DB.Tables.userPreferences.key],
+				set: { data: parsed },
+			});
+	}
 
-    static async set<T extends UserPreferences.Key>(
-        userID: number,
-        key: T,
-        data: z.infer<(typeof UserPreferences.schemas)[T]>,
-        tx: DrizzleDB = DB.instance()
-    ): Promise<void> {
+	static async getOnboarding(userID: number) {
+		return this.get(userID, "onboarding");
+	}
 
-        const parsed = UserPreferences.schemas[key].parse(data);
+	static async setOnboarding(
+		userID: number,
+		data: z.infer<(typeof UserPreferences.schemas)["onboarding"]>,
+	) {
+		await this.set(userID, "onboarding", data);
+	}
 
-        await tx.insert(DB.Tables.userPreferences).values({
-            user_id: userID,
-            key,
-            data: parsed
-        }).onConflictDoUpdate({
-            target: [DB.Tables.userPreferences.user_id, DB.Tables.userPreferences.key],
-            set: { data: parsed }
-        });
-    }
-
-    static async getOnboarding(userID: number) {
-        return this.get(userID, "onboarding");
-    }
-
-    static async setOnboarding(userID: number, data: z.infer<(typeof UserPreferences.schemas)["onboarding"]>) {
-        await this.set(userID, "onboarding", data);
-    }
-
-    static async deleteAllForUser(userID: number, tx: DrizzleDB = DB.instance()): Promise<void> {
-        await tx.delete(DB.Tables.userPreferences).where(
-            eq(DB.Tables.userPreferences.user_id, userID)
-        );
-    }
-
+	static async deleteAllForUser(userID: number, tx: DrizzleDB = DB.instance()): Promise<void> {
+		await tx.delete(DB.Tables.userPreferences).where(eq(DB.Tables.userPreferences.user_id, userID));
+	}
 }

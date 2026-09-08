@@ -2,7 +2,6 @@ import { Logger } from "../utils/logger";
 import { ConfigHandler } from "../utils/config";
 
 export class TaskUtils {
-	
 	static getTaskLogFilePath(taskID: number): string {
 		const config = ConfigHandler.getConfig();
 		if (!config) {

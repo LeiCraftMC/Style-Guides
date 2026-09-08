@@ -7,9 +7,7 @@ import { API } from "../../src/api";
 import { Utils } from "../../src/utils";
 
 function setTestEnv(rootDir: string) {
-
 	const envVars = {
-		
 		APPPREFIX_LOG_LEVEL: "debug",
 
 		APPPREFIX_API_HOST: "::",
@@ -29,8 +27,7 @@ function setTestEnv(rootDir: string) {
 		APPPREFIX_SMTP_USERNAME: "",
 		APPPREFIX_SMTP_PASSWORD: "",
 		APPPREFIX_SMTP_FROM: '"App Test" <test@app.local>',
-		APPPREFIX_SMTP_SECURE: false
-
+		APPPREFIX_SMTP_SECURE: false,
 	} as const satisfies ENVConfigLike;
 
 	for (const [key, value] of Object.entries(envVars)) {
@@ -87,7 +84,6 @@ async function removeDirWithRetry(dir: string, attempts = 10, delayMs = 300) {
 let TMP_ROOT: string | null = null;
 
 beforeAll(async () => {
-	
 	TMP_ROOT = await createIsolatedDataDir();
 
 	setTestEnv(TMP_ROOT);
@@ -105,7 +101,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-
 	await API.stop();
 
 	await DB.close();

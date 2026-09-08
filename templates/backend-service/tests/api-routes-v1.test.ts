@@ -218,7 +218,6 @@ describe("Auth routes and access checks", async () => {
 	});
 
 	test("GET /v1/admin/users as non-admin fails", async () => {
-
 		// with auth token
 		await makeAPIRequest(
 			"/v1/admin/users",
@@ -489,9 +488,7 @@ describe("Account routes", async () => {
 	});
 
 	test("DELETE /v1/account fails because of existing data", async () => {
-
 		// some data is created here to prevent deletion
-
 		// await makeAPIRequest(
 		// 	"/v1/account",
 		// 	{
@@ -503,7 +500,6 @@ describe("Account routes", async () => {
 	});
 
 	test("DELETE /v1/account removes user data", async () => {
-		
 		await makeAPIRequest("/v1/account", {
 			method: "DELETE",
 			authToken: session_token,

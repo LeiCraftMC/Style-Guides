@@ -18,5 +18,6 @@ and a `.vscode/mcp.json` only if it grows a Nuxt frontend (see
 
 ## Project prefix
 
-Replace `SVC_` in `src/utils/config.ts` and `example.env` with the real project prefix before
-writing domain code.
+Replace the `APPPREFIX` env prefix and `appprefix` token prefix in
+`src/utils/constants.ts`, `example.env`, and the test env (`tests/helpers/preload.ts`) with the
+real project prefix before writing domain code.

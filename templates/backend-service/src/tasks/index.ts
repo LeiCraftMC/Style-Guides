@@ -104,12 +104,12 @@ export class TaskStorage extends TaskHandler.AbstractStorageDriver<TaskData, Add
 		const rows = DB.instance()
 			.select()
 			.from(DB.Tables.scheduled_tasks)
+			// paused or pending tasks, oldest first so earlier submissions run first
 			.where(
 				or(
 					eq(DB.Tables.scheduled_tasks.status, "paused"),
 					eq(DB.Tables.scheduled_tasks.status, "pending"),
 				),
-				// tasks ordered by creation time. oldest first
 			)
 			.orderBy(asc(DB.Tables.scheduled_tasks.created_at))
 			.all();
@@ -187,20 +187,10 @@ class PersistentLogger implements TaskHandler.PersistentTaskLoggerLike {
 			const filePath = TaskUtils.getTaskLogFilePath(taskID);
 			Utils.ensureDirectoryExists(dirname(filePath));
 
-			// this.writeStream = fs.createWriteStream(filePath, { flags: "a" });
 			this.writeStream = fs.createWriteStream(filePath, { flags: "a" });
 		} catch (err) {
 			Logger.error("Failed to create persistent task logger:", (err as Error).message);
 		}
-		// const backupWriteable = new WritableStream<string>({
-		// 	write(data) {
-		// 		Logger.error(`Trying to write: '${data}' but no log file available`);
-		// 	}
-		// }).getWriter();
-		// this.backupLogStream = {
-		// 	write: (chunk: any) => backupWriteable.write(chunk),
-		// 	end: () => backupWriteable.close()
-		// };
 	}
 
 	public debug(...msg: string[]) {

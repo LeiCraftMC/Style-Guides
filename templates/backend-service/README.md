@@ -16,7 +16,7 @@ Backend service template for LeiCraftMC projects.
 bun install
 cp example.env .env
 # Copy the LeiCraftMC biome.json from the style-guide root into this project.
-# Pick a unique port (never 3000) and set SVC_API_PORT — see docs/02 — Ports.
+# Pick a unique port (never 3000) and set APPPREFIX_API_PORT — see docs/02-tooling.md.
 bun run dev
 ```
 

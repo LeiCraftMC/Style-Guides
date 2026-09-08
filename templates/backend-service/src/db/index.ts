@@ -13,7 +13,6 @@ export class DB {
 	protected static db: DrizzleDB.BunSQLite;
 
 	static async init(path: string, autoMigrate: boolean, configBaseDir: string) {
-
 		await fs_mkdir(path_dirname(path), { recursive: true });
 		await fs_mkdir(path_dirname(configBaseDir), { recursive: true });
 
@@ -30,7 +29,6 @@ export class DB {
 	}
 
 	private static async createInitialAdminUserIfNeeded(configBaseDir: string) {
-
 		const usersTableEmpty = (await this.db.select().from(DB.Tables.users).limit(1)).length === 0;
 		if (!usersTableEmpty) return;
 
@@ -45,7 +43,8 @@ export class DB {
 				display_name: "Default Administrator",
 				role: "admin",
 			})
-			.returning().get().id;
+			.returning()
+			.get().id;
 
 		const passwordResetToken = LCrypt.randomBytes(64).toString("hex");
 
@@ -55,21 +54,23 @@ export class DB {
 			expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 Days
 		});
 
-		const APP_URL = ConfigHandler.getConfig()?.APP_URL || "https://{APP_URL}";
+		// APP_URL is a required config value; the fallback only covers the
+		// impossible-after-loadConfig undefined case so the token file is still usable.
+		const APP_URL = ConfigHandler.getConfig()?.APP_URL || "https://<app-url>";
 
 		await Bun.write(
 			`${configBaseDir}/initial_admin_password_reset_token.txt`,
 			`${APP_URL}/auth/reset-password?token=${passwordResetToken}`,
 			{
 				mode: 0o600,
-				createPath: true
+				createPath: true,
 			},
 		);
 
 		Logger.info(
 			`Initial admin user created with username: ${username}.\n` +
-			`You can set the password under ${APP_URL}/auth/reset-password?token=${passwordResetToken}\n` +
-			`The url is also saved at ${configBaseDir}/initial_admin_password_reset_token.txt\n`,
+				`You can set the password under ${APP_URL}/auth/reset-password?token=${passwordResetToken}\n` +
+				`The url is also saved at ${configBaseDir}/initial_admin_password_reset_token.txt\n`,
 		);
 
 		return admin_user_id;
@@ -89,34 +90,29 @@ export class DB {
 		await this.db.$client.close();
 
 		// `close()` calls sqlite3_close_v2, which defers releasing the OS file
-        // handle until any unfinalized prepared statements are garbage collected.
-        // Force that now so the underlying file is actually free (e.g. for tests
-        // that remove the DB file/directory right after closing).
-        Bun.gc(true);
+		// handle until any unfinalized prepared statements are garbage collected.
+		// Force that now so the underlying file is actually free (e.g. for tests
+		// that remove the DB file/directory right after closing).
+		Bun.gc(true);
 		await Bun.sleep(500);
 	}
 }
 
 export namespace DB.Tables {
-
 	export const users = TableSchema.users;
 	export const sessions = TableSchema.sessions;
 	export const passwordResets = TableSchema.passwordResets;
 	export const apiKeys = TableSchema.apiKeys;
 
 	export const userPreferences = TableSchema.userPreferences;
-	
-
 
 	export const scheduled_tasks = TableSchema.scheduled_tasks;
-    export const scheduled_tasks_paused_state = TableSchema.scheduled_tasks_paused_state;
+	export const scheduled_tasks_paused_state = TableSchema.scheduled_tasks_paused_state;
 
 	export const metadata = TableSchema.metadata;
-
 }
 
 export namespace DB.Models {
-
 	export type User = typeof DB.Tables.users.$inferSelect;
 	export type Session = typeof DB.Tables.sessions.$inferSelect;
 	export type PasswordReset = typeof DB.Tables.passwordResets.$inferSelect;
@@ -124,10 +120,8 @@ export namespace DB.Models {
 
 	export type UserPreference = typeof DB.Tables.userPreferences.$inferSelect;
 
-
 	export type ScheduledTask = typeof DB.Tables.scheduled_tasks.$inferSelect;
-    export type ScheduledTaskPausedState = typeof DB.Tables.scheduled_tasks_paused_state.$inferSelect;
+	export type ScheduledTaskPausedState = typeof DB.Tables.scheduled_tasks_paused_state.$inferSelect;
 
-    export type Metadata = typeof DB.Tables.metadata.$inferSelect;
-
+	export type Metadata = typeof DB.Tables.metadata.$inferSelect;
 }

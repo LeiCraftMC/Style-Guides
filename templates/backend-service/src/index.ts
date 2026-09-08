@@ -9,9 +9,7 @@ import { TaskScheduler } from "./tasks";
 
 // biome-ignore format
 export class Main {
-
 	static async main() {
-		
 		process.once("SIGINT", (type) => Main.gracefulShutdown(type, 0));
 		process.once("SIGTERM", (type) => Main.gracefulShutdown(type, 0));
 
@@ -23,11 +21,7 @@ export class Main {
 		Logger.setLogLevel(config.LOG_LEVEL ?? "info");
 		Logger.log("Starting <ProjectName> API...");
 
-		await DB.init(
-			config.DB_PATH,
-			config.DB_AUTO_MIGRATE,
-			config.CONFIG_BASE_DIR,
-		);
+		await DB.init(config.DB_PATH, config.DB_AUTO_MIGRATE, config.CONFIG_BASE_DIR);
 
 		await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 
@@ -47,7 +41,6 @@ export class Main {
 		try {
 			Logger.log(`Received ${type}, shutting down...`);
 
-
 			await CronJobHandler.stopAll();
 
 			await API.stop();
@@ -56,7 +49,6 @@ export class Main {
 			await TaskScheduler.stopProcessing();
 
 			await DB.close();
-
 
 			Logger.log("Shutdown complete, exiting.");
 			process.exit(code);

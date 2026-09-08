@@ -45,9 +45,7 @@ class CS {
 }
 
 namespace CS {
-
 	export class ConfigItem<const Schema extends z.ZodType> {
-
 		constructor(public _schema: Schema) {}
 
 		public parse(value: unknown) {
@@ -67,7 +65,6 @@ namespace CS {
 }
 
 class ConfigSchema<T extends ConfigSchemaSettings> {
-	
 	readonly schema: T;
 
 	constructor(schema: T) {
@@ -88,30 +85,29 @@ class ConfigSchema<T extends ConfigSchemaSettings> {
 				process.exit(1);
 			}
 
-			(result[key] as any) = value;
+			// Store the parsed (coerced/defaulted) value, not the raw env string —
+			// otherwise numbers/booleans stay strings and defaults/optionals are lost.
+			(result[key] as any) = parseResult.data;
 		}
 		return result;
 	}
 }
 
-
-// @ts-ignore
 export type ENVConfigLike = {
-	// @ts-ignore
-	[K in Extract<keyof typeof ConfigHandler.schema.schema, string> as `${typeof AppConstants.APP_ENV_PREFIX}_${K}`]: z.infer<
-		// @ts-ignore
-		typeof ConfigHandler.schema.schema[K]["_schema"]
+	[K in Extract<
+		keyof typeof ConfigHandler.schema.schema,
+		string
+	> as `${typeof AppConstants.APP_ENV_PREFIX}_${K}`]: z.infer<
+		(typeof ConfigHandler.schema.schema)[K]["_schema"]
 	>;
-}
+};
 
-// @ts-ignore
 export type ParsedConfig = ConfigLike<typeof ConfigHandler.schema.schema>;
 
-
 export class ConfigHandler {
-
-	private static schema = new ConfigSchema({
-
+	// Public so ENVConfigLike / ParsedConfig can derive from it without @ts-ignore.
+	// Treat it as read-only.
+	static schema = new ConfigSchema({
 		LOG_LEVEL: CS.enum(["debug", "info", "warn", "error", "critical"]).default("info"),
 
 		API_HOST: CS.string().default("::"),
@@ -131,13 +127,12 @@ export class ConfigHandler {
 		SMTP_USERNAME: CS.string().optional(),
 		SMTP_PASSWORD: CS.string().optional(),
 		SMTP_FROM: CS.string().optional(),
-		SMTP_SECURE: CS.boolean().optional()
-
+		SMTP_SECURE: CS.boolean().optional(),
 	});
 
 	private static config: ParsedConfig | null = null;
 
-	/** You have to call {@link ConfigHandler.parseConfigFile} before trying to access the config. */
+	/** You have to call {@link ConfigHandler.loadConfig} before trying to access the config. */
 	static getConfig() {
 		return this.config;
 	}

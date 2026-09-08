@@ -2,7 +2,7 @@ import { Logger } from "../utils/logger";
 import { Hono } from "hono";
 import { prettyJSON } from "hono/pretty-json";
 import { cors } from "hono/cors";
-import { HTTPException } from 'hono/http-exception'
+import { HTTPException } from "hono/http-exception";
 import type { APIVersionRouter } from "./utils/apiVersionRouter";
 import { APIv1Router } from "./versions/v1";
 import { openAPIRouteHandler } from "hono-openapi";
@@ -10,14 +10,12 @@ import { Scalar } from "@scalar/hono-api-reference";
 import { AppConstants } from "../utils/constants";
 
 export class API {
-
 	protected static server: Bun.Server<undefined>;
 	protected static app: Hono;
 
 	protected static latestVersion: number | null = null;
 
 	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs: boolean) {
-
 		this.app.route(`/v${versionRouter.version}`, versionRouter.router);
 
 		if (!this.latestVersion || versionRouter.version > this.latestVersion) {
@@ -25,7 +23,6 @@ export class API {
 		}
 
 		if (!disableDocs) {
-
 			this.app.get(
 				`/docs/v${versionRouter.version}/openapi`,
 				openAPIRouteHandler(versionRouter.router, versionRouter.openAPIConfig),
@@ -35,7 +32,6 @@ export class API {
 				`/docs/v${versionRouter.version}`,
 				Scalar({ url: `/docs/v${versionRouter.version}/openapi` }),
 			);
-
 		}
 	}
 
@@ -45,9 +41,8 @@ export class API {
 	 * call Bun.serve — call `start(port, hostname)` for that.
 	 */
 	static async init(frontendUrls: string[], disableDocs: boolean) {
-
 		this.app = new Hono();
-		
+
 		this.app.use(prettyJSON());
 
 		this.app.use(
@@ -62,14 +57,16 @@ export class API {
 		);
 
 		this.app.onError((err, c) => {
-
 			if (err instanceof HTTPException) {
 				// Return only safe error metadata — never leak Zod validation details
-				return c.json({
-					success: false,
-					code: err.status,
-					message: "Your input is invalid",
-				}, err.status)
+				return c.json(
+					{
+						success: false,
+						code: err.status,
+						message: "Your input is invalid",
+					},
+					err.status,
+				);
 			}
 
 			Logger.error("Unhandled API error:", err);
@@ -83,39 +80,36 @@ export class API {
 				success: true,
 				code: 200,
 				message: `${AppConstants.APP_NAME} API is running`,
-				data: null
+				data: null,
 			});
 		});
 
-
 		if (!disableDocs) {
-
 			this.app.get("/", (c) => {
 				return c.redirect(`/docs/v${this.latestVersion}`);
 			});
-
 		} else {
-
 			this.app.get("/", (c) => {
 				return c.json({
 					success: true,
 					code: 200,
 					message: `${AppConstants.APP_NAME} API is running. Documentation is disabled.`,
-					data: null
+					data: null,
 				});
 			});
 		}
 	}
 
 	static async start(port: number, hostname: string) {
-
 		if (!this.app) {
 			throw new Error(`${AppConstants.APP_NAME} API not initialized. Call API.init() first.`);
 		}
 
 		this.server = Bun.serve({ port, hostname, fetch: this.app.fetch });
 
-		Logger.log(`${AppConstants.APP_NAME} API listening on http://${this.server?.hostname}:${this.server?.port}`);
+		Logger.log(
+			`${AppConstants.APP_NAME} API listening on http://${this.server?.hostname}:${this.server?.port}`,
+		);
 	}
 
 	static async stop() {
