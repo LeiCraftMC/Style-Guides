@@ -10,8 +10,8 @@ import { Scalar } from "@scalar/hono-api-reference";
 import { AppConstants } from "../utils/constants";
 
 export class API {
-	protected static server: Bun.Server<undefined>;
-	protected static app: Hono | undefined;
+	protected static server: Bun.Server<undefined> | null = null;
+	protected static app: Hono | null;
 
 	protected static latestVersion: number | null = null;
 
@@ -112,8 +112,10 @@ export class API {
 
 		this.server = Bun.serve({ port, hostname, fetch: this.app.fetch });
 
+		const serverHostnameStr = this.server.hostname?.includes(":") ? `[${this.server.hostname}]` : this.server.hostname;
+
 		Logger.log(
-			`${AppConstants.APP_NAME} API listening on http://${this.server?.hostname}:${this.server?.port}`,
+			`${AppConstants.APP_NAME} API listening on ${this.server.protocol}://${serverHostnameStr}:${this.server.port}`,
 		);
 	}
 

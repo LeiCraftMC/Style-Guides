@@ -14,7 +14,7 @@ export class DB {
 
 	static async init(path: string, autoMigrate: boolean, configBaseDir: string) {
 		await fs_mkdir(path_dirname(path), { recursive: true });
-		await fs_mkdir(path_dirname(configBaseDir), { recursive: true });
+		await fs_mkdir(configBaseDir, { recursive: true });
 
 		this.db = drizzle(path);
 		if (autoMigrate) {
