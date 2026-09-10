@@ -19,4 +19,6 @@ export default defineNuxtConfig({
 			appUrl: process.env.NUXT_PUBLIC_APP_URL || "http://localhost:12510",
 		},
 	},
+
+	telemetry: false
 });

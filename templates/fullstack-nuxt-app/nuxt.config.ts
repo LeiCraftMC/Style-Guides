@@ -18,11 +18,9 @@ export default defineNuxtConfig({
 	],
 
 	nitro: {
+		
 		rollupConfig: { external: ["bun:sqlite"] },
 
-		experimental: {
-			websocket: true
-		},
 	},
 
 	runtimeConfig: {
@@ -36,6 +34,8 @@ export default defineNuxtConfig({
 		"/dashboard/**": { ssr: false },
 		"/auth/**": { ssr: false },
 		"/**": { ssr: true },
-	}
+	},
+
+	telemetry: false
 
 });

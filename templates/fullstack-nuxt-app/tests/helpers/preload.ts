@@ -1,17 +1,17 @@
+/// <reference types="bun-types" />
+
 import fs from "fs/promises";
 import path from "path";
 import { afterAll, beforeAll } from "bun:test";
-import { ConfigHandler, type ENVConfigLike } from "../../src/utils/config";
-import { DB } from "../../src/db";
-import { API } from "../../src/api";
-import { Utils } from "../../src/utils";
+import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config";
+import { DB } from "../../server/lib/db";
+import { API } from "../../server/lib/api";
+import { Utils } from "../../server/lib/utils";
 
 function setTestEnv(rootDir: string) {
 	const envVars = {
 		APPPREFIX_LOG_LEVEL: "debug",
 
-		APPPREFIX_API_HOST: "::",
-		APPPREFIX_API_PORT: 12500,
 		APPPREFIX_API_DISABLE_DOCS: false,
 
 		APPPREFIX_DB_PATH: path.join(rootDir, "db.sqlite"),
@@ -20,7 +20,7 @@ function setTestEnv(rootDir: string) {
 		APPPREFIX_LOG_DIR: path.join(rootDir, "logs"),
 		APPPREFIX_CONFIG_BASE_DIR: rootDir,
 
-		APPPREFIX_APP_URL: "http://localhost:12510",
+		APPPREFIX_APP_URL: "http://localhost:12520",
 
 		APPPREFIX_SMTP_HOST: "127.0.0.1",
 		APPPREFIX_SMTP_PORT: 12587,
@@ -97,7 +97,7 @@ beforeAll(async () => {
 
 	await API.init([config.APP_URL], false);
 
-	await API.start(12151, "::");
+	// await API.start(12521, "::");
 });
 
 afterAll(async () => {

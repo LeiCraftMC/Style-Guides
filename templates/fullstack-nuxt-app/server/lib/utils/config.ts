@@ -110,8 +110,6 @@ export class ConfigHandler {
 	static schema = new ConfigSchema({
 		LOG_LEVEL: CS.enum(["debug", "info", "warn", "error", "critical"]).default("info"),
 
-		API_HOST: CS.string().default("::"),
-		API_PORT: CS.number().default(12500),
 		API_DISABLE_DOCS: CS.boolean().default(false),
 
 		DB_PATH: CS.string().default("./data/db.sqlite"),
