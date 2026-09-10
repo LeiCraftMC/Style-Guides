@@ -24,7 +24,7 @@ class CompilerCommand {
 	public bytecode = true;
 	public entrypoint = "./scripts/entrypoint.ts";
 	// Replace <binary-name> with your compiled binary name (e.g. leios-api, nowip-api).
-	public outfile = "./build/bin/binary-name";
+	public outfile = "./build/bin/<binary-name>";
 	public platform: PlatformArg = "auto";
 	public env: NodeJS.ProcessEnv = {};
 	private additionalArgs: string[] = [];
