@@ -6,6 +6,7 @@ import { Utils } from "./utils";
 import { EmailService } from "./api/utils/email";
 import { CronJobHandler } from "./utils/cron";
 import { TaskScheduler } from "./tasks";
+import { AppConstants } from "./utils/constants";
 
 // biome-ignore format
 export class Main {
@@ -19,7 +20,7 @@ export class Main {
 		const config = await ConfigHandler.loadConfig();
 
 		Logger.setLogLevel(config.LOG_LEVEL ?? "info");
-		Logger.log("Starting <ProjectName> API...");
+		Logger.log(`Starting ${AppConstants.APP_NAME} API...`);
 
 		await DB.init(config.DB_PATH, config.DB_AUTO_MIGRATE, config.CONFIG_BASE_DIR);
 
