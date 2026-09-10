@@ -1,3 +1,5 @@
+import { AppConstants } from "../../src/utils/constants";
+
 /**
  * The compile engine: wraps `bun build --compile --sourcemap --minify --bytecode` and injects
  * `APP_VERSION` via `--define`. Targets: linux-x64 (modern), linux-x64-baseline, linux-arm64.
@@ -24,7 +26,7 @@ class CompilerCommand {
 	public bytecode = true;
 	public entrypoint = "./scripts/entrypoint.ts";
 	// Replace <binary-name> with your compiled binary name (e.g. leios-api, nowip-api).
-	public outfile = "./build/bin/<binary-name>";
+	public outfile = `./build/bin/${AppConstants.BINARY_NAME}`;
 	public platform: PlatformArg = "auto";
 	public env: NodeJS.ProcessEnv = {};
 	private additionalArgs: string[] = [];
