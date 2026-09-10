@@ -5,7 +5,7 @@ import { Logger } from "../utils/logger";
 import { ConfigHandler } from "../utils/config";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { mkdir as fs_mkdir } from "fs/promises";
-import { dirname as path_dirname } from "path";
+import { dirname as path_dirname, join as path_join } from "path";
 import { AppConstants } from "../utils/constants";
 import { LCrypt } from "../utils/crypto/lcrypt";
 
@@ -19,7 +19,14 @@ export class DB {
 		this.db = drizzle(path);
 		if (autoMigrate) {
 			Logger.info("Running database migrations...");
-			await migrate(this.db, { migrationsFolder: "drizzle/migrations" });
+
+			let migrationsFolder = "drizzle/migrations";
+			if (Bun.isStandaloneExecutable) {
+				migrationsFolder = path_join(import.meta.dir, migrationsFolder);
+			}
+
+			await migrate(this.db, { migrationsFolder });
+
 			Logger.info("Database migrations completed.");
 		}
 

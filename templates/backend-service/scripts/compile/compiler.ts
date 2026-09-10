@@ -1,5 +1,3 @@
-import type { BuildConfig } from "bun";
-
 /**
  * The compile engine: wraps `bun build --compile --sourcemap --minify --bytecode` and injects
  * `APP_VERSION` via `--define`. Targets: linux-x64 (modern), linux-x64-baseline, linux-arm64.
@@ -20,89 +18,75 @@ export enum Platforms {
 
 export type PlatformArg = keyof typeof Platforms | "auto";
 
-class CompilerOptions {
-
+class CompilerCommand {
 	public sourcemap = true;
 	public minify = true;
 	public bytecode = true;
 	public entrypoint = "./scripts/entrypoint.ts";
 	// Replace <binary-name> with your compiled binary name (e.g. leios-api, nowip-api).
-	public outfile = "./build/bin/<binary-name>";
-
+	public outfile = "./build/bin/binary-name";
+	public platform: PlatformArg = "auto";
 	public env: NodeJS.ProcessEnv = {};
-	
-	constructor(
-		public platform: PlatformArg,
-		public version: string,
-		private versionInFileName: boolean,
-		public additionalOptions: Partial<BuildConfig> = {}
-	) {}
+	private additionalArgs: string[] = [];
 
-	public getOutFilePath() : string {
-		let outfile = this.outfile;
+	constructor(private baseCommand = "bun build --compile") {}
 
-		if (this.versionInFileName) {
-			outfile += `-v${this.version}`;
-		}
-
-		if (this.platform !== "auto") {
-			if (!Object.keys(Platforms).some((p) => p === this.platform)) {
-				throw new Error(`Invalid platform: ${this.platform}`);
-			}
-			outfile += `-${this.platform}`;
-		}
-
-		return outfile;
+	public addArg(arg: string) {
+		this.additionalArgs.push(arg);
 	}
 
-	public getOptions() : BuildConfig {
-
-		const outfile = this.getOutFilePath();
-
-		return {
-			sourcemap: this.sourcemap,
-			minify: this.minify,
-			bytecode: this.bytecode,
-			entrypoints: [this.entrypoint],
-			compile: {
-				outfile: outfile,
-				...(this.platform === "auto" ? {} : { target: Platforms[this.platform] }),
-			},
-			format: "esm",
-			define: {
-				"process.env.APP_VERSION": `"${this.version}"`,
-				...Object.fromEntries(
-					Object.entries(this.env).map(([key, value]) => [
-						`process.env.${key}`,
-						`"${value}"`,
-					]),
-				),
-			},
-			...this.additionalOptions
-		};
+	public getCommand() {
+		return [
+			this.baseCommand,
+			this.sourcemap ? "--sourcemap" : "",
+			this.minify ? "--minify" : "",
+			this.bytecode ? "--bytecode --format=esm" : "",
+			this.entrypoint,
+			"--outfile",
+			this.outfile,
+			this.platform === "auto" ? "" : `--target=${Platforms[this.platform]}`,
+			...Object.entries(this.env).map(([key, value]) => `--define "process.env.${key}='${value}'"`),
+			...this.additionalArgs,
+		].join(" ");
 	}
 }
 
 export class Compiler {
-
-	private readonly options: CompilerOptions;
+	private command = new CompilerCommand();
 
 	constructor(
 		private platform: PlatformArg,
 		private version: string,
 		versionInFileName: boolean,
 	) {
-		this.options = new CompilerOptions(platform, version, versionInFileName);
+		if (versionInFileName) {
+			this.command.outfile += `-v${this.version}`;
+		}
+
+		this.command.platform = platform;
+
+		if (platform !== "auto") {
+			if (!Object.keys(Platforms).some((p) => p === platform)) {
+				throw new Error(`Invalid platform: ${platform}`);
+			}
+			this.command.outfile += `-${platform}`;
+		}
+
+		this.command.env.APP_VERSION = this.version;
+
+
+		this.command.addArg("--asset ./drizzle/migrations");
 	}
 
 	async build() {
 		try {
 			console.log(`Building from sources. Version: ${this.version} Platform: ${this.platform}`);
-			const output = await Bun.build(this.options.getOptions());
+
+			const output = await Bun.$`${{ raw: this.command.getCommand() }}`.text();
+			
 			console.log(output);
 		} catch (err: any) {
 			console.log(`Compiling Failed:\n`, err);
 		}
-		
 	}
 }
