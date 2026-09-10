@@ -1,3 +1,5 @@
+import type { BuildConfig } from "bun";
+
 /**
  * The compile engine: wraps `bun build --compile --sourcemap --minify --bytecode` and injects
  * `APP_VERSION` via `--define`. Targets: linux-x64 (modern), linux-x64-baseline, linux-arm64.
@@ -7,76 +9,100 @@ export enum Platforms {
 	"linux-x64" = "bun-linux-x64-modern",
 	"linux-x64-baseline" = "bun-linux-x64-baseline",
 	"linux-arm64" = "bun-linux-arm64",
+
+    // "win-x64" = "bun-windows-x64-modern",
+    // "win-x64-baseline" = "bun-windows-x64-baseline",
+
+    // "macos-x64" = "bun-darwin-x64-modern",
+    // "macos-x64-baseline" = "bun-darwin-x64-baseline",
+    // "macos-arm64" = "bun-darwin-arm64"
 }
 
 export type PlatformArg = keyof typeof Platforms | "auto";
 
-class CompilerCommand {
+class CompilerOptions {
+
 	public sourcemap = true;
 	public minify = true;
 	public bytecode = true;
 	public entrypoint = "./scripts/entrypoint.ts";
 	// Replace <binary-name> with your compiled binary name (e.g. leios-api, nowip-api).
 	public outfile = "./build/bin/<binary-name>";
-	public platform: PlatformArg = "auto";
+
 	public env: NodeJS.ProcessEnv = {};
-	private additionalArgs: string[] = [];
+	
+	constructor(
+		public platform: PlatformArg,
+		public version: string,
+		private versionInFileName: boolean,
+		public additionalOptions: Partial<BuildConfig> = {}
+	) {}
 
-	constructor(private baseCommand = "bun build --compile") {}
+	public getOutFilePath() : string {
+		let outfile = this.outfile;
 
-	public addArg(arg: string) {
-		this.additionalArgs.push(arg);
+		if (this.versionInFileName) {
+			outfile += `-v${this.version}`;
+		}
+
+		if (this.platform !== "auto") {
+			if (!Object.keys(Platforms).some((p) => p === this.platform)) {
+				throw new Error(`Invalid platform: ${this.platform}`);
+			}
+			outfile += `-${this.platform}`;
+		}
+
+		return outfile;
 	}
 
-	public getCommand() {
-		return [
-			this.baseCommand,
-			this.sourcemap ? "--sourcemap" : "",
-			this.minify ? "--minify" : "",
-			this.bytecode ? "--bytecode" : "",
-			this.entrypoint,
-			"--outfile",
-			this.outfile,
-			this.platform === "auto" ? "" : `--target=${Platforms[this.platform]}`,
-			...Object.entries(this.env).map(([key, value]) => `--define "process.env.${key}='${value}'"`),
-			...this.additionalArgs,
-		].join(" ");
+	public getOptions() : BuildConfig {
+
+		const outfile = this.getOutFilePath();
+
+		return {
+			sourcemap: this.sourcemap,
+			minify: this.minify,
+			bytecode: this.bytecode,
+			entrypoints: [this.entrypoint],
+			compile: {
+				outfile: outfile,
+				...(this.platform === "auto" ? {} : { target: Platforms[this.platform] }),
+			},
+			format: "esm",
+			define: {
+				"process.env.APP_VERSION": `"${this.version}"`,
+				...Object.fromEntries(
+					Object.entries(this.env).map(([key, value]) => [
+						`process.env.${key}`,
+						`"${value}"`,
+					]),
+				),
+			},
+			...this.additionalOptions
+		};
 	}
 }
 
 export class Compiler {
-	private command = new CompilerCommand();
+
+	private readonly options: CompilerOptions;
 
 	constructor(
 		private platform: PlatformArg,
 		private version: string,
 		versionInFileName: boolean,
 	) {
-		if (versionInFileName) {
-			this.command.outfile += `-v${this.version}`;
-		}
-
-		this.command.platform = platform;
-
-		if (platform !== "auto") {
-			if (!Object.keys(Platforms).some((p) => p === platform)) {
-				throw new Error(`Invalid platform: ${platform}`);
-			}
-			this.command.outfile += `-${platform}`;
-		}
-
-		this.command.env.APP_VERSION = this.version;
+		this.options = new CompilerOptions(platform, version, versionInFileName);
 	}
 
 	async build() {
 		try {
-			const output = await Bun.$`
-				echo "Building from sources. Version: ${this.version} Platform: ${this.platform}";
-				${{ raw: this.command.getCommand() }}
-			`.text();
+			console.log(`Building from sources. Version: ${this.version} Platform: ${this.platform}`);
+			const output = await Bun.build(this.options.getOptions());
 			console.log(output);
 		} catch (err: any) {
-			console.log(`Failed: ${err.message}`);
+			console.log(`Compiling Failed:\n`, err);
 		}
+		
 	}
 }
