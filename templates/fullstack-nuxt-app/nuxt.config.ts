@@ -21,6 +21,11 @@ export default defineNuxtConfig({
 		
 		rollupConfig: { external: ["bun:sqlite"] },
 
+		esbuild: {
+			options: {
+				target: "esnext"
+			}
+		}
 	},
 
 	runtimeConfig: {

@@ -21,7 +21,8 @@ export class DB {
 			Logger.info("Running database migrations...");
 
 			let migrationsFolder = "drizzle/migrations";
-			if (Bun.isStandaloneExecutable) {
+			//@ts-ignore
+			if (Bun?.isStandaloneExecutable) {
 				migrationsFolder = path_join(import.meta.dir, migrationsFolder);
 			}
 

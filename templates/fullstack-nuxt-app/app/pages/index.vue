@@ -11,7 +11,7 @@ const { data: health, refresh, loading } = await useAPIAsyncData("health", async
 
 <template>
   <div>
-    <h1 class="text-2xl font-semibold text-white">Welcome to <ProjectName></h1>
+    <h1 class="text-2xl font-semibold text-white">Welcome to ProjectName</h1>
     <p class="mt-2 text-slate-400">Nuxt 4 + NuxtUI v4 + Tailwind v4 template.</p>
 
     <UCard class="mt-6">

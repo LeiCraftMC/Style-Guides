@@ -10,9 +10,15 @@ export default defineNuxtConfig({
 	},
 	ssr: true,
 	css: ["~/assets/css/main.css"],
+	
 	nitro: {
-		preset: "bun",
+		esbuild: {
+			options: {
+				target: "esnext"
+			}
+		}
 	},
+
 	runtimeConfig: {
 		public: {
 			apiUrl: process.env.NUXT_PUBLIC_API_URL || "http://localhost:12500",

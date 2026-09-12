@@ -4,7 +4,7 @@
       <div class="mx-auto flex max-w-5xl items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2 text-lg font-semibold text-white">
           <ImgAppLogo class="h-8 w-auto" />
-          <span><ProjectName></span>
+          <span>ProjectName</span>
         </NuxtLink>
         <UButton icon="i-lucide-log-in" to="/auth/login" variant="ghost" />
       </div>
