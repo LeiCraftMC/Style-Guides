@@ -39,14 +39,7 @@ export default defineNuxtConfig({
 		// sometimes prerenderng has to be set specifically for certain routes, like /projects/**, to ensure they are generated correctly.
         prerender: {
             routes: [
-                '/projects/advena',
-                '/projects/netignite',
-                '/projects/leios',
-                '/projects/delivr',
-                '/projects/nowip',
-                '/projects/leicraft-mc-hosting',
-                '/projects/schwere-zeit',
-                '/projects/mindcode'
+                '/projects/example'
             ],
         },
     },
