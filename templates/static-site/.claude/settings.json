@@ -12,15 +12,15 @@
 	"commands": {
 		"verify": {
 			"description": "Run the repo verification flow",
-			"prompt": "Run the standard verification flow for this static Nuxt 4 + Bun project.\n\n1. Run `bun run typecheck`.\n2. Run `bun run generate` to confirm the static build succeeds.\n3. Summarize any failures or warnings.\n4. If this command was triggered after a code change, fix issues that are clearly caused by that change before summarizing."
+			"prompt": "Run the standard verification flow for this Nuxt 4 + Bun project.\n\n1. Run `bun test`.\n2. Run `bun run build`.\n3. Summarize any failures or warnings.\n4. If this command was triggered after a code change, fix issues that are clearly caused by that change before summarizing."
+		},
+		"test": {
+			"description": "Run the test suite",
+			"prompt": "Run the test suite for this Nuxt 4 + Bun project.\n\n1. Run `bun test`.\n2. If tests fail, diagnose and fix the root cause.\n3. Summarize pass/fail status and any fixes applied."
 		},
 		"typecheck": {
 			"description": "Run the TypeScript type checker",
-			"prompt": "Run `bun run typecheck` for this Nuxt 4 + Bun project. If there are type errors, diagnose and fix them before summarizing. Report the pass/fail status and what was fixed, if anything."
-		},
-		"generate": {
-			"description": "Generate the static site",
-			"prompt": "Generate the static site for this project.\n\n1. Run `bun run generate`.\n2. Confirm `.output/public/` was produced.\n3. Summarize the outcome and any warnings."
+			"prompt": "Run the full typecheck flow for this Nuxt 4 + Bun project.\n\n1. Run `bun run typecheck` which runs `nuxt typecheck` then `tsc -p ./tsconfig/tsconfig.typecheck.json`.\n2. If there are type errors, diagnose and fix them before summarizing.\n3. Report the pass/fail status and what was fixed, if anything."
 		}
 	},
 	"fileScan": {

@@ -14,15 +14,18 @@
 	--font-sans: "Rubik", sans-serif;
 }
 
+/* ===========================
+   Base & Reset Styles
+   =========================== */
+
 :root {
-	color-scheme: dark;
+    color-scheme: dark;
 }
 
 html {
-	scroll-behavior: smooth;
+    scroll-behavior: smooth;
 }
 
-/* slate-950 — the default app background; per-project, see docs/15. */
 .main-bg-color {
-	background-color: rgb(2 6 23);
+    background-color: rgb(2 6 23);
 }
