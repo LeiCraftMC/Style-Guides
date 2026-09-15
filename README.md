@@ -92,7 +92,7 @@ Four foundational standards were set for the org (rationale in
 ## Contributing
 
 This guide is itself a LeiCraftMC project: it is formatted with Biome and type-checked with `tsc`.
-Before committing, run `bun install && bunx biome check && bun run typecheck`. The
+Before committing, run `bun install && bun run check:ci && bun run typecheck`. The
 `/verify`, `/typecheck`, `/format`, and `/test` helper slash commands are defined in
 [`.claude/settings.json`](.claude/settings.json) (see [docs/16](docs/16-ai-tooling.md)).
 

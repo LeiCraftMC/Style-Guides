@@ -17,6 +17,7 @@
 			"**/*.vue",
 			"**/*.css",
 			"!**/node_modules",
+			"!**/.bun",
 			"!**/.nuxt",
 			"!**/.output",
 			"!**/.nitro",

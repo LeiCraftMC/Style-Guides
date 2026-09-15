@@ -20,7 +20,7 @@ https://github.com/LeiCraftMC/Style-Guides.
   See docs/10-auth.md.
 - Never hand-edit `*.gen.ts` (an automated `patch-api-client.ts` script is the only exception).
 - Static classes for services (`API`, `DB`, `Logger`, `ConfigHandler`, `AuthHandler`).
-- Format with Biome before finishing (`bunx biome check`).
+- Format with Biome before finishing (`bun run check:ci`).
 - Conventional Commits.
 
 Replace `<ProjectName>` and the `APPPREFIX` env prefix / `appprefix` token prefix

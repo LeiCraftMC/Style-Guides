@@ -87,7 +87,7 @@ test:
   image: oven/bun:latest
   script:
     - bun install --frozen-lockfile
-    - bunx biome check
+    - bun run check:ci
     - bun run typecheck
     - bun test
   cache:
@@ -137,7 +137,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bunx biome check
+      - run: bun run check:ci
       - run: bun run typecheck
       - run: bun test
 ```
@@ -163,6 +163,6 @@ documents the reason in [17 — Decisions](17-decisions.md).
 - [ ] Conventional Commits used.
 - [ ] `.gitignore` from `shared/config/gitignore`.
 - [ ] `renovate.json` from `shared/config/renovate.json`.
-- [ ] CI runs `bunx biome check`, `bun run typecheck`, `bun test`.
+- [ ] CI runs `bun run check:ci`, `bun run typecheck`, `bun test`.
 - [ ] GitLab CI uses `oven/bun` image; GitHub uses `oven-sh/setup-bun`.
 - [ ] `LICENSE` is AGPL-3.0 unless otherwise decided.

@@ -84,7 +84,7 @@ enforced formatter before; this is the new standard (see [17](17-decisions.md)).
 > **Adoption status:** the style-guide repo and the project templates here are Biome-clean. The
 > existing application repos are mid-adoption — most currently ship only `typecheck` + `bun test`.
 > The guide is the forward-looking rule: new projects and repos being touched should carry
-> `biome.json` + a `test:lint`/`bunx biome check` CI step. Don't remove Biome from a repo that has
+> `biome.json` + a `test:lint`/`bun run check:ci` CI step. Don't remove Biome from a repo that has
 > it; do add it when you modernize one that doesn't.
 
 Defaults the guide adopts (Biome's defaults, with pragmatic relaxations):
@@ -105,9 +105,9 @@ Defaults the guide adopts (Biome's defaults, with pragmatic relaxations):
   - `complexity/noBannedTypes: "off"` — the `ConfigSchema` builder uses `{}` as a default type
     parameter (`ConfigSchema<T = {}>`).
 
-`@biomejs/biome` is a devDependency in every project, and CI runs `bunx biome check` (the
-`test:lint` GitLab job / the `bunx biome check` GitHub Actions step) alongside `typecheck` and
-`test`. Run `bunx biome check` to lint, `bunx biome format --write` to format. Generated files
+`@biomejs/biome` is a devDependency in every project, and CI runs `bun run check:ci` (the
+`test:lint` GitLab job / the `bun run check:ci` GitHub Actions step) alongside `typecheck` and
+`test`. Run `bun run check:ci` to lint, `bunx biome format --write` to format. Generated files
 (`*.gen.ts`, `api-client/`) and build outputs are excluded in the config.
 
 ## Standard scripts

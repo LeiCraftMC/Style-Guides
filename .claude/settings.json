@@ -12,7 +12,7 @@
 	"commands": {
 		"verify": {
 			"description": "Run the full self-check for this style-guide repo (Biome + typecheck)",
-			"prompt": "Verify that the guide's own code is clean and type-correct before committing.\n\nRun, in order, and report any failures:\n\n1. Run `bunx biome check` across `shared/` and the repo root (templates are excluded from the root config) — must pass with no errors.\n2. Run `bun run typecheck` (runs `tsc -p ./tsconfig.json`) — must print 'Typecheck passed!'.\n3. If any template changed, sanity-check it: copy the template to a temp dir, replace the `<PREFIX>` / `<PORT>` / `<ProjectName>` placeholders, `bun install`, `bun run typecheck`, `bun test`. Report the result.\n\nDo not commit. Just report a concise pass/fail summary per step with the failing output if any."
+			"prompt": "Verify that the guide's own code is clean and type-correct before committing.\n\nRun, in order, and report any failures:\n\n1. Run `bun run check:ci` across `shared/` and the repo root (templates are excluded from the root config) — must pass with no errors.\n2. Run `bun run typecheck` (runs `tsc -p ./tsconfig.json`) — must print 'Typecheck passed!'.\n3. If any template changed, sanity-check it: copy the template to a temp dir, replace the `<PREFIX>` / `<PORT>` / `<ProjectName>` placeholders, `bun install`, `bun run typecheck`, `bun test`. Report the result.\n\nDo not commit. Just report a concise pass/fail summary per step with the failing output if any."
 		},
 		"typecheck": {
 			"description": "Type-check the guide's shared utilities with tsc",
@@ -20,7 +20,7 @@
 		},
 		"format": {
 			"description": "Format the repo with Biome",
-			"prompt": "Run `bunx biome format --write` across the repo, then `bunx biome check` to confirm there are no remaining lint issues. Report a concise summary of what changed and any lint findings that need manual attention."
+			"prompt": "Run `bunx biome format --write` across the repo, then `bun run check:ci` to confirm there are no remaining lint issues. Report a concise summary of what changed and any lint findings that need manual attention."
 		},
 		"test": {
 			"description": "Run the Bun test suite",

@@ -28,7 +28,7 @@ authoritative detail lives in [`docs/`](docs/); this is the short version.
   schema is reflected in the OpenAPI spec. See [`docs/04-backend-hono.md`](docs/04-backend-hono.md).
 - **New utilities already exist in [`shared/`](shared/)** — `Logger`, `ConfigSchema`, `APIResponse`,
   `useAPI`, `abstractStore`, the compile scripts, the tsconfig base. Copy them in; do not re-invent.
-- **Format with Biome** before finishing. The repo has a `biome.json`; run `bunx biome check`.
+- **Format with Biome** before finishing. The repo has a `biome.json`; run `bun run check:ci`.
 - **Conventional Commits** only: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, with an
   optional scope (`feat(api): …`). No casual messages.
 
@@ -55,7 +55,7 @@ authoritative detail lives in [`docs/`](docs/); this is the short version.
 ## Tooling & finishing
 
 - Bun runtime; `bun test`; `bun run typecheck` (`tsc --noEmit` against the typecheck tsconfig).
-- Before declaring done: `bunx biome check` clean, `bun run typecheck` passes, `bun test` passes.
+- Before declaring done: `bun run check:ci` clean, `bun run typecheck` passes, `bun test` passes.
 - If you created a new project from a template, replace every `<PREFIX>`, `<PORT>`, and
   `<ProjectName>` placeholder.
 

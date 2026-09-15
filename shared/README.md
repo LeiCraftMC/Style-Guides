@@ -26,7 +26,7 @@ shared/
    `MINDCODE_`) and any `<PORT>` / `<ProjectName>` placeholders.
 3. Adjust the project-specific bits (the `ConfigHandler` schema, `DOCS_TAGS`, the `useAppCookies`
    cookie name, the `app.config.ts` primary color, the `biome.json` if you need overrides).
-4. `bun install`, then `bunx biome check` and `bun run typecheck` to confirm.
+4. `bun install`, then `bun run check:ci` and `bun run typecheck` to confirm.
 
 ### What's type-checked here
 

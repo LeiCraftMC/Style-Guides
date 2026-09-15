@@ -41,7 +41,7 @@ The guide repo ships these commands in [`.claude/settings.json`](../.claude/sett
 
 - `/verify` — Biome + typecheck + tests.
 - `/typecheck` — `bun run typecheck`.
-- `/format` — `bunx biome format --write` then `bunx biome check`.
+- `/format` — `bunx biome format --write` then `bun run check:ci`.
 - `/test` — `bun run test`.
 
 Canonical templates live in [`shared/config/`](../shared/config):

@@ -8,7 +8,7 @@ test:
     - bun --version
   script:
     - bun install --frozen-lockfile
-    - bunx biome check
+    - bun run check:ci
     - bun run typecheck
     - bun test
   cache:
