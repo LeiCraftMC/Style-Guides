@@ -97,7 +97,7 @@ beforeAll(async () => {
 
 	await API.init([config.APP_URL], false);
 
-	await API.start(12151, "::");
+	await API.start(12500, "::");
 });
 
 afterAll(async () => {

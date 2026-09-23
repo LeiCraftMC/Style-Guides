@@ -1,6 +1,6 @@
 import type { TaskHandler } from "@cleverjs/utils";
 import { desc, sql, eq } from "drizzle-orm";
-import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, integer, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { SQLUtils } from "./utils";
 import { UserAccountSettings } from "../api/utils/shared-models/accountData";
 
@@ -84,7 +84,9 @@ export const userPreferences = sqliteTable("user_preferences", {
 	// Preference key, e.g. "remote-content-policy".
 	key: text().notNull(),
 	data: text({ mode: "json" }).$type<Record<string, any> | Array<any>>().notNull(),
-});
+}, (table) => [
+    uniqueIndex('user_preferences_user_id_key_unique').on(table.user_id, table.key)
+]);
 
 /**
  * @deprecated Use DB.Tables.scheduled_tasks to access this table.
