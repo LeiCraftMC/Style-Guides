@@ -6,7 +6,7 @@ import { Signature, type EllipticBinarySignature } from "./signature";
 type NewKeyPair<T> = new (keyPair: ellipticCurve.KeyPair) => T;
 
 export class PublicKey extends FixedUint {
-	public static readonly byteLength = 33;
+	public static override readonly byteLength = 33;
 }
 
 export class PrivateKey extends Uint256 {}

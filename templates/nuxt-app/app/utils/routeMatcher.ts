@@ -53,12 +53,10 @@ export class SimpleRouteMatcher {
 		for (const route of dynamicRoutes) {
 			const paramNames: string[] = [];
 
-			const regexStr = route
-				.replace(/\//g, "\\/")
-				.replace(/\[([^\]]+)\]/g, (_, paramName) => {
-					paramNames.push(paramName);
-					return "([^\\/]+)";
-				});
+			const regexStr = route.replace(/\//g, "\\/").replace(/\[([^\]]+)\]/g, (_, paramName) => {
+				paramNames.push(paramName);
+				return "([^\\/]+)";
+			});
 
 			const regex = new RegExp(`^${regexStr}$`);
 			const match = normalizedPath.match(regex);

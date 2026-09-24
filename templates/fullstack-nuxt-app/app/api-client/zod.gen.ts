@@ -209,6 +209,20 @@ export const zGetAccountApikeysByApiKeyIdResponse = z.object({
 });
 
 /**
+ * Preferences retrieved successfully
+ */
+export const zGetAccountPreferencesResponse = z.object({
+    success: z.literal(true),
+    code: z.literal(200),
+    message: z.literal('Preferences retrieved successfully'),
+    data: z.object({
+        onboarding: z.object({
+            completed: z.boolean().optional().default(false)
+        })
+    })
+});
+
+/**
  * Onboarding state retrieved successfully
  */
 export const zGetAccountPreferencesOnboardingResponse = z.object({

@@ -59,7 +59,7 @@ export abstract class BasicAbstractStore<T> {
 }
 
 export abstract class BasicAbstractStoreWithMetadata<T, MetaT> extends BasicAbstractStore<T> {
-	protected declare readonly options: BasicAbstractStore.OptionsWithMetadata<MetaT>;
+	declare protected readonly options: BasicAbstractStore.OptionsWithMetadata<MetaT>;
 
 	protected readonly metadataState: Ref<MetaT>;
 
@@ -69,7 +69,10 @@ export abstract class BasicAbstractStoreWithMetadata<T, MetaT> extends BasicAbst
 	) {
 		super(storeKey, options);
 
-		this.metadataState = useState<MetaT>(`${this.storeKey}_metadata`, () => options.defaultMetadata);
+		this.metadataState = useState<MetaT>(
+			`${this.storeKey}_metadata`,
+			() => options.defaultMetadata,
+		);
 	}
 
 	protected useMetadataRaw(): Ref<MetaT> {
@@ -90,10 +93,11 @@ export abstract class ModifiableAbstractStore<T, UpdateT = T> extends BasicAbstr
 	abstract update(updates: UpdateT): Promise<void>;
 }
 
-export abstract class ModifiableAbstractStoreWithMetadata<T, MetaT, UpdateT = T> extends BasicAbstractStoreWithMetadata<
+export abstract class ModifiableAbstractStoreWithMetadata<
 	T,
-	MetaT
-> {
+	MetaT,
+	UpdateT = T,
+> extends BasicAbstractStoreWithMetadata<T, MetaT> {
 	abstract update(updates: UpdateT): Promise<void>;
 
 	abstract updateMetadata(updates: Partial<MetaT>): Promise<void>;

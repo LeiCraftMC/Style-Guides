@@ -31,9 +31,7 @@ class AppCookie<T extends string | null | undefined> {
 	}
 
 	set(value: T, options?: CookieOptionsWithoutReadonly<T>) {
-		const merged = { ...this.options, ...options } as
-			| CookieOptionsWithoutReadonly<T>
-			| undefined;
+		const merged = { ...this.options, ...options } as CookieOptionsWithoutReadonly<T> | undefined;
 		useCookie(this.name, merged).value = value;
 	}
 }

@@ -15,12 +15,13 @@ export namespace UseAPITypes {
 	export type DefaultReturn<TReturn> = TReturn;
 
 	export type UseAPIReturnType<TReturn> = Promise<
-		TReturn | {
-			readonly success: false;
-			readonly code: 500;
-			readonly message: string;
-			readonly data: null;
-		}
+		| TReturn
+		| {
+				readonly success: false;
+				readonly code: 500;
+				readonly message: string;
+				readonly data: null;
+		  }
 	>;
 
 	export type AsyncDataReturn<TReturn> = {
@@ -151,22 +152,17 @@ export async function useAPI<TReturn>(
 			} else {
 				updateAPIClient(null);
 				if (!disableAuthRedirect) {
-					await navigateTo("/auth/login?url=" + encodeURIComponent(useRoute().fullPath));
+					await navigateTo(`/auth/login?url=${encodeURIComponent(useRoute().fullPath)}`);
 				}
 			}
 
 			const result = await handler(baseAPIClient);
 
-			if (
-				(result as any)?.success === false &&
-				(result as any)?.code === 401 &&
-				((result as any)?.message === "Invalid or expired token" ||
-					(result as any)?.message === "Missing or invalid Authorization header")
-			) {
+			if ((result as any)?.success === false && (result as any)?.code === 401) {
 				updateAPIClient(null);
 				sessionToken.value = null;
 				if (!disableAuthRedirect) {
-					await navigateTo("/auth/login?url=" + encodeURIComponent(useRoute().fullPath));
+					await navigateTo(`/auth/login?url=${encodeURIComponent(useRoute().fullPath)}`);
 				}
 			}
 			return result;
@@ -204,7 +200,9 @@ export async function useAPILazyAsyncData<TReturn>(name: string, handler: () => 
 }
 
 export function useAPIAsyncRequestTask<TReturn>(handler: () => Promise<TReturn>) {
-	return new AsyncRequestTaskWrapper<TReturn>(handler) satisfies UseAPITypes.AsyncRequestTaskReturn<TReturn>;
+	return new AsyncRequestTaskWrapper<TReturn>(
+		handler,
+	) satisfies UseAPITypes.AsyncRequestTaskReturn<TReturn>;
 }
 
 export function useAPILazyAsyncRequest<TReturn>(
@@ -212,5 +210,9 @@ export function useAPILazyAsyncRequest<TReturn>(
 	handler: () => Promise<TReturn>,
 	immediateFNInit = false,
 ) {
-	return new LazyAsyncDataRequestWrapper<TReturn>(name, handler, immediateFNInit) satisfies UseAPITypes.LazyAsyncDataRequestReturn<TReturn>;
+	return new LazyAsyncDataRequestWrapper<TReturn>(
+		name,
+		handler,
+		immediateFNInit,
+	) satisfies UseAPITypes.LazyAsyncDataRequestReturn<TReturn>;
 }
