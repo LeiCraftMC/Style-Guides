@@ -1,5 +1,5 @@
 /**
- * The `compile` script entrypoint — `bun run ./scripts/compile/index.ts`.
+ * The `compile` script entrypoint — `bun run ./scripts/compile`.
  * Wires the compile CLI (built on @cleverjs/cli) and dispatches to CompileToTargetCMD /
  * CompileAllCMD. See docs/11-cli-and-infra.md.
  */

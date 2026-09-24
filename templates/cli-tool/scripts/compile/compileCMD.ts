@@ -8,7 +8,12 @@
  * `--no-version-tag` omits the `-v<version>` suffix from the outfile (used by CI which tags
  * images separately). See docs/11-cli-and-infra.md and docs/14-deployment.md.
  */
-import { CLIBaseCommand, CLICommandArg, CLICommandArgParser, type CLICommandContext } from "@cleverjs/cli";
+import {
+	CLIBaseCommand,
+	CLICommandArg,
+	type CLICommandArgParser,
+	type CLICommandContext,
+} from "@cleverjs/cli";
 import { Compiler, type PlatformArg, Platforms } from "./compiler";
 
 class CompileUtils {
@@ -26,18 +31,18 @@ class CompileUtils {
 
 	static async getTargetVersion(args: Array<string | undefined>): Promise<[string, boolean]> {
 		if (args[0] === "--no-version-tag") {
-			const version = await this.getPackageJSONVersion();
+			const version = await CompileUtils.getPackageJSONVersion();
 			return [version, false];
 		}
 		const argvVersion = args[0] || process.env.APP_TARGET_VERSION;
-		const version = argvVersion || (await this.getPackageJSONVersion());
+		const version = argvVersion || (await CompileUtils.getPackageJSONVersion());
 
 		if (!version) {
 			console.log("No version specified. Please specify a version.");
 			process.exit(1);
 		}
 
-		const versionInFileName = args[1] === "--no-version-tag" ? false : true;
+		const versionInFileName = args[1] !== "--no-version-tag";
 		return [version, versionInFileName];
 	}
 }
