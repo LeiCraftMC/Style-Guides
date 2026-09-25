@@ -6,9 +6,9 @@ Read `AGENTS.md` first. This file adds Claude-Code-specific notes.
 
 Defined in `.claude/settings.json`:
 
-- `/verify` — typecheck + `nuxt generate`.
+- `/verify` — `bun test` + `bun run build`.
 - `/typecheck` — `bun run typecheck`.
-- `/generate` — generate the static site.
+- `/test` — `bun test`.
 
 ## MCP servers
 

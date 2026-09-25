@@ -1,12 +1,12 @@
 /// <reference types="bun-types" />
 
+import { afterAll, beforeAll } from "bun:test";
 import fs from "fs/promises";
 import path from "path";
-import { afterAll, beforeAll } from "bun:test";
-import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config";
-import { DB } from "../../server/lib/db";
 import { API } from "../../server/lib/api";
+import { DB } from "../../server/lib/db";
 import { Utils } from "../../server/lib/utils";
+import { ConfigHandler, type ENVConfigLike } from "../../server/lib/utils/config";
 
 function setTestEnv(rootDir: string) {
 	const envVars = {

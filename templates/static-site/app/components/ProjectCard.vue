@@ -1,10 +1,10 @@
 <script setup lang="ts">
 interface Props {
-    title: string;
-    img: string;
-    to?: string;
-    tags?: string[];
-    status?: string;
+	title: string;
+	img: string;
+	to?: string;
+	tags?: string[];
+	status?: string;
 }
 
 const { title, img, to, tags = [], status } = defineProps<Props>();

@@ -25,7 +25,8 @@
 			"!**/build",
 			"!**/.git",
 			"!**/*.gen.ts",
-			"!**/api-client"
+			"!**/api-client",
+			"!**/drizzle/migrations"
 		]
 	},
 	"formatter": {

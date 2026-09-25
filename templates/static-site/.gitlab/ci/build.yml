@@ -1,9 +1,11 @@
-# .gitlab/ci/build.yml — build stage.
-# Generic build job; override artifacts/paths per project (Nuxt .output/, backend build/bin/, etc.).
+# .gitlab/ci/build.yml — build stage for static sites.
+# Generates the site (`bun run generate` → .output/public/) and rsyncs it to the web host via
+# .gitlab/ci/deploy.sh. Needs the CI variables DEPLOY_REMOTE_USER, DEPLOY_REMOTE_PASSWORD,
+# DEPLOY_REMOTE_HOST and DEPLOY_REMOTE_DIR. Runs on the default branch only.
 
 build_and_deploy_pages:
 
-  stage: build_and_deploy
+  stage: build
 
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
@@ -18,8 +20,8 @@ build_and_deploy_pages:
     - bun install --frozen-lockfile
 
   script:
-    - bun generate
+    - bun run generate
 
     - echo "Deploying to production & $CI_PAGES_URL"
 
-    - .gitlab/ci/deploy.sh
+    - bash .gitlab/ci/deploy.sh

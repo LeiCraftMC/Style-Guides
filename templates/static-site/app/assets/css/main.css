@@ -7,8 +7,8 @@
  * See docs/06-frontend-nuxt.md#static-content-sites and docs/15-design-system.md.
  */
 @import "tailwindcss";
-@plugin "@tailwindcss/typography";
 @import "@nuxt/ui";
+@plugin "@tailwindcss/typography";
 
 @theme {
 	--font-sans: "Rubik", sans-serif;
@@ -19,13 +19,13 @@
    =========================== */
 
 :root {
-    color-scheme: dark;
+	color-scheme: dark;
 }
 
 html {
-    scroll-behavior: smooth;
+	scroll-behavior: smooth;
 }
 
 .main-bg-color {
-    background-color: rgb(2 6 23);
+	background-color: rgb(2 6 23);
 }

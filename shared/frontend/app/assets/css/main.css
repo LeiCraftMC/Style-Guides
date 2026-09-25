@@ -7,7 +7,7 @@
  * fallback: "dark", classSuffix: "" }` in nuxt.config.ts. Pick your project's `--font-sans`
  * and NuxtUI `primary`/`neutral` in app.config.ts. The `.main-bg-color` value is per-project
  * (most use slate-950 `rgb(2 6 23)`; Delivr uses `rgb(0 0 0)`, Personal-Website `#0b0c1b`).
- * For content-heavy static sites add `@plugin "@tailwindcss/typography";` before `@import "@nuxt/ui";`.
+ * For content-heavy static sites add `@plugin "@tailwindcss/typography";` after the `@import`s.
  * See docs/06-frontend-nuxt.md and docs/15-design-system.md.
  */
 @import "tailwindcss";

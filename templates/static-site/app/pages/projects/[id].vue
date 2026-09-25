@@ -1,58 +1,51 @@
 <script setup lang="ts">
-import { getProjectById } from '~/data/projects';
-
-
+import { getProjectById } from "~/data/projects";
 
 const route = useRoute();
 const project = computed(() => getProjectById(route.params.id as string));
 
 if (!project.value) {
-    throw createError({ statusCode: 404, statusMessage: 'Project not found' });
+	throw createError({ statusCode: 404, statusMessage: "Project not found" });
 }
-
 
 const projectTitle = `${project.value.title} — Projects - <ProjectName>`;
 
-useSeoMeta({
+usePageSeo({
 	title: projectTitle,
 	description: project.value.shortDescription,
 });
 
-
-
 const allLinks = computed(() => {
-    const links = [];
+	const links = [];
 
-    if (project.value?.sourceUrl) {
-        links.push({
-            label: 'Source Code',
-            url: project.value.sourceUrl,
-            icon: 'i-lucide-code',
-        });
-    }
+	if (project.value?.sourceUrl) {
+		links.push({
+			label: "Source Code",
+			url: project.value.sourceUrl,
+			icon: "i-lucide-code",
+		});
+	}
 
-    if (project.value?.websiteUrl) {
-        links.push({
-            label: 'Website',
-            url: project.value.websiteUrl,
-            icon: 'i-lucide-globe',
-        });
-    }
+	if (project.value?.websiteUrl) {
+		links.push({
+			label: "Website",
+			url: project.value.websiteUrl,
+			icon: "i-lucide-globe",
+		});
+	}
 
-    if (project.value?.additionalLinks) {
-        for (const link of project.value.additionalLinks) {
-            links.push({
-                label: link.label,
-                url: link.url,
-                icon: link.icon ?? 'i-lucide-external-link',
-            });
-        }
-    }
+	if (project.value?.additionalLinks) {
+		for (const link of project.value.additionalLinks) {
+			links.push({
+				label: link.label,
+				url: link.url,
+				icon: link.icon ?? "i-lucide-external-link",
+			});
+		}
+	}
 
-    return links;
+	return links;
 });
-
-
 </script>
 
 <template>

@@ -1,100 +1,125 @@
-# shared/ — canonical, copy-paste utilities & config
+# shared/ — the core files every LeiCraftMC project copies
 
-This directory holds the **canonical versions** of the utilities that LeiCraftMC projects
-currently copy-paste (with drift) between repos. When you start a new project, copy what you need
-from here instead of re-implementing it.
+This directory holds **verbatim copies of the core files from [`templates/`](../templates/)** — the
+utilities and config that almost every project needs, so you can pull them into an existing repo
+without scaffolding a whole template. The templates are the source of truth; `shared/` mirrors them.
 
 > **These are snippets, not a published package — yet.** See the
-> [package roadmap](#package-roadmap) below for the planned evolution into a real
-> `@leicraftmc/*` workspace package.
+> [package roadmap](#package-roadmap) below.
 
-## Layout
+## Layout: mirrored paths
+
+Each area mirrors the folder layout of the template it comes from, so **the path inside `shared/`
+is the path in your project**: copy `shared/backend/src/utils/config.ts` to `src/utils/config.ts`,
+`shared/frontend/app/composables/useAPI.ts` to `app/composables/useAPI.ts`, and so on. Relative
+imports between the copied files keep working.
 
 ```
 shared/
-├── tsconfig/        # the byte-identical tsconfig.base.json + tsconfig.typecheck.json
-├── config/          # gitignore, renovate.json, mcp.json, GitLab CI, GitHub Actions (copy the root biome.json)
-├── backend/         # Hono service utilities (logger, config, APIResponse, spec helpers, …)
-├── frontend/        # Nuxt app utilities (useAPI, abstractStore, cookies, main.css, …)
-└── cli/             # @cleverjs/cli utilities (logger with history, VersionCMD, compile scripts)
+├── backend/    # from templates/backend-service   (src/…, tests/helpers/…)
+├── cli/        # from templates/cli-tool          (src/…, scripts/…)
+├── frontend/   # from templates/nuxt-app          (app/…, scripts/…) + fullstack variants
+├── config/     # CI, Claude Code, Biome, Renovate, gitignore, bunfig — flat, copy to the named location
+└── tsconfig/   # tsconfig.base.json + typecheck configs
 ```
+
+**Feature modules stay template-only**: email, background tasks, cron jobs, crypto, user preferences,
+runtime metadata, the DB schema, routes, pages/layouts, Docker files, `.htaccess`. Copy those from
+the template directly (see the links in [`docs/`](../docs/)).
 
 ## How to use
 
-1. Copy the file(s) you need into the matching location in your project.
-2. Replace the `<PREFIX>` placeholder (env var + cookie name prefix, e.g. `DLA_`, `NOWIP_`,
-   `MINDCODE_`) and any `<PORT>` / `<ProjectName>` placeholders.
-3. Adjust the project-specific bits (the `ConfigHandler` schema, `DOCS_TAGS`, the `useAppCookies`
-   cookie name, the `app.config.ts` primary color, the `biome.json` if you need overrides).
-4. `bun install`, then `bun run check:ci` and `bun run typecheck` to confirm.
+1. Copy the file(s) you need to the same relative path in your project.
+2. Replace the placeholders: `<ProjectName>`, the `APPPREFIX` env prefix and `appprefix` token prefix
+   (`src/utils/constants.ts`), the `<PREFIX>` session-cookie name (`useAppCookies.ts`), the default
+   port, and `AppConstants.BINARY_NAME`.
+3. Adjust the project-specific bits (the config schema in `config.ts`, `DOCS_TAGS`, the guard
+   constants in `auth.global.ts`, the `app.config.ts` primary color).
+4. `bun install`, then `bun run check:ci`, `bun run typecheck` and `bun test`.
 
 ### What's type-checked here
 
-The guide repo itself type-checks `shared/backend/**` and `shared/cli/**` (both depend only on
-packages installed as devDeps here). `shared/frontend/**` relies on Nuxt auto-imports (`useCookie`,
-`useState`, `ref`, `navigateTo`, …) and is type-checked inside a real Nuxt app after copying, not
-in this repo.
+The guide repo type-checks `shared/backend/**` and `shared/cli/**` with `bun run typecheck`, except
+the files that import template modules `shared/` deliberately doesn't carry (DB schema, crypto, the
+API class): `backend/src/api/utils/authHandler.ts`, `backend/src/api/versions/v1/middleware/auth.ts`
+and `backend/tests/**` — they are type-checked in the templates. `shared/frontend/**` relies on Nuxt
+auto-imports and is checked inside the Nuxt templates.
 
-## backend/
-
-| File | What it is |
-| --- | --- |
-| `logger.ts` | `Logger` static class — leveled logging (`debug/info/warn/error/critical`), ISO timestamps, `LogLevel` namespace. |
-| `config-schema.ts` | `ConfigSchema` typed env builder + `ConfigHandler` pattern — `.add(KEY, required, enumOrBoolean?)` → `.parse()`, exits on missing required. |
-| `api-response.ts` | The `{ success, code, message, data }` envelope: `APIResponse.*` helpers + `APIResponse.Schema.*` / `APIResponse.Utils.*` Zod factories. |
-| `spec-helpers.ts` | `APIRouteSpec` (`authenticated`/`unauthenticated`/`custom`) + `APIResponseSpec` (`success`/`created`/`badRequest`/…) — hono-openapi `describeRoute` wrappers. |
-| `api-version-router.ts` | `APIVersionRouter` abstract base for mounting `/v{n}` routers. |
-| `main-shutdown.ts` | `registerShutdownHandlers()` — SIGINT/SIGTERM/uncaughtException/unhandledRejection with graceful + forced shutdown. |
-| `sql-utils.ts` | `SQLUtils.getCreatedAtColumn`/`primaryKeyIntAutoIncrement` (SQLite/PostgreSQL/MySQL) + `DrizzleDB`/`DrizzleTx` types. |
-| `make-api-request.ts` | Test helper: drives a Hono app in-process, asserts status, validates the envelope with Zod. |
-| `auth-handler.example.ts` | Opaque bearer-token auth scaffold: `<prefix>_<kind>_<id>:<base>`, `Bun.password` hashing, `AuthContext` union, `authMiddlewareV1`, `requireSession`/`requireAdmin`, `AuthRateLimiter`. Copy as `src/utils/auth-handler.ts` and wire the DB-lookup stubs. |
-| `runtime.ts` | `Runtime` static class (`isBun`/`isCloudflare`) + `Runtime.Password` (Bun.password or PBKDF2 fallback) for dual-target full-stack apps. |
-
-## frontend/
+## backend/ (from `templates/backend-service`)
 
 | File | What it is |
 | --- | --- |
-| `useAPI.ts` | The single gateway to the generated API SDK — SSR `useAsyncData` + client auth + 401→login, normalizes errors into the envelope. |
-| `updateAPIClient.ts` | Sets `baseURL` + `Authorization: Bearer` on the generated `client` (`ignoreResponseError: true`). |
-| `useAppCookies.ts` | `AppCookie` wrapper around `useCookie` + `useAppCookies()` factory. |
-| `abstractStore.ts` | `BasicAbstractStore` / `*WithMetadata` / `ModifiableAbstractStore` over `useState` (SSR-safe) + `useXxxStore()` factory pattern. |
-| `useAwaitedComputed.ts` | Async `computed()` — resolves a `Promise<T>` getter into a `ComputedRef<T>`. |
-| `routeMatcher.ts` | `SimpleRouteMatcher` — Nuxt-style `[param]` route matching for allowlists. |
-| `rewrites.global.ts` | Trailing-slash stripper route middleware. |
-| `main.css` | Tailwind v4 CSS-first entry: `@import "tailwindcss"; @import "@nuxt/ui";` + `@theme` font + dark `:root` + `.main-bg-color`. |
-| `app.config.ts` | NuxtUI `defineAppConfig` shape — `ui.colors` + `theme`. |
-| `usePageSeo.ts` | One composable for per-page SEO (`useSeoMeta` + canonical `useHead` + optional JSON-LD) — for static/marketing sites. |
-| `*.example.vue` | Canonical dashboard component copies: `DashboardPageHeader`, `DashboardPageBody`, `DataTable`, `DashboardModal`, `DashboardDeleteModal` (see docs/15). |
+| `src/api/utils/api-res.ts` | The `{ success, code, message, data }` envelope: `APIResponse.*` helpers + `APIResponse.Schema/Utils/Types` Zod factories. |
+| `src/api/utils/specHelpers.ts` | `APIRouteSpec` (`authenticated`/`unauthenticated`/…) + `APIResponseSpec` — hono-openapi `describeRoute` wrappers. |
+| `src/api/utils/apiVersionRouter.ts` | `APIVersionRouter` base for mounting `/v{n}` routers with their OpenAPI config. |
+| `src/api/utils/authHandler.ts` | Opaque bearer-token auth: `AuthUtils`, `SessionHandler`, `APIKeyHandler`, `AuthHandler` (+ `AuthContext` helpers). Needs the template's DB schema + `LCrypt`. |
+| `src/api/versions/v1/middleware/auth.ts` | `authMiddlewareV1` — resolves the `AuthContext`; public auth paths stay reachable with a stale token. |
+| `src/utils/config.ts` | `ConfigHandler` + the Zod `CS` builder (`CS.string()/number()/boolean()/enum()/array()`). Booleans: any non-empty value is true. |
+| `src/utils/constants.ts` | `AppConstants` — app name, `APPPREFIX`/`appprefix`, default port, `BINARY_NAME`. |
+| `src/utils/logger.ts` | `Logger` — leveled logging with ISO timestamps. |
+| `src/utils/index.ts` | `Utils` — small helpers (`getRandomU32`, `splitNTimes`, `sleep`, `ensureDirectoryExists`, `mergeObjects`, …). |
+| `src/db/utils.ts` | `SQLUtils` column helpers + `DrizzleDB` types. |
+| `src/utils/runtime.ts` | **Optional, unused by the templates** — `Runtime` for Bun + Cloudflare dual-target apps. |
+| `tests/helpers/{api,preload,seed}.ts` | Test harness: `makeAPIRequest`, the bunfig preload (temp DB + API), `seedUser`/`seedSession`. |
 
-> **`patch-api-client.ts` exception:** generated `*.gen.ts` may be patched by an automated,
-> idempotent post-`openapi-ts` script — never by hand. See
-> [docs/05](../docs/05-api-contract.md#generating-the-frontend-client).
-
-## cli/
+## frontend/ (from `templates/nuxt-app`)
 
 | File | What it is |
 | --- | --- |
-| `logger.ts` | `Logger` with a `logHistory` buffer + `getLogHistory()` for crash dumps (the superset of `backend/logger.ts`). |
-| `version-cmd.ts` | `VersionCMD` (`@cleverjs/cli`) — prints `process.env.APP_VERSION`. |
-| `compile/` | The `bun build --compile` trio (`index`/`compiler`/`compileCMD`) — produces standalone binaries per target. |
-| `cli-app.example.ts` | A `CLIApp` skeleton: global `--log-level` flag, command registration, `.handle(process.argv.slice(2), "shell")`. |
+| `app/composables/useAPI.ts` | The single gateway to the generated SDK — applies the session token, redirects to login on a missing cookie or any 401, never throws. |
+| `app/composables/updateAPIClient.ts` | Standalone frontend (talks to backend-service): `baseURL = <apiUrl>/v1`. |
+| `app/composables/updateAPIClient.fullstack.ts` | Full-stack variant: `baseURL = <appUrl>/api/v1` — copy it as `updateAPIClient.ts`. |
+| `app/composables/{useRuntimeAppConfigs,useAppCookies,useAwaitedComputed,usePageSeo}.ts` | Runtime config, session cookie, async `computed`, per-page SEO (+ JSON-LD). |
+| `app/composables/{useSubrouterInjectedData,useSubrouterPathDynamics}.ts` | Parent→child data + breadcrumbs/SEO/tabs for nested dashboard routes. |
+| `app/composables/stores/{useUserStore,useOnboardingStore}.ts` | `useUserInfoStore` (account) and the `/welcome` onboarding flag. |
+| `app/middleware/auth.global.ts` | The route guard — tune `HOME_ROUTE`, `PROTECTED_PREFIXES`, `ADMIN_PREFIXES`, `PUBLIC_ROUTES`, `REQUIRE_ONBOARDING`. |
+| `app/middleware/rewrites.global.ts` | Trailing-slash stripper. |
+| `app/utils/{abstractStore,routeMatcher}.ts` | SSR-safe stores over `useState`; `SimpleRouteMatcher`. |
+| `app/components/dashboard/*.vue` | `DashboardPageHeader`, `DashboardPageBody`, `DashboardModal`, `DashboardDeleteModal`, `DataTable` (see docs/15). |
+| `app/components/form/DateRangePicker.vue` | Date-range filter used by `DataTable`. |
+| `app/app.config.ts`, `app/assets/css/main.css` | NuxtUI theme + Tailwind v4 entry (dark-only). |
+| `scripts/patch-api-client.ts` | nuxt-app's automated post-`openapi-ts` patch for known generator typing bugs. |
+| `scripts/api-client-generate.ts` | Full-stack: generates the client from the in-process API spec. |
+
+> Generated `*.gen.ts` files are never edited by hand — the automated `patch-api-client.ts` is the
+> only exception. See [docs/05](../docs/05-api-contract.md).
+
+## cli/ (from `templates/cli-tool`)
+
+| File | What it is |
+| --- | --- |
+| `src/index.ts` | The `CLIApp` entry: global `--log-level`, command registration, `.handle(…, "shell")`. |
+| `src/commands/{version-cmd,hello-cmd}.ts` | `VersionCMD` (prints `APP_VERSION`) and an example command. |
+| `src/utils/{logger,constants}.ts` | CLI `Logger` with `logHistory` for crash dumps; `AppConstants` (`BINARY_NAME`). |
+| `scripts/compile/{index,compileCMD,compiler}.ts` | `bun build --compile` per target (`auto`, `all`, `linux-x64`, `linux-x64-baseline`, `linux-arm64`). Services add `--asset ./drizzle/migrations` and turn bytecode off (see docs/11). |
+| `scripts/entrypoint.ts` | The binary's entrypoint. |
 
 ## config/
 
-Drop-in config files: `gitignore`, `renovate.json`, `mcp.json` (`.vscode/mcp.json`), GitLab CI
-(`testing.yml` + `build.yml` + the top-level `.gitlab-ci.yml`), and GitHub Actions (`ci.yml` +
-`release.yml`). Claude Code config: `claude-settings.backend.json` /
-`claude-settings.nuxt.json` / `claude-settings.fullstack.json` (copy to `.claude/settings.json` — see
-[`docs/16-ai-tooling.md`](../docs/16-ai-tooling.md)). The
-canonical `biome.json` lives at the repository root so the guide repo has a single formatter/linter
-config; copy the root `biome.json` into new projects.
+| File | Copy to |
+| --- | --- |
+| `github-actions/ci.yml`, `github-actions/release.yml` | `.github/workflows/` (release: CLI binaries on `v*` tags) |
+| `gitlab-ci/gitlab-ci.yml` | `.gitlab-ci.yml` |
+| `gitlab-ci/testing.yml` | `.gitlab/ci/testing.yml` |
+| `gitlab-ci/build.{docker,service,static}.yml` | `.gitlab/ci/build.yml` — Nuxt image / compiled service image / static rsync deploy |
+| `gitlab-ci/deploy.sh` | `.gitlab/ci/deploy.sh` (static sites) |
+| `claude-settings.{backend,cli,nuxt,fullstack,static}.json` | `.claude/settings.json` (see [docs/16](../docs/16-ai-tooling.md)) |
+| `mcp.json` | `.vscode/mcp.json` |
+| `biome.json` | `biome.json` — the template Biome config (not the guide repo's root one) |
+| `bunfig.toml` | `bunfig.toml` (services: test preload) |
+| `gitignore` | `.gitignore` |
+| `renovate.json` | `.gitlab/renovate.json` (minimal on purpose; the org-level Renovate config applies) |
+
+## tsconfig/
+
+`tsconfig.base.json` (extended by backend/CLI `tsconfig.json`), `tsconfig.typecheck.json`
+(backend/CLI typecheck) and `tsconfig.typecheck.nuxt.json` (Nuxt apps: type-checks `tests/`; `app/`
+is covered by `nuxt typecheck`).
 
 ## Package roadmap
 
 Today every repo copy-pastes these utilities, which drifts. The plan is to evolve this directory
 into a published **`@leicraftmc/*`** workspace (e.g. `@leicraftmc/api`, `@leicraftmc/nuxt`,
-`@leicraftmc/cli`, `@leicraftmc/config`) on the org's Gitea/GitHub registry, so repos `import`
-one version instead of copying. That migration is **out of scope** for this guide; the snippets
-here are the interim source of truth and are deliberately written so the package split is a
-mechanical move later (each file already groups its exports under namespaced `class`/`namespace`
-boundaries). See [`docs/17-decisions.md`](../docs/17-decisions.md).
+`@leicraftmc/cli`, `@leicraftmc/config`) on the org's registry, so repos `import` one version
+instead of copying. That migration is **out of scope** for this guide; the files here are the
+interim source of truth. See [`docs/17-decisions.md`](../docs/17-decisions.md).

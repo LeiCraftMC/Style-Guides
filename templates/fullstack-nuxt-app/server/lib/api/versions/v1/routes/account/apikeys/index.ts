@@ -1,20 +1,20 @@
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { AccountAPIKeysModel } from "./model";
 import { validator } from "hono-openapi";
+import z from "zod";
 import { DB } from "../../../../../../db";
 import { type DrizzleDB } from "../../../../../../db/utils";
-import { and, eq } from "drizzle-orm";
+import { Logger } from "../../../../../../utils/logger";
 import { APIResponse } from "../../../../../utils/api-res";
-import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import {
 	APIKeyHandler,
 	AuthHandler,
 	AuthUtils,
 	SessionHandler,
 } from "../../../../../utils/authHandler";
+import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
-import z from "zod";
-import { Logger } from "../../../../../../utils/logger";
+import { AccountAPIKeysModel } from "./model";
 
 export const router = new Hono().basePath("/apikeys");
 

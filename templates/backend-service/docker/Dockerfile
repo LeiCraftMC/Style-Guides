@@ -1,15 +1,18 @@
 # Production image: the compiled Bun binary on a slim Debian base.
-# Build the binary first with `bun compile linux-x64-baseline <version> --no-version-tag`
-# (see scripts/compile). Replace <binary-name> with your project's compiled binary name.
+# Build the binary first (CI does this): `bun run compile linux-x64-baseline --no-version-tag`
+# → build/bin/<BINARY_NAME>-linux-x64-baseline. BINARY_NAME must match AppConstants.BINARY_NAME
+# (src/utils/constants.ts); override with `--build-arg BINARY_NAME=...` if you rename it.
 FROM debian:stable-slim
+
+ARG BINARY_NAME=my-project-api
 
 RUN apt-get update && apt-get install -y curl ca-certificates openssl tar bash gpg
 
-WORKDIR /opt/<binary-name>
+WORKDIR /opt/app
 
-COPY ./build/bin/<binary-name>-linux-x64-baseline /usr/local/bin/<binary-name>
-RUN chmod u+x /usr/local/bin/<binary-name>
+COPY ./build/bin/${BINARY_NAME}-linux-x64-baseline /usr/local/bin/app
+RUN chmod u+x /usr/local/bin/app
 
 EXPOSE 12500/tcp
 
-ENTRYPOINT ["<binary-name>"]
+ENTRYPOINT ["app"]

@@ -10,13 +10,13 @@ export default defineNuxtConfig({
 	},
 	ssr: true,
 	css: ["~/assets/css/main.css"],
-	
+
 	nitro: {
 		esbuild: {
 			options: {
-				target: "esnext"
-			}
-		}
+				target: "esnext",
+			},
+		},
 	},
 
 	runtimeConfig: {
@@ -26,5 +26,5 @@ export default defineNuxtConfig({
 		},
 	},
 
-	telemetry: false
+	telemetry: false,
 });

@@ -2,13 +2,21 @@
 
 ## Bun
 
-Bun is the runtime, package manager, test runner, dev server, and (for Nuxt) the Nitro preset.
+Bun is the runtime, package manager, test runner, dev server, and (for server Nuxt apps) the
+Nitro preset. The toolchain is Bun-only: CLIs run through `bunx --bun …`, types come from
+`bun-types`.
 
 - `bun install` (CI: `bun install --frozen-lockfile`); lockfile is `bun.lock`.
-- `bun run dev` → `bun run --watch src/index.ts` (backend/CLI) or `nuxt dev --port <PORT>` (Nuxt).
+- `bun run dev` → `bun run --watch src/index.ts` (backend/CLI) or `bunx --bun nuxt dev --port <PORT>`
+  (Nuxt).
 - `bun test` — the test runner (see [12](12-testing.md)).
-- `bun build --compile` — produces a standalone binary (see [11](11-cli-and-infra.md)).
-- Nuxt: `nitro: { preset: "bun" }` and `bun run .output/server/index.mjs --port <PORT>` in prod.
+- `bun run compile` — `bun build --compile` to a standalone binary (see
+  [11](11-cli-and-infra.md)).
+- Server Nuxt apps (nuxt-app, fullstack-nuxt-app): `build` is `nuxt build --preset bun` (the preset
+  is passed on the command line, not set in `nuxt.config.ts`), and `start` is
+  `PORT=<PORT> bun run .output/server/index.mjs`.
+- Static sites: `nitro: { preset: "static" }` in `nuxt.config.ts` (and `build` is
+  `nuxt build --preset static`); deploy the output of `bun run generate`. There is no `start`.
 
 Bun auto-loads `.env` — there is no need for a `dotenv` call in web services (CLI tools that need
 an explicit env-file path use `dotenv`'s non-overwriting load; see [09](09-config-and-logging.md)).
@@ -17,143 +25,246 @@ an explicit env-file path use `dotenv`'s non-overwriting load; see [09](09-confi
 
 **Never default to `3000`.** Every LeiCraftMC app gets its own unique port in the **12xxx** range,
 and the dev and prod ports are the **same** number (no separate dev/prod ports). Pick a port that
-isn't already used by another app in the ecosystem.
+isn't already used by another app in the ecosystem. The templates' defaults:
 
-The port shows up in up to four places — keep them in sync when you change it:
+| Template | Port | Where the port lives |
+| --- | --- | --- |
+| backend-service | 12500 | `APPPREFIX_API_PORT` (config default `API_PORT: CS.number().default(12500)`, `AppConstants.APP_API_DEFAULT_PORT`), `example.env`, `docker/Dockerfile` `EXPOSE`, `docker/docker-compose.yml` |
+| nuxt-app | 12510 | `package.json` `dev`/`start`, `NUXT_PUBLIC_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `PORT`/`EXPOSE`, the `/dev` prompt in `.claude/settings.json` |
+| fullstack-nuxt-app | 12520 | `package.json` `dev`/`start`, `APPPREFIX_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `PORT`/`EXPOSE`, the `/dev` prompt |
+| static-site | 12530 | `package.json` `dev` only |
+| static-site-with-docs | 12531 | `package.json` `dev` only |
+| cli-tool | — | — |
 
-- `package.json` scripts: `nuxt dev --port <PORT>` / `start: "PORT=<PORT> bun run .output/server/index.mjs"` (Nuxt), or `<PREFIX>_API_PORT` read by the backend's `ConfigHandler` (backend service).
-- `nuxt.config.ts` `runtimeConfig.public.appUrl` (and `apiUrl` for the frontend-only Nuxt shape).
-- `example.env` / `.env`: `NUXT_PUBLIC_APP_URL`, `NUXT_PUBLIC_API_URL`, `<PREFIX>_API_PORT`.
-- `openapi-ts.config.ts` `input` (the URL the client is generated from).
+Cross-references to keep in sync when you change a port:
 
-The `api-client:generate` script (where a project boots a temporary API to fetch the spec) uses
-**port + 1** for that throwaway instance (e.g. an app on 12336 generates its client on 12337).
+- The nuxt-app reaches the backend through `NUXT_PUBLIC_API_URL` (`http://localhost:12500`) and
+  generates its client from the `openapi-ts.config.ts` input
+  `http://localhost:12500/docs/v1/openapi` (the `/api-client` prompt names 12500 too).
+- The backend's `APPPREFIX_APP_URL` is the frontend origin (`http://localhost:12510` in its
+  `example.env`) — CORS allowlist and password-reset links.
+
+### API client generation
+
+Two flows exist, one per shape — details in
+[05 — Generating the frontend client](05-api-contract.md#generating-the-frontend-client):
+
+- **nuxt-app** (split repo): `openapi-ts && bun scripts/patch-api-client.ts` reads the **running**
+  backend's spec at `http://localhost:12500/docs/v1/openapi` (docs must be enabled), then patches
+  known generator typing bugs.
+- **fullstack-nuxt-app**: `bun scripts/api-client-generate.ts` boots the API **in-process**
+  (`API.init([], false)`), fetches `/docs/v1/openapi` via `API.getApp().request(…)`, writes
+  `./data/temp-api-openapi.json` and runs `bunx openapi-ts`. No server, no port, no patch.
 
 ## TypeScript
 
-Every project extends a shared base config. Copy it from
-[`shared/tsconfig/tsconfig.base.json`](../shared/tsconfig/tsconfig.base.json):
+Backend services and CLI tools extend a shared base config. Copy it from
+[`shared/tsconfig/tsconfig.base.json`](../shared/tsconfig/tsconfig.base.json) to
+`tsconfig/tsconfig.base.json`:
 
 ```jsonc
 {
-  "compilerOptions": {
-    "lib": ["ESNext"], "target": "ESNext", "module": "ESNext",
-    "moduleDetection": "auto", "moduleResolution": "bundler",
-    "incremental": true,
-    "verbatimModuleSyntax": true, "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true, "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true, "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": false, "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false,
-    "experimentalDecorators": true, "emitDecoratorMetadata": true
-  }
+	"compilerOptions": {
+		"lib": ["ESNext"], "target": "ESNext", "module": "ESNext",
+		"moduleDetection": "auto",
+		"types": ["bun-types", "node"],
+		"moduleResolution": "bundler",
+		"incremental": true,
+		"verbatimModuleSyntax": true, "esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"strict": true, "skipLibCheck": true,
+		"noFallthroughCasesInSwitch": true, "noUncheckedIndexedAccess": true,
+		"noUnusedLocals": false, "noUnusedParameters": false,
+		"noPropertyAccessFromIndexSignature": false,
+		"experimentalDecorators": true, "emitDecoratorMetadata": true
+	}
 }
 ```
 
 The notable flags: `strict` + `noUncheckedIndexedAccess` (array/object access is `T | undefined`),
 `verbatimModuleSyntax` (forces `import type` for types — see [03](03-naming-and-typescript.md)),
-and `moduleResolution: "bundler"` (allows extensionless imports). `noUnusedLocals`/`noUnusedParameters`
-are deliberately off — Biome handles unused-variable linting.
+`moduleResolution: "bundler"` (allows extensionless imports) and `types: ["bun-types", "node"]`
+(Bun and Node globals without per-file references). `noUnusedLocals`/`noUnusedParameters` are
+deliberately off — Biome handles unused-variable linting.
 
 The root `tsconfig.json` is just `{ "extends": "./tsconfig/tsconfig.base.json" }`. A second file,
-`tsconfig/tsconfig.typecheck.json`, adds `noEmit` and includes `../src`, `../tests`, `../scripts`:
+[`tsconfig/tsconfig.typecheck.json`](../shared/tsconfig/tsconfig.typecheck.json), adds `noEmit` and
+includes `../src`, `../tests`, `../scripts`:
 
 ```jsonc
 {
-  "extends": "./tsconfig.base.json",
-  "compilerOptions": { "noEmit": true },
-  "include": ["../src/**/*.ts", "../tests/**/*.ts", "../scripts/**/*.ts"]
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": { "noEmit": true },
+	"include": ["../src/**/*.ts", "../tests/**/*.ts", "../scripts/**/*.ts"]
 }
 ```
 
 Nuxt apps are different: the root `tsconfig.json` is Nuxt's generated project-references stub
-(`{ "files": [], "references": [".nuxt/tsconfig.{app,server,shared,node}.json"] }`), and
-`tsconfig/tsconfig.typecheck.json` **extends `../.nuxt/tsconfig.json`** with `"types": ["bun-types"]`
-and includes only `../tests/**` (and `../server/**` for full-stack apps). `app/**` is **not** in this
-pass — it is type-checked by `nuxt typecheck` (vue-tsc), which provides the Nuxt auto-import
+(`{ "files": [], "references": [{ "path": "./.nuxt/tsconfig.app.json" }, …server, shared, node] }`),
+and `tsconfig/tsconfig.typecheck.json` — copied from
+[`shared/tsconfig/tsconfig.typecheck.nuxt.json`](../shared/tsconfig/tsconfig.typecheck.nuxt.json) —
+**extends `../.nuxt/tsconfig.json`** with `noEmit`, `allowImportingTsExtensions` and
+`"types": ["bun-types"]`, and includes only `../tests/**/*` (plus `../server/**/*` in the full-stack
+app). `app/**` is left to `nuxt typecheck` (vue-tsc), which provides the Nuxt auto-import
 declarations (`ref`, `computed`, `useState`, …) that plain `tsc` cannot resolve. The `typecheck`
-script runs `nuxt typecheck && tsc -p ./tsconfig/tsconfig.typecheck.json`.
+script runs `bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json`.
+
+> Under Bun, `nuxt typecheck` does **not** check `.vue` files — only `.ts`. See
+> [Known limitations](#known-limitations).
 
 ## Biome (formatter + linter)
 
 Biome is the org formatter and linter — one tool, Bun-native, fast. The ecosystem had **no**
-enforced formatter before; this is the new standard (see [17](17-decisions.md)). Copy the root
-[`biome.json`](../biome.json) into every project.
+enforced formatter before; this is the new standard (see [17](17-decisions.md)). Copy
+[`shared/config/biome.json`](../shared/config/biome.json) — the config every template ships — into
+every project. Do **not** copy this repo's root `biome.json`: it adds `"root": true` and excludes
+`templates/`, `shared/config` and lockfiles, which only make sense here.
 
-> **Adoption status:** the style-guide repo and the project templates here are Biome-clean. The
+> **Adoption status:** the style-guide repo and all six templates pass `bun run check:ci`. The
 > existing application repos are mid-adoption — most currently ship only `typecheck` + `bun test`.
 > The guide is the forward-looking rule: new projects and repos being touched should carry
 > `biome.json` + a `test:lint`/`bun run check:ci` CI step. Don't remove Biome from a repo that has
 > it; do add it when you modernize one that doesn't.
 
-Defaults the guide adopts (Biome's defaults, with pragmatic relaxations):
+What the config sets:
 
-- **Indentation:** tabs. **Line width:** 100.
-- **Quotes:** double. **Semicolons:** always. **Trailing commas:** all.
+- **Formatter:** tabs with `indentWidth: 1`, `lineWidth: 100`. **JS/TS:** double quotes,
+  semicolons always, trailing commas all, `bracketSpacing: true` (`{ a }`), `expand: "auto"` (an
+  object literal stays multi-line if you put a line break after its `{`). JSON and CSS are
+  tab-indented too.
 - **CSS:** `css.parser.tailwindDirectives: true` so `main.css`'s `@import "tailwindcss"; @theme {}`
   parses (Tailwind v4 CSS-first).
-- **Rules relaxed** because they fight the ecosystem's real code:
+- **Files:** `vcs.useIgnoreFile: true` (respects `.gitignore`), plus explicit excludes for build
+  output (`.nuxt`, `.output`, `.nitro`, `dist`, `build`, …) and for generated code —
+  `!**/api-client`, `!**/*.gen.ts`, `!**/drizzle/migrations`.
+- **Linter:** `"preset": "recommended"` with rules relaxed because they fight the ecosystem's
+  real code:
   - `suspicious/noExplicitAny: "off"` — the codebase uses `as any` for type-juggling (the
-    `ConfigSchema` builder, DB inserts) and `// @ts-ignore` for Hono context. Tighten per-project
-    if you want.
+    `CS` config builder, DB inserts, generated-client workarounds). Tighten per-project if you want.
   - `correctness/noUndeclaredVariables: "off"` — Nuxt auto-imports (`useCookie`, `useState`,
     `navigateTo`, `defineAppConfig`, …) and Bun/Node globals (`process`, `Bun`) aren't visible to
     Biome. (Backend files have proper imports and are unaffected.)
   - `complexity/noStaticOnlyClass: "off"` — the house pattern is static-class services (`API`,
     `DB`, `Logger`, `APIResponse`); the rule would flag every one.
-  - `complexity/noBannedTypes: "off"` — the `ConfigSchema` builder uses `{}` as a default type
-    parameter (`ConfigSchema<T = {}>`).
+  - `complexity/noBannedTypes: "off"` — allows `{}` in type positions (e.g. the base case of
+    `Utils.MergeArray`).
+- **static-site-with-docs** additionally turns `correctness/noUnusedImports` and
+  `correctness/noUnusedVariables` off.
 
-`@biomejs/biome` is a devDependency in every project, and CI runs `bun run check:ci` (the
-`test:lint` GitLab job / the `bun run check:ci` GitHub Actions step) alongside `typecheck` and
-`test`. Run `bun run check:ci` to lint, `bunx biome format --write` to format. Generated files
-(`*.gen.ts`, `api-client/`) and build outputs are excluded in the config.
+`@biomejs/biome` is a devDependency in every project. The scripts (all `bunx --bun biome …`):
+
+| Script | Runs | Use |
+| --- | --- | --- |
+| `bun run format` | `biome format --write` | format everything |
+| `bun run check` | `biome check` | format + lint + import sorting, report only |
+| `bun run check:ci` | `biome ci` | the CI gate (GitLab `test:lint` job / GitHub step) |
+| `bun run lint` | `biome lint` | lint only |
+
+### Biome in `.vue` files
+
+Biome lints the `<script>` block but cannot see `<template>` usage. In the Nuxt templates this
+means:
+
+- Imports and variables used only in the template show up as **unused warnings**. They are
+  expected; Biome **errors** are not. Never apply `--unsafe` fixes to `.vue` files — they would
+  delete those bindings.
+- Don't import components explicitly; reference them by their Nuxt auto-import names
+  (`LayoutHeader`, `ImgAppLogo`, `DashboardDataTable`, `FormDateRangePicker`, …) so there is no
+  import to flag.
+- If a binding is used as a **type** in `<script>` and as a **value** only in `<template>` (e.g. a
+  Zod schema passed to `UForm :schema`), also reference it as a value in `<script>`
+  (`const createSchema = zPostAdminUsersBody;`). Otherwise the `useImportType` safe fix rewrites
+  the import to `import type` and the page breaks at runtime.
+- In CSS, `@import` rules must come first: `@import "tailwindcss"; @import "@nuxt/ui";` and only
+  then `@plugin "@tailwindcss/typography";`.
 
 ## Standard scripts
 
-**Backend service / CLI:**
+Every project has the four Biome scripts above plus `typecheck` and `test` — those six are
+mandatory. The `echo 'Typecheck passed!'` suffix is a house tic — keep it.
+
+**Backend service** (the CLI template is the same without `db:*`):
 
 ```json
 {
-  "typecheck": "tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
-  "test": "bun test",
-  "dev": "bun run --watch src/index.ts",
-  "compile": "bun run ./scripts/compile/index.ts",
-  "start": "bun run scripts/entrypoint.ts"
+	"typecheck": "bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
+	"test": "bun test",
+	"db:generate": "bun scripts/db-utils && bunx --bun drizzle-kit generate --config=drizzle/configs/drizzle.config.ts",
+	"db:migrate": "bun scripts/db-utils && bunx --bun drizzle-kit migrate --config=drizzle/configs/drizzle.config.ts",
+	"dev": "bun run --watch src/index.ts",
+	"start": "bun run scripts/entrypoint.ts",
+	"compile": "bun run ./scripts/compile"
 }
 ```
 
-DB services add `db:generate` / `db:migrate` / `db:push`, each prefixed with
-`bun scripts/db-utils.ts && bunx --bun drizzle-kit <cmd> --config=drizzle.config.ts` (the
-`db-utils` script ensures `./data/` exists first). CLI tools add `clean: "rm -rf node_modules"`.
+`scripts/db-utils.ts` only ensures `./data/` exists. There is no `db:push` — schema changes always
+go through generated migrations (see [08](08-database.md)). Keep a real `"version"` in
+`package.json` (the templates start at `0.1.0`; the static sites have none): the compile script
+reads it for `--no-version-tag` builds, so release binaries report it.
 
-**Nuxt app:**
+**Nuxt app** (nuxt-app, port 12510):
 
 ```json
 {
-  "build": "nuxt build",
-  "start": "bun run .output/server/index.mjs --port <PORT>",
-  "dev": "nuxt dev --port <PORT>",
-  "generate": "nuxt generate",
-  "preview": "nuxt preview",
-  "postinstall": "nuxt prepare",
-  "api-client:generate": "openapi-ts",
-  "typecheck": "nuxt typecheck && tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
-  "test": "bun test"
+	"build": "nuxt build --preset bun",
+	"start": "PORT=12510 bun run .output/server/index.mjs",
+	"dev": "bunx --bun nuxt dev --port 12510",
+	"generate": "bunx --bun nuxt generate",
+	"preview": "bunx --bun nuxt preview",
+	"postinstall": "bunx --bun nuxt prepare",
+	"api-client:generate": "openapi-ts && bun scripts/patch-api-client.ts",
+	"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
+	"test": "bun test"
 }
 ```
 
-`typecheck` and `test` are mandatory on every project. The `echo 'Typecheck passed!'` suffix is a
-house tic — keep it.
+**Full-stack Nuxt app** (port 12520): the same shape with `"api-client:generate": "bun
+scripts/api-client-generate.ts"` plus the backend's `db:generate` / `db:migrate` (config path
+`drizzle/configs/drizzle.config.ts`). It has no `compile` script — it deploys as `.output/` (see
+[14](14-deployment.md)).
+
+**Static sites** (ports 12530 / 12531): `dev`, `generate`, `preview`, `postinstall`, `typecheck` and
+`test` as above, `"build": "nuxt build --preset static"`, and no `start` or `api-client:generate`.
 
 ## Renovate
 
-Every repo has a `renovate.json` (or `.gitlab/renovate.json`) extending `config:recommended` with
-a weekly schedule. Copy [`shared/config/renovate.json`](../shared/config/renovate.json). See
-[13](13-git-and-ci.md).
+Every template ships a minimal `.gitlab/renovate.json` — deliberately just the schema, so the
+org-level Renovate config applies:
+
+```json
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json"
+}
+```
+
+Copy [`shared/config/renovate.json`](../shared/config/renovate.json). Add per-repo rules only when a
+repo genuinely needs them. See [13](13-git-and-ci.md).
 
 ## MCP servers
 
-`.vscode/mcp.json` registers the `nuxt` and `nuxt-ui` MCP servers — useful when editing Nuxt apps
-or the frontend shared utilities. Copy [`shared/config/mcp.json`](../shared/config/mcp.json).
+`.vscode/mcp.json` registers the `nuxt` and `nuxt-ui` MCP servers on every Nuxt-based template
+(nuxt-app, fullstack-nuxt-app, both static sites) — useful when editing components, composables or
+NuxtUI styling. Copy [`shared/config/mcp.json`](../shared/config/mcp.json). The Claude Code side
+lives in `.claude/settings.json` — see [16](16-ai-tooling.md).
+
+## Known limitations
+
+These are upstream issues the templates live with. Don't "fix" them locally without recording a
+decision in [17](17-decisions.md).
+
+- **`.vue` files are not type-checked under Bun.** vue-tsc patches TypeScript through a
+  `fs.readFileSync` hook that Bun's module loader bypasses, so `bun run typecheck` (`nuxt
+  typecheck`) only checks `.ts` files. A passing typecheck is not proof that a page is correct —
+  review `.vue` changes carefully and exercise them in the dev server or a `bun run build`.
+- **`bunx --bun nuxt dev` fails on Windows** (Bun treats the Nuxt CLI worker path as a package
+  spec). Develop Nuxt apps on WSL, Linux or macOS.
+- **`@unhead/vue` 3.4.1 ships a broken `.d.ts`.** Fresh installs that resolve this version can see
+  type errors coming from inside the package; they are not caused by your code.
+- **`@hey-api/openapi-ts` (0.99) typing bugs.** The full-stack template's generated `sdk.gen.ts`
+  has known type errors that are deliberately left unpatched until upstream fixes them, so its
+  `nuxt typecheck` reports errors from the generated client. The nuxt-app's
+  `scripts/patch-api-client.ts` fixes the `sdk.gen.ts` return types and the SSE `cache` option, but
+  not the SSE `credentials` error. See [05](05-api-contract.md).
+- **Bun 1.4.0 `--bytecode` crash:** a bytecode build of a service binary aborts at startup on Linux,
+  so the service compile scripts keep `bytecode = false` (the CLI keeps it on). See
+  [11](11-cli-and-infra.md).

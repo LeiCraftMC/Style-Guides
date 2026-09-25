@@ -1,17 +1,16 @@
 import { defineNitroPlugin } from "nitropack/runtime";
-import { ConfigHandler } from "../lib/utils/config";
-import { Logger } from "../lib/utils/logger";
-import { DB } from "../lib/db";
 import { API } from "../lib/api";
-import { AppConstants } from "../lib/utils/constants";
-import { Utils } from "../lib/utils";
-import { CronJobHandler } from "../lib/utils/cron";
 import { EmailService } from "../lib/api/utils/email";
+import { DB } from "../lib/db";
 import { TaskScheduler } from "../lib/tasks";
+import { Utils } from "../lib/utils";
+import { ConfigHandler } from "../lib/utils/config";
+import { AppConstants } from "../lib/utils/constants";
+import { CronJobHandler } from "../lib/utils/cron";
+import { Logger } from "../lib/utils/logger";
 
 // Runs once at Nitro boot — replaces Main.main() from the standalone backend shape.
 export default defineNitroPlugin(async (nitroApp) => {
-
 	const config = await ConfigHandler.loadConfig();
 
 	Logger.setLogLevel(config.LOG_LEVEL ?? "info");
@@ -29,7 +28,6 @@ export default defineNitroPlugin(async (nitroApp) => {
 	await CronJobHandler.startAll();
 
 	await API.init([config.APP_URL], config.API_DISABLE_DOCS === true);
-
 
 	nitroApp.hooks.hook("close", async () => {
 		try {

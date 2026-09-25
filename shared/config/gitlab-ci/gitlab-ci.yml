@@ -1,8 +1,15 @@
-# Top-level .gitlab-ci.yml — copy to repo root and keep the two includes.
-include:
-  - local: .gitlab/ci/testing.yml
-  - local: .gitlab/ci/build.yml
+# .gitlab-ci.yml — root include for LeiCraftMC projects.
+# Copy to project root and add per-project stages or extra includes as needed.
+# Uses oven/bun everywhere; expects .gitlab/ci/testing.yml and .gitlab/ci/build.yml.
 
 stages:
   - test
   - build
+
+variables:
+  GIT_DEPTH: "20"
+  BUN_INSTALL_CACHE: "$CI_PROJECT_DIR/.bun"
+
+include:
+  - local: ".gitlab/ci/testing.yml"
+  - local: ".gitlab/ci/build.yml"

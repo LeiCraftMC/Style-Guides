@@ -38,3 +38,5 @@ lcmc-refs/
 # only for dev of the templates to keep this out of the templates. templates have their own individual .gitignore file
 templates/*/bun.lock
 templates/*/drizzle/migrations/
+
+.claude/settings.local.json

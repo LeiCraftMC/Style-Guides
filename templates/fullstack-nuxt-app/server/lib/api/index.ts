@@ -1,13 +1,13 @@
-import { Logger } from "../utils/logger";
+import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
-import { prettyJSON } from "hono/pretty-json";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
+import { prettyJSON } from "hono/pretty-json";
+import { openAPIRouteHandler } from "hono-openapi";
+import { AppConstants } from "../utils/constants";
+import { Logger } from "../utils/logger";
 import type { APIVersionRouter } from "./utils/apiVersionRouter";
 import { APIv1Router } from "./versions/v1";
-import { openAPIRouteHandler } from "hono-openapi";
-import { Scalar } from "@scalar/hono-api-reference";
-import { AppConstants } from "../utils/constants";
 
 export class API {
 	protected static server: Bun.Server<undefined> | null = null;
@@ -16,7 +16,6 @@ export class API {
 	protected static latestVersion: number | null = null;
 
 	protected static registerVersion(versionRouter: APIVersionRouter, disableDocs: boolean) {
-
 		if (!this.app) {
 			throw new Error("API not initialized. Call API.init() first.");
 		}
@@ -35,7 +34,8 @@ export class API {
 
 			this.app.get(
 				`/docs/v${versionRouter.version}`,
-				Scalar({ url: `/docs/v${versionRouter.version}/openapi` }),
+				// Relative, so the docs page also finds its spec when the API is mounted under a prefix.
+				Scalar({ url: `./v${versionRouter.version}/openapi` }),
 			);
 		}
 	}
@@ -91,7 +91,9 @@ export class API {
 
 		if (!disableDocs) {
 			this.app.get("/", (c) => {
-				return c.redirect(`/docs/v${this.latestVersion}`);
+				// Keep any mount prefix (e.g. `/api` in the full-stack template).
+				const base = c.req.path.endsWith("/") ? c.req.path.slice(0, -1) : c.req.path;
+				return c.redirect(`${base}/docs/v${this.latestVersion}`);
 			});
 		} else {
 			this.app.get("/", (c) => {
@@ -112,7 +114,9 @@ export class API {
 
 		this.server = Bun.serve({ port, hostname, fetch: this.app.fetch });
 
-		const serverHostnameStr = this.server.hostname?.includes(":") ? `[${this.server.hostname}]` : this.server.hostname;
+		const serverHostnameStr = this.server.hostname?.includes(":")
+			? `[${this.server.hostname}]`
+			: this.server.hostname;
 
 		Logger.log(
 			`${AppConstants.APP_NAME} API listening on ${this.server.protocol}://${serverHostnameStr}:${this.server.port}`,

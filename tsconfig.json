@@ -5,5 +5,11 @@
 		"types": ["bun"]
 	},
 	"include": ["shared/backend/**/*.ts", "shared/cli/**/*.ts"],
-	"exclude": ["**/*.example.ts"]
+	// These import template modules that shared/ deliberately doesn't carry (DB schema, crypto,
+	// shared-models, the API class). They are type-checked in the templates instead.
+	"exclude": [
+		"shared/backend/src/api/utils/authHandler.ts",
+		"shared/backend/src/api/versions/v1/middleware/auth.ts",
+		"shared/backend/tests/**"
+	]
 }

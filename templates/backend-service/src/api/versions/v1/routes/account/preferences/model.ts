@@ -2,10 +2,8 @@ import { z } from "zod";
 import { UserPreferences } from "../../../../../utils/preferences";
 
 export namespace AccountPreferencesModel.GetAll {
-
-    export const Response = UserPreferences.allSchema;
-    export type Response = z.infer<typeof Response>;
-
+	export const Response = UserPreferences.allSchema;
+	export type Response = z.infer<typeof Response>;
 }
 
 export namespace AccountPreferencesModel.Onboarding {

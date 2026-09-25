@@ -2,6 +2,17 @@ import { createMiddleware } from "hono/factory";
 import { APIResponse } from "../../../utils/api-res";
 import { AuthHandler } from "../../../utils/authHandler";
 
+// Endpoints that stay reachable with a malformed, invalid or expired token (login, signup,
+// password reset), so a stale session cookie can never lock a user out of signing in again.
+const PUBLIC_AUTH_PATHS = ["/v1/auth/login", "/v1/auth/signup", "/v1/auth/reset-password"];
+
+// `c.req.path` is the full request path. Compare from `/v1/` on, so this also works when the
+// API is mounted under a prefix (the full-stack template serves it at `/api/v1/...`).
+function isPublicAuthPath(fullPath: string) {
+	const path = fullPath.slice(Math.max(fullPath.indexOf("/v1/"), 0));
+	return PUBLIC_AUTH_PATHS.some((publicPath) => path.startsWith(publicPath));
+}
+
 export const authMiddlewareV1 = createMiddleware(async (c, next) => {
 	const authHeader = c.req.header("Authorization");
 
@@ -14,12 +25,7 @@ export const authMiddlewareV1 = createMiddleware(async (c, next) => {
 	}
 
 	if (!authHeader.startsWith("Bearer ")) {
-		// Allow unauthenticated access to the login endpoint and password reset request endpoint, which may be accessed with an invalid or missing token.
-		if (
-			c.req.path.startsWith("/v1/auth/login") ||
-			c.req.path.startsWith("/v1/auth/signup") ||
-			c.req.path.startsWith("/v1/auth/reset-password")
-		) {
+		if (isPublicAuthPath(c.req.path)) {
 			AuthHandler.AuthContext.set(c, {
 				type: "unauthenticated",
 			} satisfies AuthHandler.UnauthenticatedAuthContext);
@@ -35,11 +41,7 @@ export const authMiddlewareV1 = createMiddleware(async (c, next) => {
 	const authContext = await AuthHandler.getAuthContext(token);
 
 	if (!authContext || !(await AuthHandler.isValidAuthContext(authContext))) {
-		if (
-			c.req.path.startsWith("/v1/auth/login") ||
-			c.req.path.startsWith("/v1/auth/signup") ||
-			c.req.path.startsWith("/v1/auth/reset-password")
-		) {
+		if (isPublicAuthPath(c.req.path)) {
 			AuthHandler.AuthContext.set(c, {
 				type: "unauthenticated",
 			} satisfies AuthHandler.UnauthenticatedAuthContext);

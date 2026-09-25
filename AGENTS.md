@@ -20,22 +20,29 @@ authoritative detail lives in [`docs/`](docs/); this is the short version.
 ## Non-negotiable rules
 
 - **Never hand-edit `*.gen.ts`** or anything under `app/api-client/`. These are generated from the
-  backend's OpenAPI spec by `bun run api-client:generate`. If the contract is wrong, fix the
-  backend route + Zod schema and regenerate.
+  backend's OpenAPI spec by `bun run api-client:generate` (the only exception is an automated,
+  idempotent `scripts/patch-api-client.ts` step, as in the nuxt-app template). If the contract is
+  wrong, fix the backend route + Zod schema and regenerate.
 - **Every API response uses the `{ success, code, message, data }` envelope** via the `APIResponse`
   helper — never raw `c.json(...)`. See [`docs/05-api-contract.md`](docs/05-api-contract.md).
-- **Validate with Zod** through `hono-openapi`'s `zValidator` (not `@hono/zod-validator`) so the
+- **Validate with Zod** through `hono-openapi`'s validator —
+  `import { validator as zValidator } from "hono-openapi"` (not `@hono/zod-validator`) — so the
   schema is reflected in the OpenAPI spec. See [`docs/04-backend-hono.md`](docs/04-backend-hono.md).
-- **New utilities already exist in [`shared/`](shared/)** — `Logger`, `ConfigSchema`, `APIResponse`,
-  `useAPI`, `abstractStore`, the compile scripts, the tsconfig base. Copy them in; do not re-invent.
+- **The core files already exist in [`shared/`](shared/)** (verbatim template copies at the same
+  paths) — `Logger`, `ConfigHandler`/`CS`, `APIResponse`, spec helpers, `AuthHandler`, `useAPI`, the
+  stores + route guard, `AbstractStore`, the dashboard components, the compile scripts, CI/Biome/
+  tsconfig configs. Feature modules (email, tasks, cron, crypto, …) live in [`templates/`](templates/).
+  Copy them in; do not re-invent.
 - **Format with Biome** before finishing. The repo has a `biome.json`; run `bun run check:ci`.
 - **Conventional Commits** only: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, with an
   optional scope (`feat(api): …`). No casual messages.
 
 ## Backend (Hono + Zod + OpenAPI + Drizzle)
 
-- Static `API` class with `init`/`start`/`stop`; `Bun.serve`; `prettyJSON` → `cors` → `onError`
-  (never leak Zod details) → versioned routers → `/health`.
+- Static `API` class with `init(frontendUrls, disableDocs)`/`start`/`stop`/`getApp`; `prettyJSON` →
+  `cors` → `onError` (never leak Zod details) → versioned routers (auth middleware per version) →
+  `/docs/v1` + `/health`. Standalone services call `API.start()` (`Bun.serve`); the full-stack
+  template mounts `API.getApp()` under `/api` in Nitro instead.
 - Routes live in `routes/<resource>/{index.ts, model.ts}`. `model.ts` groups Zod schemas in a
   `namespace <ResourceModel>.<Operation>` with paired `export type X = z.infer<typeof X>`.
 - Derive request/response schemas from Drizzle with `drizzle-zod` (`createSelectSchema` / `createInsertSchema`
@@ -46,17 +53,22 @@ authoritative detail lives in [`docs/`](docs/); this is the short version.
 ## Frontend (Nuxt 4 + NuxtUI v4 + Tailwind v4)
 
 - Nuxt 4 `app/` srcDir. `app.vue` = `<UApp><NuxtLayout><NuxtPage/></NuxtLayout></UApp>`.
-- Tailwind v4 CSS-first in `app/assets/css/main.css` (`@import "tailwindcss"; @import "@nuxt/ui";`)
-  — **no `tailwind.config.js`**. Dark-first.
+- Tailwind v4 CSS-first in `app/assets/css/main.css` (`@import "tailwindcss"; @import "@nuxt/ui";`,
+  any `@plugin` after the imports) — **no `tailwind.config.js`**. Dark-only.
 - All API access through the `useAPI` composable (wraps the generated SDK); state through
-  `AbstractStore` over `useState` (SSR-safe). Do **not** use raw `$fetch`/`useFetch` for the API,
-  and do **not** use static `reactive()` stores (they are not SSR-safe).
+  `AbstractStore` over `useState` (SSR-safe; stores in `app/composables/stores/`). Do **not** use raw
+  `$fetch`/`useFetch` for the API, and do **not** use static `reactive()` stores (they are not SSR-safe).
+- Access rules live in the constants of `app/middleware/auth.global.ts`. Reference components by
+  their auto-import names (`LayoutHeader`, `DashboardDataTable`, …) and read the Biome/Vue notes in
+  [`docs/06`](docs/06-frontend-nuxt.md) before running Biome fixes on `.vue` files.
 
 ## Tooling & finishing
 
-- Bun runtime; `bun test`; `bun run typecheck` (`tsc --noEmit` against the typecheck tsconfig).
+- Bun runtime; `bun test`; `bun run format`; `bun run typecheck` (backend/CLI: `tsc` against
+  `tsconfig/tsconfig.typecheck.json`; Nuxt: `nuxt typecheck` + `tsc` — note that under Bun it does not
+  type-check `.vue` files).
 - Before declaring done: `bun run check:ci` clean, `bun run typecheck` passes, `bun test` passes.
-- If you created a new project from a template, replace every `<PREFIX>`, `<PORT>`, and
-  `<ProjectName>` placeholder.
+- If you created a new project from a template, replace `<ProjectName>`, the `APPPREFIX` /
+  `appprefix` prefixes, the `<PREFIX>` cookie name and the default port.
 
 When unsure about a convention, search [`docs/`](docs/) and [`shared/`](shared/) first.

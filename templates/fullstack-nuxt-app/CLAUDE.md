@@ -6,7 +6,7 @@ Read `AGENTS.md` first. This file adds Claude-Code-specific notes.
 
 Defined in `.claude/settings.json`:
 
-- `/api-client` — regenerate the typed API client (reads `/api/docs/v1/openapi`).
+- `/api-client` — regenerate the typed API client (boots the API in-process; no dev server needed).
 - `/db` — run Drizzle migrations.
 - `/verify` — typecheck + tests.
 - `/typecheck` — `bun run typecheck` (`nuxt typecheck` + `tsc`, includes `server/`).

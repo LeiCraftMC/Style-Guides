@@ -1,7 +1,7 @@
 /**
  * useAPI — the single gateway to the generated API SDK.
  *
- * On the server it wraps the call in `useAsyncData`; on the client it reads the session cookie,
+ * On the server it applies the session cookie's token and calls the SDK; on the client it reads the session cookie,
  * applies it to the generated client via `updateAPIClient`, redirects to `/auth/login` on a missing
  * or 401 token, and always returns the backend's `{ success, code, message, data }` envelope
  * (errors are normalized into the envelope, never thrown). Callers branch on `result.success`.

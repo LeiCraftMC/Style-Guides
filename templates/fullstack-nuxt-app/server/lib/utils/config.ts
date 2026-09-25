@@ -1,6 +1,6 @@
+import { z } from "zod";
 import { AppConstants } from "./constants";
 import { Logger } from "./logger";
-import { z } from "zod";
 
 interface ConfigSchemaSettings {
 	[key: string]: CS.ConfigItem<z.ZodType>;

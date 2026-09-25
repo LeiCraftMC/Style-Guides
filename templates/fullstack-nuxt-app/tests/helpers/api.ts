@@ -1,6 +1,6 @@
 import { expect } from "bun:test";
+import { ZodType, z } from "zod";
 import { API } from "../../server/lib/api";
-import { z, ZodType } from "zod";
 import { Logger } from "../../server/lib/utils/logger";
 
 type HeadersInit = RequestInit["headers"];

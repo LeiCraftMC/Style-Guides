@@ -1,6 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-
 	compatibilityDate: "2026-09-01",
 	devtools: { enabled: true },
 	modules: ["@nuxt/ui"],
@@ -13,19 +12,16 @@ export default defineNuxtConfig({
 
 	ssr: true,
 
-	css: [
-		"~/assets/css/main.css"
-	],
+	css: ["~/assets/css/main.css"],
 
 	nitro: {
-		
 		rollupConfig: { external: ["bun:sqlite"] },
 
 		esbuild: {
 			options: {
-				target: "esnext"
-			}
-		}
+				target: "esnext",
+			},
+		},
 	},
 
 	runtimeConfig: {
@@ -34,13 +30,12 @@ export default defineNuxtConfig({
 			appUrl: process.env.APPPREFIX_APP_URL || "http://localhost:12520",
 		},
 	},
-	
+
 	routeRules: {
 		"/dashboard/**": { ssr: false },
 		"/auth/**": { ssr: false },
 		"/**": { ssr: true },
 	},
 
-	telemetry: false
-
+	telemetry: false,
 });

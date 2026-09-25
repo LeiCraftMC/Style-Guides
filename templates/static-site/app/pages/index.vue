@@ -1,10 +1,8 @@
 <script setup lang="ts">
-
-useSeoMeta({
+usePageSeo({
 	title: "<ProjectName>",
-	description: "A LeiCraft_MC static site."
+	description: "A LeiCraft_MC static site.",
 });
-
 </script>
 
 <template>

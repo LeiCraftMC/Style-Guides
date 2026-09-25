@@ -2,7 +2,9 @@
  * Runtime — abstracts the runtime for full-stack Nuxt apps that ship to both Bun and
  * Cloudflare Pages/D1 (Status-Page). Branches DB init and password hashing on `isBun`.
  *
- * Copy into `server/utils/runtime.ts`. See docs/08-database.md#dual-target-runtime-bun--cloudflared1.
+ * Optional — no template uses it (the templates are Bun-only). Copy into
+ * `server/lib/utils/runtime.ts` only if you really need the Cloudflare target. See
+ * docs/08-database.md#dual-target-runtime-bun--cloudflared1.
  */
 export class Runtime {
 	/** True when running under Bun (Node-style process, `Bun.password`, `bun:sqlite`). */
@@ -35,8 +37,7 @@ export namespace Runtime {
 				key,
 				256,
 			);
-			const toHex = (b: Uint8Array) =>
-				Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+			const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 			return `pbkdf2$100000$${toHex(salt)}$${toHex(new Uint8Array(bits))}`;
 		}
 

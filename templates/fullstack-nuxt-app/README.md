@@ -16,8 +16,7 @@ Full-stack template: Nuxt 4 frontend **and** a Hono backend living in `server/`,
 ```bash
 bun install
 cp example.env .env
-# Copy the LeiCraftMC biome.json from the style-guide root into this project.
-# Pick a unique port (never 3000) — set it in package.json + example.env; see docs/02 — Ports.
+# Default port 12520 (package.json + example.env). Give each app its own port — see docs/02 — Ports.
 bun run dev
 ```
 
@@ -26,10 +25,11 @@ Hono `API` on boot. Endpoints are at `/api/v1/**`, `/api/health`, `/api/docs/v1`
 
 ## API client
 
-Generate the typed client from the in-server OpenAPI spec:
+Generate the typed client from the backend's OpenAPI spec. The script boots the API in-process
+(`scripts/api-client-generate.ts`), so no dev server is needed:
 
 ```bash
-bun run api-client:generate   # reads http://localhost:3000/api/docs/v1/openapi
+bun run api-client:generate
 ```
 
 ## Frontend
@@ -69,11 +69,13 @@ in `composables/useAppCookies.ts`), and the links in `components/layout/Footer.v
 
 ## Scripts
 
-- `bun run dev` — dev server on port 3000 (frontend + API)
-- `bun run build` — production build (single `.output/`)
+- `bun run dev` — dev server on port 12520 (frontend + API)
+- `bun run build` — production build (single `.output/`, Bun preset)
 - `bun run start` — run the built server
+- `docker/Dockerfile` — production image: `.output/` + `drizzle/migrations` on `oven/bun`
 - `bun run api-client:generate` — regenerate the typed API client
-- `bun run db:generate` / `db:migrate` / `db:push` — Drizzle migrations
+- `bun run db:generate` / `db:migrate` — Drizzle migrations
+- `bun run check` / `bun run format` — Biome check / format
 - `bun run typecheck` — `nuxt typecheck` + `tsc` (includes `server/`)
 - `bun test` — run tests
 
