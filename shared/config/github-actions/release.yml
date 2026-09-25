@@ -1,57 +1,27 @@
-name: Create Release
+# .github/workflows/release.yml — GitHub Release workflow for CLI tools.
+# Builds compiled binaries for all platforms and attaches them to a GitHub Release.
+# Tag a version (e.g. v1.2.3) to trigger.
+
+name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Release version (Format: x.y.z-[alpha|beta|pre].n)"
-        required: true
-      release_name:
-        description: "Release title"
-        required: true
-      release_notes:
-        description: "Release notes or changelog"
-        required: true
-      prerelease:
-        description: "Is this a pre-release?"
-        required: false
-        default: false
-        type: boolean
+  push:
+    tags:
+      - "v*"
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - run: bun install
-      - run: bun run typecheck
-      - run: bun test
-      - name: Build binaries
-        run: bun compile all ${{ inputs.version }}
-      - uses: actions/upload-artifact@v4
+      - run: bun install --frozen-lockfile
+      - run: bun run compile all --no-version-tag
+      - uses: softprops/action-gh-release@v2
         with:
-          name: binaries
-          path: build/bin/*
-          retention-days: 1
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: binaries
-          path: ./binaries
-      - uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: v${{ inputs.version }}
-          name: ${{ inputs.release_name }}
-          body: ${{ inputs.release_notes }}
-          prerelease: ${{ inputs.prerelease }}
-          artifacts: ./binaries/*
+          files: build/bin/*
+          generate_release_notes: true
