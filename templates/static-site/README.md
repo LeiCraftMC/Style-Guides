@@ -14,17 +14,21 @@ Static site template for LeiCraftMC projects.
 
 ```bash
 bun install
-# Copy the LeiCraftMC biome.json from the style-guide root into this project.
-# Pick a unique port (never 3000) — set it in package.json; see docs/02 — Ports.
 bun run dev
 ```
+
+Dev server runs on port **12530** (set in `package.json`; see docs/02 — Ports).
 
 ## Generate and deploy
 
 ```bash
-bun run generate
-# deploy .output/public/ via rsync, S3, GitLab Pages, etc.
+bun run generate   # → .output/public/
 ```
+
+On the default branch, GitLab CI (`.gitlab/ci/build.yml`) generates the site and rsyncs
+`.output/public/` to your web host via `.gitlab/ci/deploy.sh`. Set the CI variables
+`DEPLOY_REMOTE_USER`, `DEPLOY_REMOTE_PASSWORD`, `DEPLOY_REMOTE_HOST` and `DEPLOY_REMOTE_DIR`.
+`public/.htaccess` configures Apache (clean URLs, trailing slashes, 404 page).
 
 ## Scripts
 

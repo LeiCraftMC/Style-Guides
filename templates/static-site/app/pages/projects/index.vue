@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import ProjectCard from '~/components/ProjectCard.vue';
-import { projects } from '~/data/projects';
+import ProjectCard from "~/components/ProjectCard.vue";
+import { projects } from "~/data/projects";
 
 const pageTitle = "Projects | <ProjectName>";
 const pageDescription = "Overview of all projects of <ProjectName>.";
 
-useSeoMeta({
-    title: pageTitle,
-    description: pageDescription,
+usePageSeo({
+	title: pageTitle,
+	description: pageDescription,
 });
-
 </script>
 
 <template>

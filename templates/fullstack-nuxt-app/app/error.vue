@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import type { NuxtError } from '#app'
+import type { NuxtError } from "#app";
 
 defineProps<{
-    error: NuxtError
-}>()
+	error: NuxtError;
+}>();
 </script>
 
 <template>
-    <div class="app-layout main-bg-color min-h-screen flex flex-col items-center justify-center p-4">
-        <UError :error="error" />
-    </div>
-</template>
+	<div class="main-bg-color flex min-h-screen flex-col text-slate-100">
+		<LayoutHeader />
 
-<style scoped>
-.app-layout {
-    color: rgb(241 245 249);
-}
-</style>
+		<UMain class="flex-1">
+			<UError :error="error" />
+		</UMain>
+
+		<LayoutFooter />
+	</div>
+</template>

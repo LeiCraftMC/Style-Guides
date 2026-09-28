@@ -1,15 +1,15 @@
-import { Hono } from "hono";
+import { eq } from "drizzle-orm";
 import type { Context } from "hono";
-import { AuthModel } from "./model";
+import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
 import { type DrizzleDB } from "../../../../../db/utils";
-import { eq } from "drizzle-orm";
+import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
-import { Logger } from "../../../../../utils/logger";
+import { AuthModel } from "./model";
 
 // Dummy bcrypt hash for timing-normalized login failures — prevents username enumeration
 // Generated once at module load so it's a valid, cost-equivalent hash

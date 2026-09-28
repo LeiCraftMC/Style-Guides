@@ -15,18 +15,20 @@ Backend service template for LeiCraftMC projects.
 ```bash
 bun install
 cp example.env .env
-# Copy the LeiCraftMC biome.json from the style-guide root into this project.
-# Pick a unique port (never 3000) and set APPPREFIX_API_PORT — see docs/02-tooling.md.
+# Default port 12500 (APPPREFIX_API_PORT). Give each app its own port — see docs/02-tooling.md.
 bun run dev
 ```
 
 ## Scripts
 
 - `bun run dev` — watch mode
+- `bun run check` / `bun run format` — Biome check / format
 - `bun run typecheck` — TypeScript check
 - `bun test` — run tests
 - `bun run db:generate` — generate migrations
 - `bun run db:migrate` — run migrations
+- `bun run compile linux-x64-baseline` — single binary in `build/bin/` (see `docker/` for the image)
+- `bun run start` — run via `scripts/entrypoint.ts` (auto-migrates the DB)
 
 ## Structure
 

@@ -1,3 +1,6 @@
 <template>
-  <img src="/logo.svg" alt="<ProjectName>" class="h-8 w-auto" />
+	<span class="inline-flex items-center gap-2">
+		<ImgAppIcon class="h-full w-auto" />
+		<span class="text-xl font-bold leading-none">ProjectName</span>
+	</span>
 </template>

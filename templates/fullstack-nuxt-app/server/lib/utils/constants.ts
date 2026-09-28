@@ -13,6 +13,5 @@ export namespace AppConstants {
 
 	export const DEFAULT_SMTP_FROM = `\"${AppConstants.APP_NAME}\" <noreply@${AppConstants.DEFAULT_EMAIL_FROM_HOST}>`;
 
-
 	export const BINARY_NAME = "my-project-api";
 }

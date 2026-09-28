@@ -10,24 +10,40 @@ comes next.
 - **Contributors** — read these pages before writing code so your work matches the house style and
   slots into the existing patterns without re-invention.
 - **AI coding tools** — start at [`AGENTS.md`](../AGENTS.md) (or [`CLAUDE.md`](../CLAUDE.md)),
-  then read the page(s) relevant to your task. Copy utilities from [`shared/`](../shared/) and
-  scaffold from [`templates/`](../templates/) instead of inventing patterns.
+  then read the page(s) relevant to your task. Scaffold from [`templates/`](../templates/) and copy
+  core utilities from [`shared/`](../shared/) instead of inventing patterns.
 
 ## Tech stack at a glance
 
 | Layer | Choice |
 | --- | --- |
-| Runtime & package manager | **Bun** — also the test runner (`bun test`) and the Nuxt Nitro preset |
+| Runtime & package manager | **Bun** — also the test runner (`bun test`); server Nuxt apps build with `nuxt build --preset bun`, static sites with the `static` preset |
 | Language | **TypeScript**, ESM (`"type": "module"`), `"private": true`, strict |
 | Formatter & linter | **Biome** — single tool, the org standard (see [02](02-tooling.md)) |
-| Backend | **Hono** + **Zod** + **hono-openapi** (Scalar UI) + **Drizzle** (SQLite by default) |
+| Backend | **Hono** + **Zod** + **hono-openapi** (Scalar UI) + **Drizzle** (`bun-sqlite` by default) |
 | Frontend | **Nuxt 4** (`app/` dir) + **NuxtUI v4** + **Tailwind v4** (CSS-first, no config file) |
 | CLI tooling | **`@cleverjs/cli`** + `bun build --compile` (single-binary output) |
-| API contract | OpenAPI generated at runtime → `@hey-api/openapi-ts` typed client (never hand-edit) |
+| API contract | OpenAPI generated at runtime → `@hey-api/openapi-ts` typed client with the `@hey-api/client-nuxt`, `@hey-api/typescript`, `@hey-api/sdk` and `zod` plugins (never hand-edit) |
 | Response shape | `{ success, code, message, data }` envelope, end-to-end |
-| CI | GitLab CI (`oven/bun`) and/or GitHub Actions; **Renovate** everywhere |
-| License | **AGPL-3.0** (templates & services) |
+| CI | **GitHub Actions** (`.github/workflows/ci.yml`) **and** **GitLab CI** (`oven/bun`) ship in the templates — backend-service is GitLab-only; **Renovate** with a minimal per-repo config |
+| License | **AGPL-3.0** — every template ships a `LICENSE` |
 | Commits | **Conventional Commits** |
+
+## Templates
+
+Six ready-made projects live in [`templates/`](../templates/). Each has a fixed default port — dev
+and prod use the same number, and it is never `3000` (see [02 — Ports](02-tooling.md#ports--one-unique-port-per-app-dev--prod)).
+
+| Template | Shape | Default port |
+| --- | --- | --- |
+| [`backend-service`](../templates/backend-service/) | Hono API service (compiled binary) | 12500 |
+| [`nuxt-app`](../templates/nuxt-app/) | Nuxt frontend for a separate backend (split repo) | 12510 |
+| [`fullstack-nuxt-app`](../templates/fullstack-nuxt-app/) | Nuxt + Hono in `server/`, mounted at `/api` | 12520 |
+| [`static-site`](../templates/static-site/) | Static Nuxt site (`nuxt generate`) | 12530 |
+| [`static-site-with-docs`](../templates/static-site-with-docs/) | Static site + `@nuxt/content` docs | 12531 |
+| [`cli-tool`](../templates/cli-tool/) | `@cleverjs/cli` tool (compiled binary) | — |
+
+The layouts are described in [01 — Project structure](01-project-structure.md).
 
 ## The guiding principle
 
@@ -58,5 +74,7 @@ Read top to bottom on a first pass; jump to a page on demand. The pages are grou
 - **Look & AI** — [15 design system](15-design-system.md), [16 AI tooling](16-ai-tooling.md).
 - **Why** — [17 decisions](17-decisions.md).
 
-Reusable code lives in [`shared/`](../shared/) (canonical, copy-paste) and ready-made projects in
-[`templates/`](../templates/). Brand assets in [`assets/`](../assets/).
+The ready-made projects in [`templates/`](../templates/) are the source of truth.
+[`shared/`](../shared/) holds verbatim copies of their core files in a mirrored layout, so you can
+pull a utility into an existing repo without scaffolding a whole template (see
+[`shared/README.md`](../shared/README.md)). Brand assets live in [`assets/`](../assets/).

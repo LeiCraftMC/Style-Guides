@@ -15,10 +15,10 @@ https://github.com/LeiCraftMC/Style-Guides.
 
 - Every route uses the `{ success, code, message, data }` envelope via `APIResponse.*` helpers
   (errors omit `data`).
-- Validate with `zValidator` from `hono-openapi`.
+- Validate with `hono-openapi`'s validator (`import { validator as zValidator } from "hono-openapi"`).
 - Auth uses opaque bearer tokens (`<prefix>_<kind>_<id>:<base>`, `Bun.password`-hashed).
   See docs/10-auth.md.
-- Never hand-edit `*.gen.ts` (an automated `patch-api-client.ts` script is the only exception).
+- Never hand-edit generated files (Drizzle migrations in `drizzle/migrations/`).
 - Static classes for services (`API`, `DB`, `Logger`, `ConfigHandler`, `AuthHandler`).
 - Format with Biome before finishing (`bun run check:ci`).
 - Conventional Commits.

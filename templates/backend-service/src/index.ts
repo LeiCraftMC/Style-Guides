@@ -1,14 +1,14 @@
 import { API } from "./api";
-import { DB } from "./db";
-import { ConfigHandler } from "./utils/config";
-import { Logger } from "./utils/logger";
-import { Utils } from "./utils";
 import { EmailService } from "./api/utils/email";
-import { CronJobHandler } from "./utils/cron";
+import { DB } from "./db";
 import { TaskScheduler } from "./tasks";
+import { Utils } from "./utils";
+import { ConfigHandler } from "./utils/config";
 import { AppConstants } from "./utils/constants";
+import { CronJobHandler } from "./utils/cron";
+import { Logger } from "./utils/logger";
 
-// biome-ignore format
+// biome-ignore format: keep the hand-formatted Main lifecycle layout
 export class Main {
 	static async main() {
 		process.once("SIGINT", (type) => Main.gracefulShutdown(type, 0));

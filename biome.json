@@ -27,7 +27,8 @@
 			"!**/.git",
 			"!**/*.gen.ts",
 			"!**/api-client",
-			"!**/*.example.vue",
+			"!**/drizzle/migrations",
+			"!**/shared/config",
 			"!**/bun.lock",
 			"!**/bun.lockb",
 			"!**/templates"
@@ -36,6 +37,7 @@
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
+		"indentWidth": 1,
 		"lineWidth": 100
 	},
 	"linter": {
@@ -59,7 +61,9 @@
 			"quoteStyle": "double",
 			"semicolons": "always",
 			"trailingCommas": "all",
-			"jsxQuoteStyle": "double"
+			"jsxQuoteStyle": "double",
+			"bracketSpacing": true,
+			"expand": "auto"
 		}
 	},
 	"css": {

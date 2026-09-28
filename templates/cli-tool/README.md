@@ -14,7 +14,6 @@ CLI tool template for LeiCraftMC projects.
 
 ```bash
 bun install
-# Copy the LeiCraftMC biome.json from the style-guide root into this project.
 bun run dev hello
 ```
 

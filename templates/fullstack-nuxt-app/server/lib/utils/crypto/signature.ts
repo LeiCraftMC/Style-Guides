@@ -1,12 +1,12 @@
 import elliptic from "elliptic";
-import { FixedUint, Uint64, Uint8 } from "low-level";
+import { FixedUint, Uint8, Uint64 } from "low-level";
 
 export interface EllipticBinarySignature extends elliptic.ec.Signature {
 	recoveryParam: number;
 }
 
 export class Signature extends FixedUint {
-	public static byteLength = 66;
+	public static override byteLength = 66;
 
 	public static fromElliptic(signature: EllipticBinarySignature) {
 		return this.concat([

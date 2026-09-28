@@ -19,7 +19,7 @@ audited), then makes opinionated calls to close the gaps where practice diverged
 
 | Layer | Choice |
 | --- | --- |
-| Runtime & package manager | **Bun** (also the test runner and Nitro preset) |
+| Runtime & package manager | **Bun** (also the test runner; server Nuxt apps build with the Nitro `bun` preset) |
 | Language | **TypeScript**, ESM, `"private": true`, strict |
 | Formatter & linter | **Biome** (org standard — see [`docs/02-tooling.md`](docs/02-tooling.md)) |
 | Backend | **Hono** + **Zod** + **hono-openapi** (Scalar UI) + **Drizzle** (SQLite) |
@@ -27,8 +27,8 @@ audited), then makes opinionated calls to close the gaps where practice diverged
 | CLI tooling | **`@cleverjs/cli`** + `bun build --compile` |
 | API contract | OpenAPI generated at runtime → `@hey-api/openapi-ts` typed client |
 | Response shape | `{ success, code, message, data }` envelope, end-to-end |
-| CI | GitLab CI (`oven/bun`) and/or GitHub Actions; **Renovate** everywhere |
-| License | **AGPL-3.0** (templates) |
+| CI | GitLab CI (`oven/bun`) and GitHub Actions — the templates ship both; **Renovate** everywhere |
+| License | **AGPL-3.0** (every template ships a `LICENSE`) |
 | Commits | **Conventional Commits** |
 
 ## Repo layout
@@ -39,17 +39,33 @@ Style-Guides/
 ├── AGENTS.md            ← read this first if you are an AI coding agent
 ├── CLAUDE.md            ← Claude-Code-specific layer on top of AGENTS.md
 ├── docs/                ← the spec, one focused page per topic (00 → 17)
-├── shared/              ← canonical, copy-paste utilities + config (logger, config, APIResponse, useAPI, …)
+├── shared/              ← the templates' core files (logger, config, APIResponse, auth, useAPI, stores, CI, …), same paths
 ├── assets/              ← brand logos, icons, and design-system guidance
-└── templates/           ← ready-to-use scaffolds (backend-service, nuxt-app, fullstack-nuxt-app, static-site, cli-tool)
+└── templates/           ← ready-to-use scaffolds — the source of truth (see below)
 ```
+
+## Templates
+
+| Template | What it is | Default port |
+| --- | --- | --- |
+| [`backend-service`](templates/backend-service/) | Hono API service, compiled to one binary, Docker image | 12500 |
+| [`nuxt-app`](templates/nuxt-app/) | Nuxt frontend for a separate backend-service (landing, auth, dashboard, admin) | 12510 |
+| [`fullstack-nuxt-app`](templates/fullstack-nuxt-app/) | nuxt-app + backend-service in one codebase (API under `/api`) | 12520 |
+| [`static-site`](templates/static-site/) | Static Nuxt site (`nuxt generate`, rsync deploy) | 12530 |
+| [`static-site-with-docs`](templates/static-site-with-docs/) | static-site + `@nuxt/content` docs section | 12531 |
+| [`cli-tool`](templates/cli-tool/) | `@cleverjs/cli` tool, released as binaries on `v*` tags | — |
+
+The templates are deliberately rich (cron jobs, background tasks, email, admin area, onboarding, …):
+delete what your project doesn't need.
 
 ## How to use this
 
 **Starting a new project** — copy a template from [`templates/`](templates/), then follow its
-`README.md` (replace the `<PREFIX>`, `<ProjectName>`, and **port** placeholders — each app gets a
-unique port, never `3000`; see [docs/02 — Ports](docs/02-tooling.md#ports--one-unique-port-per-app-dev--prod)).
-Pull shared utilities from [`shared/`](shared/) rather than re-implementing them.
+`README.md`: replace `<ProjectName>`, the `APPPREFIX` env prefix / `appprefix` token prefix, the
+`<PREFIX>` session-cookie name (Nuxt), and give the app its **own port** (the defaults above, never
+`3000`; see [docs/02 — Ports](docs/02-tooling.md#ports--one-unique-port-per-app-dev--prod)).
+In an existing project, pull the core files from [`shared/`](shared/) — they sit at the same paths as
+in the templates — rather than re-implementing them.
 
 **Contributing to an existing project** — read the relevant [`docs/`](docs/) pages first. When in
 doubt, the existing codebase + this guide are the authority; generic internet advice is not.
@@ -74,7 +90,7 @@ Read top to bottom on first pass; jump to a page on demand.
 12. [11 — CLI & infra](docs/11-cli-and-infra.md) — `@cleverjs/cli`, compile, graceful shutdown
 13. [12 — Testing](docs/12-testing.md) — `bun:test`, the preload harness, integration tests
 14. [13 — Git & CI](docs/13-git-and-ci.md) — Conventional Commits, GitLab/GitHub pipelines
-15. [14 — Deployment](docs/14-deployment.md) — compiled-binary Docker, Nuxt Bun preset, registries
+15. [14 — Deployment](docs/14-deployment.md) — compiled-binary Docker, Nuxt `.output` on Bun, static rsync
 16. [15 — Design system](docs/15-design-system.md) — dark-first, palette, fonts, logos, status semantics
 17. [16 — AI tooling](docs/16-ai-tooling.md) — `CLAUDE.md`/`AGENTS.md`, `.claude/settings.json` commands, MCP
 18. [17 — Decisions & divergences](docs/17-decisions.md) — the opinionated calls and why
@@ -92,8 +108,10 @@ Four foundational standards were set for the org (rationale in
 ## Contributing
 
 This guide is itself a LeiCraftMC project: it is formatted with Biome and type-checked with `tsc`.
-Before committing, run `bun install && bun run check:ci && bun run typecheck`. The
-`/verify`, `/typecheck`, `/format`, and `/test` helper slash commands are defined in
+Before committing, run `bun install && bun run check:ci && bun run typecheck`. The root Biome
+config excludes `templates/` and `shared/config/`: when you change a template, run its own
+`bun run check:ci`, `bun run typecheck` and `bun test` inside it, and keep `shared/` in sync with it.
+The `/verify`, `/typecheck`, `/format`, and `/test` helper slash commands are defined in
 [`.claude/settings.json`](.claude/settings.json) (see [docs/16](docs/16-ai-tooling.md)).
 
 ## License

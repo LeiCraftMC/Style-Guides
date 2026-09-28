@@ -25,12 +25,14 @@
 			"!**/build",
 			"!**/.git",
 			"!**/*.gen.ts",
-			"!**/api-client"
+			"!**/api-client",
+			"!**/drizzle/migrations"
 		]
 	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
+		"indentWidth": 1,
 		"lineWidth": 100
 	},
 	"linter": {
@@ -54,7 +56,9 @@
 			"quoteStyle": "double",
 			"semicolons": "always",
 			"trailingCommas": "all",
-			"jsxQuoteStyle": "double"
+			"jsxQuoteStyle": "double",
+			"bracketSpacing": true,
+			"expand": "auto"
 		}
 	},
 	"css": {

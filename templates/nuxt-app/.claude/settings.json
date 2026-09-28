@@ -12,7 +12,7 @@
 	"commands": {
 		"api-client": {
 			"description": "Regenerate the typed API client",
-			"prompt": "Regenerate and verify the generated API client for this project.\n\n1. Run `bun run api-client:generate`.\n2. Do not hand-edit generated `*.gen.ts` files under `app/api-client/`.\n3. If generation fails, diagnose whether the local backend or OpenAPI endpoint is the issue.\n4. Summarize the outcome and any follow-up needed."
+			"prompt": "Regenerate and verify the generated API client for this project.\n\n1. Run `bun run api-client:generate` (the backend must be running on port 12500 with docs enabled; the script runs openapi-ts).\n2. Do not hand-edit generated `*.gen.ts` files under `app/api-client/`.\n3. If generation fails, diagnose whether the local backend or OpenAPI endpoint is the issue.\n4. Summarize the outcome and any follow-up needed."
 		},
 		"verify": {
 			"description": "Run the repo verification flow",
@@ -28,7 +28,7 @@
 		},
 		"dev": {
 			"description": "Start or inspect the dev setup",
-			"prompt": "Work on the local development setup for this project.\n\n1. If needed, install dependencies with `bun install`.\n2. Use `bun run dev` for the dev server on port 3000.\n3. If there is a dev-server issue, inspect the Nuxt config, runtime env, and Bun-specific wiring before making changes.\n4. Summarize what you started, changed, or found."
+			"prompt": "Work on the local development setup for this project.\n\n1. If needed, install dependencies with `bun install`.\n2. Use `bun run dev` for the dev server on port 12510.\n3. If there is a dev-server issue, inspect the Nuxt config, runtime env, and Bun-specific wiring before making changes.\n4. Summarize what you started, changed, or found."
 		}
 	},
 	"fileScan": {

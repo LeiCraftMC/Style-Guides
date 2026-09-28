@@ -1,8 +1,8 @@
 import type { TaskHandler } from "@cleverjs/utils";
-import { desc, sql, eq } from "drizzle-orm";
-import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
-import { SQLUtils } from "./utils";
+import { desc, eq, sql } from "drizzle-orm";
+import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { UserAccountSettings } from "../api/utils/shared-models/accountData";
+import { SQLUtils } from "./utils";
 
 /**
  * @deprecated Use DB.Tables.users to access this table.
@@ -74,17 +74,21 @@ export const apiKeys = sqliteTable("api_keys", {
 /**
  * @deprecated Use DB.Tables.userPreferences to access this table.
  */
-export const userPreferences = sqliteTable("user_preferences", {
-	id: SQLUtils.primaryKeyIntAutoIncrement("id"),
-	user_id: integer()
-		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
-	created_at: SQLUtils.getCreatedAtColumn(),
+export const userPreferences = sqliteTable(
+	"user_preferences",
+	{
+		id: SQLUtils.primaryKeyIntAutoIncrement("id"),
+		user_id: integer()
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		created_at: SQLUtils.getCreatedAtColumn(),
 
-	// Preference key, e.g. "remote-content-policy".
-	key: text().notNull(),
-	data: text({ mode: "json" }).$type<Record<string, any> | Array<any>>().notNull(),
-});
+		// Preference key, e.g. "remote-content-policy".
+		key: text().notNull(),
+		data: text({ mode: "json" }).$type<Record<string, any> | Array<any>>().notNull(),
+	},
+	(table) => [uniqueIndex("user_preferences_user_id_key_unique").on(table.user_id, table.key)],
+);
 
 /**
  * @deprecated Use DB.Tables.scheduled_tasks to access this table.

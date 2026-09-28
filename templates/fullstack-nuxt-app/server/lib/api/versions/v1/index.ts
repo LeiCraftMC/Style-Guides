@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { type GenerateSpecOptions } from "hono-openapi";
+import { AppConstants } from "../../../utils/constants";
+import { APIVersionRouter } from "../../utils/apiVersionRouter";
 import { authMiddlewareV1 } from "./middleware/auth";
-import { router as authRouter } from "./routes/auth";
 import { router as accountRouter } from "./routes/account";
 import { router as adminRouter } from "./routes/admin";
-import { APIVersionRouter } from "../../utils/apiVersionRouter";
-import { AppConstants } from "../../../utils/constants";
+import { router as authRouter } from "./routes/auth";
 
 const openAPIConfig: Partial<GenerateSpecOptions> = {
 	documentation: {
@@ -19,7 +19,6 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 				bearerAuth: {
 					type: "http",
 					scheme: "bearer",
-					bearerFormat: "JWT",
 					description: "Enter your bearer token in the format **Bearer &lt;token&gt;**",
 				},
 			},
