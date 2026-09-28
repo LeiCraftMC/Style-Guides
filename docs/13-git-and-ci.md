@@ -221,8 +221,6 @@ Which template ships what:
 - Every pipeline runs `bun run check:ci` (`biome ci`), `bun run typecheck` and `bun test`. All
   templates pass `check:ci` as shipped; their `biome.json` excludes `**/api-client`, `**/*.gen.ts`
   and `**/drizzle/migrations` (generated code).
-- In the Nuxt shapes `bun run typecheck` (`nuxt typecheck` under Bun) only checks `.ts` files, not
-  `.vue` — see [02 — Tooling](02-tooling.md).
 - `bun install --frozen-lockfile` in CI; local development can use `bun install`.
 - Dependency and lockfile updates come from Renovate (organisation-level config).
 

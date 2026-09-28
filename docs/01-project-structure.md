@@ -109,7 +109,6 @@ my-app/
 │   │       └── admin/users.vue
 │   └── utils/{abstractStore,routeMatcher,format,roles,types,url}.ts
 ├── public/{favicon.ico, robots.txt, static/logo/icon.{png,svg}, static/utils/sitemap.xml}
-├── scripts/patch-api-client.ts     # runs after openapi-ts: fixes known generator typing bugs
 ├── tests/basic.test.ts
 ├── docker/Dockerfile               # oven/bun:1-slim + .output/, PORT 12510
 ├── nuxt.config.ts  openapi-ts.config.ts
@@ -148,7 +147,7 @@ Rules:
 - The frontend's `openapi-ts.config.ts` `input` is the **live** backend spec
   (`http://localhost:12500/docs/v1/openapi`), so the backend must be running with its docs enabled
   (`APPPREFIX_API_DISABLE_DOCS` empty) when you run `bun run api-client:generate`
-  (`openapi-ts && bun scripts/patch-api-client.ts`). See
+  (`openapi-ts`). See
   [05 — API contract](05-api-contract.md).
 - `NUXT_PUBLIC_API_URL` configures the backend origin; `updateAPIClient` sets the SDK `baseURL` to
   `<apiUrl>/v1`.

@@ -163,11 +163,9 @@ bun build --compile --sourcemap --minify --bytecode --format=esm ./scripts/entry
   --define "process.env.APP_VERSION='0.1.0'"
 ```
 
-Services differ in two places
+Services differ in one place
 ([`templates/backend-service/scripts/compile/compiler.ts`](../templates/backend-service/scripts/compile/compiler.ts)):
 
-- `bytecode = false` — with Bun 1.4.0 a `--bytecode` service binary aborts at startup on Linux
-  (JSC `UnlinkedArrayProfile` assertion). The CLI keeps bytecode on. Re-enable once Bun fixes it.
 - `this.command.addArg("--asset ./drizzle/migrations")` — embeds the migrations in the binary as
   `migrations/…` (no `drizzle/` segment). `DB.init` switches to that folder when
   `Bun.isStandaloneExecutable` is set, so the binary migrates without any files next to it.
@@ -281,7 +279,7 @@ Vault, not template defaults** — adopt them when a tool needs them:
 - [ ] `scripts/entrypoint.ts` matches the shape (CLI: `import "../src/index"`).
 - [ ] `scripts/compile/` from `shared/cli/scripts/compile/`; targets `linux-x64`,
       `linux-x64-baseline`, `linux-arm64`.
-- [ ] Services: `bytecode = false`, `--asset ./drizzle/migrations`, migrations committed.
+- [ ] Services: `--asset ./drizzle/migrations`, migrations committed.
 - [ ] `package.json` `"version"` is set and bumped before tagging a release.
 - [ ] CLI tools: `.github/workflows/release.yml` from `shared/config/github-actions/release.yml`.
 - [ ] CLI uses `shared/cli/src/utils/logger.ts` (`logHistory` for crash dumps).

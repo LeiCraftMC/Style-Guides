@@ -512,9 +512,9 @@ export type NewAPIKey = NonNullable<PostAccountApikeysData["body"]>;
 ```
 
 Types used by one page can stay local (`admin/users.vue` declares
-`type AdminUser = GetAdminUsersResponses["200"]["data"][number]`). In the standalone template `scripts/patch-api-client.ts` widens the SDK
-functions' return types to `any`, so `useAPI` results are untyped there — annotate them with these
-aliases (`useAPIAsyncData<APIKey[]>(…)`, `satisfies UserInfo`).
+`type AdminUser = GetAdminUsersResponses["200"]["data"][number]`). Annotate `useAPI` results with
+these aliases where the inferred type is too wide or clarity matters
+(`useAPIAsyncData<APIKey[]>(…)`, `satisfies UserInfo`).
 
 ## Forms and generated Zod schemas
 

@@ -20,8 +20,7 @@ authoritative detail lives in [`docs/`](docs/); this is the short version.
 ## Non-negotiable rules
 
 - **Never hand-edit `*.gen.ts`** or anything under `app/api-client/`. These are generated from the
-  backend's OpenAPI spec by `bun run api-client:generate` (the only exception is an automated,
-  idempotent `scripts/patch-api-client.ts` step, as in the nuxt-app template). If the contract is
+  backend's OpenAPI spec by `bun run api-client:generate`. If the contract is
   wrong, fix the backend route + Zod schema and regenerate.
 - **Every API response uses the `{ success, code, message, data }` envelope** via the `APIResponse`
   helper — never raw `c.json(...)`. See [`docs/05-api-contract.md`](docs/05-api-contract.md).
@@ -65,8 +64,7 @@ authoritative detail lives in [`docs/`](docs/); this is the short version.
 ## Tooling & finishing
 
 - Bun runtime; `bun test`; `bun run format`; `bun run typecheck` (backend/CLI: `tsc` against
-  `tsconfig/tsconfig.typecheck.json`; Nuxt: `nuxt typecheck` + `tsc` — note that under Bun it does not
-  type-check `.vue` files).
+  `tsconfig/tsconfig.typecheck.json`; Nuxt: `nuxt typecheck` + `tsc`).
 - Before declaring done: `bun run check:ci` clean, `bun run typecheck` passes, `bun test` passes.
 - If you created a new project from a template, replace `<ProjectName>`, the `APPPREFIX` /
   `appprefix` prefixes, the `<PREFIX>` cookie name and the default port.

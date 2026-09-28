@@ -168,20 +168,20 @@ note in [04 — Backend architecture](04-backend-hono.md#compatibility-proxy-bac
 ## 15. One API-client plugin set, two generation flows
 
 **Context:** The guide previously allowed several ways to obtain the spec (a live URL, a committed
-snapshot, or a throwaway API instance on "port + 1") and did not pin the plugin list. The generator
-(`@hey-api/openapi-ts` 0.99) also has typing bugs in its Nuxt output.
+snapshot, or a throwaway API instance on "port + 1") and did not pin the plugin list.
 
 **Decision:** Every Nuxt app generates `app/api-client/` with exactly
 `["@hey-api/client-nuxt", "@hey-api/typescript", "@hey-api/sdk", "zod"]`. The spec source depends
 on the shape:
 
 - **nuxt-app** (split repo) reads the running backend's spec at
-  `http://localhost:12500/docs/v1/openapi`, then runs the automated `scripts/patch-api-client.ts`
-  for known generator typing bugs — the only sanctioned edit of `*.gen.ts`.
+  `http://localhost:12500/docs/v1/openapi`.
 - **fullstack-nuxt-app** generates the spec **in-process** (`scripts/api-client-generate.ts`:
   `API.init([], false)` → `API.getApp().request("/docs/v1/openapi")` → temp JSON → `openapi-ts`) —
-  no server, no port. Its output is deliberately **unpatched**: the remaining `sdk.gen.ts` type
-  errors are left for upstream to fix rather than growing a second patch script.
+  no server, no port.
+
+Generated `*.gen.ts` files are never edited — if the generator output is wrong, fix or pin the
+generator, not the generated code.
 
 See [05 — API contract](05-api-contract.md).
 
@@ -242,29 +242,18 @@ while `DB_AUTO_MIGRATE`, default `true`, needs `APPPREFIX_DB_AUTO_MIGRATE=` to t
 `example.env` ships `APPPREFIX_API_DISABLE_DOCS=` (empty) with a comment explaining the rule. See
 [09](09-config-and-logging.md).
 
-## 21. vue-tsc under Bun: accepted limitation
+## 21. Compiled binaries: one compile script, bytecode on
 
-**Context:** A tooling gap, not a repo divergence. vue-tsc patches TypeScript through a
-`fs.readFileSync` hook that Bun's module loader bypasses, so `bun run typecheck`
-(`nuxt typecheck`) checks only `.ts` files in Nuxt apps, not `.vue`.
-
-**Decision:** Document it, don't work around it. The templates keep the Bun-only toolchain (#16);
-the limitation is stated in [02](02-tooling.md#known-limitations), in the Nuxt templates'
-`CLAUDE.md`, and in [16](16-ai-tooling.md#verifying-vue-work) for agents. Revisit when vue-tsc or
-Bun fixes it.
-
-## 22. Compiled binaries: bytecode off for services, on for the CLI
-
-**Context:** The compile scripts differed per repo, and with Bun 1.4.0 a `--bytecode` build of a
-service binary aborts at startup on Linux (JSC `UnlinkedArrayProfile` assertion).
+**Context:** The compile scripts differed per repo. (An earlier revision disabled `--bytecode` for
+services to work around a Bun 1.4.0 startup crash on Linux; that workaround has been reverted —
+temporary upstream bugs do not become style-guide rules.)
 
 **Decision:** One compile script (`scripts/compile/`, from
-[`shared/cli/scripts/compile/`](../shared/cli/scripts/compile/)). The CLI keeps
-`bytecode = true` (`--bytecode --format=esm`); services set `bytecode = false` and add
-`--asset ./drizzle/migrations` so the binary carries its migrations. Re-enable bytecode for services
-once Bun fixes the crash. The full-stack app is **not** compiled: its `scripts/compile/` +
-`scripts/entrypoint.ts` do not produce a working binary, so it deploys as `.output/` +
-`drizzle/migrations` on `oven/bun` (see [14](14-deployment.md)).
+[`shared/cli/scripts/compile/`](../shared/cli/scripts/compile/)). CLI and services alike compile
+with `bytecode = true` (`--bytecode --format=esm`); services additionally add
+`--asset ./drizzle/migrations` so the binary carries its migrations. The full-stack app is **not**
+compiled: its `scripts/compile/` + `scripts/entrypoint.ts` do not produce a working binary, so it
+deploys as `.output/` + `drizzle/migrations` on `oven/bun` (see [14](14-deployment.md)).
 
 ## Known future work (not yet decided)
 

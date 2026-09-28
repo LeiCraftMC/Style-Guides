@@ -39,7 +39,5 @@ backend route, regenerate the client with `bun run api-client:generate`. Never h
   into `import type` and breaks the page at runtime.
 - In `.vue` files, Biome *warnings* about unused variables/imports are expected (template usage).
   Biome *errors* are not.
-- `bun run typecheck` does not type-check `.vue` files under Bun: vue-tsc's TypeScript patch is
-  bypassed by Bun's module loader. Don't treat a passing typecheck as proof a page is correct.
 - Per-user stores live in `app/composables/stores/` (`useUserInfoStore`, `useOnboardingStore`).
   Clear them on logout; the login page refreshes/clears them for the new session.

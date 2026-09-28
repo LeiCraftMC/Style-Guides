@@ -23,10 +23,7 @@ export type PlatformArg = keyof typeof Platforms | "auto";
 class CompilerCommand {
 	public sourcemap = true;
 	public minify = true;
-	// Off for services: with Bun 1.4.0 a `--bytecode` build of the service aborts at startup on
-	// Linux (JSC `UnlinkedArrayProfile` assertion). Re-enable once Bun fixes it; the CLI template
-	// keeps bytecode on.
-	public bytecode = false;
+	public bytecode = true;
 	public entrypoint = "./scripts/entrypoint.ts";
 	// Set the name in AppConstants.BINARY_NAME (src/utils/constants.ts), e.g. leios-api, nowip-api.
 	public outfile = `./build/bin/${AppConstants.BINARY_NAME}`;

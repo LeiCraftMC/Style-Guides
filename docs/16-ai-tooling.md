@@ -23,7 +23,7 @@ Every template ships both files, ready to adapt:
   backend in `server/`, the static sites `bun run generate`.
 - nuxt-app and fullstack-nuxt-app `CLAUDE.md` carry a **Frontend conventions** section: where the
   route map lives (`app/middleware/auth.global.ts`), auto-import component names, the Biome-in-`.vue`
-  gotchas ([02](02-tooling.md#biome-in-vue-files)), the vue-tsc limitation below, and the per-user
+  gotchas ([02](02-tooling.md#biome-in-vue-files)), and the per-user
   stores in `app/composables/stores/`. Keep that section when you adapt the file.
 
 ## `.claude/settings.json`
@@ -135,17 +135,13 @@ config.
 
 ## Verifying `.vue` work
 
-Under Bun, `bun run typecheck` does **not** type-check `.vue` files (vue-tsc's TypeScript patch is
-bypassed by Bun's module loader — see [02 — Known limitations](02-tooling.md#known-limitations)).
-An agent that edited a page or component must not report "typecheck passed" as proof the change is
-correct. Instead:
+`bun run typecheck` type-checks `.vue` files (vue-tsc) alongside the `.ts` files, so a passing
+typecheck does cover an edited page or component. An agent that edited `.vue` files must still:
 
-- Run `bun run typecheck` anyway — it still covers the `.ts` files (composables, utils, stores,
-  `server/`, tests).
 - Run `bun run check:ci` — Biome errors must be zero; unused-binding **warnings** in `.vue` files
   are expected.
-- Exercise the page (dev server, or at least `bun run build` / `bun run generate`) and say in the
-  summary that the `.vue` code was not type-checked.
+- Exercise the page when the change touches rendering or behaviour rather than types (dev server,
+  or at least `bun run build` / `bun run generate`).
 
 ## Prompting conventions
 
@@ -167,8 +163,7 @@ The guide exists so AI tools do not fall back to generic internet patterns. Expl
 shortcuts:
 
 - `@hono/zod-validator` — use `hono-openapi`'s validator (`zValidator`).
-- Hand-editing `*.gen.ts` — regenerate from OpenAPI (nuxt-app's automated
-  `scripts/patch-api-client.ts` is the only exception).
+- Hand-editing `*.gen.ts` — regenerate from OpenAPI.
 - Pinia or static `reactive()` for global state — use `AbstractStore` over `useState`.
 - ESLint / Prettier — Biome is the formatter/linter.
 - `@hono/swagger-ui` — use Scalar via `@scalar/hono-api-reference`.
@@ -181,5 +176,5 @@ shortcuts:
 - [ ] No `permissions.allow` rules shipped in `.claude/settings.json`.
 - [ ] Nuxt-based projects: `.vscode/mcp.json` **and** `.claude/settings.json` `mcpServers` register
       `nuxt` + `nuxt-ui`.
-- [ ] `.vue` changes verified beyond `bun run typecheck`.
+- [ ] `.vue` changes pass `bun run typecheck` and `bun run check:ci`.
 - [ ] AI prompts reference the correct `docs/` page and `shared/` utility.

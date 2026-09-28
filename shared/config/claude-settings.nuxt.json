@@ -12,7 +12,7 @@
 	"commands": {
 		"api-client": {
 			"description": "Regenerate the typed API client",
-			"prompt": "Regenerate and verify the generated API client for this project.\n\n1. Run `bun run api-client:generate` (the backend must be running on port 12500 with docs enabled; the script runs openapi-ts, then scripts/patch-api-client.ts).\n2. Do not hand-edit generated `*.gen.ts` files under `app/api-client/`.\n3. If generation fails, diagnose whether the local backend or OpenAPI endpoint is the issue.\n4. Summarize the outcome and any follow-up needed."
+			"prompt": "Regenerate and verify the generated API client for this project.\n\n1. Run `bun run api-client:generate` (the backend must be running on port 12500 with docs enabled; the script runs openapi-ts).\n2. Do not hand-edit generated `*.gen.ts` files under `app/api-client/`.\n3. If generation fails, diagnose whether the local backend or OpenAPI endpoint is the issue.\n4. Summarize the outcome and any follow-up needed."
 		},
 		"verify": {
 			"description": "Run the repo verification flow",

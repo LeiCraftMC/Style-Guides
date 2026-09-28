@@ -14,7 +14,7 @@
 		"generate": "bunx --bun nuxt generate",
 		"preview": "bunx --bun nuxt preview",
 		"postinstall": "bunx --bun nuxt prepare",
-		"api-client:generate": "openapi-ts && bun scripts/patch-api-client.ts",
+		"api-client:generate": "openapi-ts",
 		"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 		"test": "bun test"
 	},

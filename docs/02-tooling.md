@@ -49,12 +49,11 @@ Cross-references to keep in sync when you change a port:
 Two flows exist, one per shape — details in
 [05 — Generating the frontend client](05-api-contract.md#generating-the-frontend-client):
 
-- **nuxt-app** (split repo): `openapi-ts && bun scripts/patch-api-client.ts` reads the **running**
-  backend's spec at `http://localhost:12500/docs/v1/openapi` (docs must be enabled), then patches
-  known generator typing bugs.
+- **nuxt-app** (split repo): `openapi-ts` reads the **running** backend's spec at
+  `http://localhost:12500/docs/v1/openapi` (docs must be enabled).
 - **fullstack-nuxt-app**: `bun scripts/api-client-generate.ts` boots the API **in-process**
   (`API.init([], false)`), fetches `/docs/v1/openapi` via `API.getApp().request(…)`, writes
-  `./data/temp-api-openapi.json` and runs `bunx openapi-ts`. No server, no port, no patch.
+  `./data/temp-api-openapi.json` and runs `bunx openapi-ts`. No server, no port.
 
 ## TypeScript
 
@@ -108,9 +107,6 @@ and `tsconfig/tsconfig.typecheck.json` — copied from
 app). `app/**` is left to `nuxt typecheck` (vue-tsc), which provides the Nuxt auto-import
 declarations (`ref`, `computed`, `useState`, …) that plain `tsc` cannot resolve. The `typecheck`
 script runs `bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json`.
-
-> Under Bun, `nuxt typecheck` does **not** check `.vue` files — only `.ts`. See
-> [Known limitations](#known-limitations).
 
 ## Biome (formatter + linter)
 
@@ -212,7 +208,7 @@ reads it for `--no-version-tag` builds, so release binaries report it.
 	"generate": "bunx --bun nuxt generate",
 	"preview": "bunx --bun nuxt preview",
 	"postinstall": "bunx --bun nuxt prepare",
-	"api-client:generate": "openapi-ts && bun scripts/patch-api-client.ts",
+	"api-client:generate": "openapi-ts",
 	"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 	"test": "bun test"
 }
@@ -246,25 +242,3 @@ repo genuinely needs them. See [13](13-git-and-ci.md).
 (nuxt-app, fullstack-nuxt-app, both static sites) — useful when editing components, composables or
 NuxtUI styling. Copy [`shared/config/mcp.json`](../shared/config/mcp.json). The Claude Code side
 lives in `.claude/settings.json` — see [16](16-ai-tooling.md).
-
-## Known limitations
-
-These are upstream issues the templates live with. Don't "fix" them locally without recording a
-decision in [17](17-decisions.md).
-
-- **`.vue` files are not type-checked under Bun.** vue-tsc patches TypeScript through a
-  `fs.readFileSync` hook that Bun's module loader bypasses, so `bun run typecheck` (`nuxt
-  typecheck`) only checks `.ts` files. A passing typecheck is not proof that a page is correct —
-  review `.vue` changes carefully and exercise them in the dev server or a `bun run build`.
-- **`bunx --bun nuxt dev` fails on Windows** (Bun treats the Nuxt CLI worker path as a package
-  spec). Develop Nuxt apps on WSL, Linux or macOS.
-- **`@unhead/vue` 3.4.1 ships a broken `.d.ts`.** Fresh installs that resolve this version can see
-  type errors coming from inside the package; they are not caused by your code.
-- **`@hey-api/openapi-ts` (0.99) typing bugs.** The full-stack template's generated `sdk.gen.ts`
-  has known type errors that are deliberately left unpatched until upstream fixes them, so its
-  `nuxt typecheck` reports errors from the generated client. The nuxt-app's
-  `scripts/patch-api-client.ts` fixes the `sdk.gen.ts` return types and the SSE `cache` option, but
-  not the SSE `credentials` error. See [05](05-api-contract.md).
-- **Bun 1.4.0 `--bytecode` crash:** a bytecode build of a service binary aborts at startup on Linux,
-  so the service compile scripts keep `bytecode = false` (the CLI keeps it on). See
-  [11](11-cli-and-infra.md).

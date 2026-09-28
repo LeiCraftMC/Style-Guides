@@ -78,11 +78,10 @@ auto-imports and is checked inside the Nuxt templates.
 | `app/components/dashboard/*.vue` | `DashboardPageHeader`, `DashboardPageBody`, `DashboardModal`, `DashboardDeleteModal`, `DataTable` (see docs/15). |
 | `app/components/form/DateRangePicker.vue` | Date-range filter used by `DataTable`. |
 | `app/app.config.ts`, `app/assets/css/main.css` | NuxtUI theme + Tailwind v4 entry (dark-only). |
-| `scripts/patch-api-client.ts` | nuxt-app's automated post-`openapi-ts` patch for known generator typing bugs. |
 | `scripts/api-client-generate.ts` | Full-stack: generates the client from the in-process API spec. |
 
-> Generated `*.gen.ts` files are never edited by hand — the automated `patch-api-client.ts` is the
-> only exception. See [docs/05](../docs/05-api-contract.md).
+> Generated `*.gen.ts` files are never edited by hand — regenerate with
+> `bun run api-client:generate`. See [docs/05](../docs/05-api-contract.md).
 
 ## cli/ (from `templates/cli-tool`)
 
@@ -91,7 +90,7 @@ auto-imports and is checked inside the Nuxt templates.
 | `src/index.ts` | The `CLIApp` entry: global `--log-level`, command registration, `.handle(…, "shell")`. |
 | `src/commands/{version-cmd,hello-cmd}.ts` | `VersionCMD` (prints `APP_VERSION`) and an example command. |
 | `src/utils/{logger,constants}.ts` | CLI `Logger` with `logHistory` for crash dumps; `AppConstants` (`BINARY_NAME`). |
-| `scripts/compile/{index,compileCMD,compiler}.ts` | `bun build --compile` per target (`auto`, `all`, `linux-x64`, `linux-x64-baseline`, `linux-arm64`). Services add `--asset ./drizzle/migrations` and turn bytecode off (see docs/11). |
+| `scripts/compile/{index,compileCMD,compiler}.ts` | `bun build --compile` per target (`auto`, `all`, `linux-x64`, `linux-x64-baseline`, `linux-arm64`). Services add `--asset ./drizzle/migrations` (see docs/11). |
 | `scripts/entrypoint.ts` | The binary's entrypoint. |
 
 ## config/

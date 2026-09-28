@@ -12,7 +12,7 @@ camelCase for a new source module when in doubt.
 | Source modules (classes, utilities) | camelCase | `apiVersionRouter.ts`, `authHandler.ts`, `specHelpers.ts`, `cryptoKeys.ts`, `sampleTask.ts`, `abstractStore.ts`, `routeMatcher.ts` |
 | Established kebab-case modules (keep) | kebab-case | `api-res.ts`, `shared-models/api-helper-models.ts` |
 | CLI commands | kebab-case, `-cmd` suffix | `commands/version-cmd.ts`, `commands/hello-cmd.ts` |
-| Scripts | kebab-case (the compile folder is camelCase inside) | `scripts/db-utils.ts`, `api-client-generate.ts`, `patch-api-client.ts`, `compile/compileCMD.ts` |
+| Scripts | kebab-case (the compile folder is camelCase inside) | `scripts/db-utils.ts`, `api-client-generate.ts`, `compile/compileCMD.ts` |
 | Directories / route folders | kebab-case (single words lowercase) | `reset-password/`, `shared-models/`, `apikeys/`, `preferences/` |
 | Route folder files | `index.ts` (router) + `model.ts` (schemas) | `routes/auth/{index.ts, model.ts}`, `routes/auth/reset-password/{index.ts, model.ts}` |
 | Vue components | PascalCase in a domain subdir, used by auto-import name | `dashboard/DataTable.vue` → `<DashboardDataTable>`, `img/AppLogo.vue` → `<ImgAppLogo>` |

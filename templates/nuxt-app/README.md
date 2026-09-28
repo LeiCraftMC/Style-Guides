@@ -25,7 +25,7 @@ Generate the typed client from the backend's OpenAPI spec. The backend (backend-
 must be running on port 12500 with its docs enabled:
 
 ```bash
-bun run api-client:generate   # openapi-ts + scripts/patch-api-client.ts
+bun run api-client:generate   # openapi-ts
 ```
 
 ## Frontend

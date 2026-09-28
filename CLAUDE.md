@@ -25,8 +25,7 @@ templates.
     (`nuxt-app`, `fullstack-nuxt-app`, `static-site*`) or [`shared/frontend/`](shared/frontend/).
 - The root Biome config excludes `templates/` and `shared/config/`. After changing a template, run
   its own `bun run check:ci`, `bun run typecheck` and `bun test` inside the template, then update the
-  matching `shared/` copy. Under Bun, `nuxt typecheck` does not type-check `.vue` files (see
-  [docs/02](docs/02-tooling.md)), so review `.vue` changes carefully.
+  matching `shared/` copy.
 - Do **not** add `permissions.allow` rules to `.claude/settings.json` on your own initiative; the
   user manages permission grants. Ship only `commands`, `mcpServers`, and `fileScan`.
 

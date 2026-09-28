@@ -169,20 +169,11 @@ export default defineConfig({
 ```
 
 ```json
-"api-client:generate": "openapi-ts && bun scripts/patch-api-client.ts"
+"api-client:generate": "openapi-ts"
 ```
 
 - Start the backend first, with docs enabled (`APPPREFIX_API_DISABLE_DOCS` empty/unset).
-- [`scripts/patch-api-client.ts`](../shared/frontend/scripts/patch-api-client.ts) is the one
-  sanctioned touch of generated files: an automated, idempotent post-generation step that works
-  around hey-api 0.99.0 typing bugs. It replaces the SDK functions' `RequestResult<…>` return
-  annotations with `any` and forces `cache: undefined` in the SSE helper of
-  `client/client.gen.ts`. Consequences: SDK calls (and therefore `useAPI` results) are typed `any`
-  in `nuxt-app` — type the data with the generated types where it matters (e.g.
-  `GetAccountResponses["200"]["data"]` in `app/utils/types.ts`); and one SSE `credentials` typing
-  error is not covered by the patch.
-- Hand-editing generated files remains forbidden; the patch is part of the generation pipeline and
-  re-runs on every generation.
+- Hand-editing generated files is forbidden; regenerate with `bun run api-client:generate`.
 
 ### Full-stack (`fullstack-nuxt-app`)
 
@@ -195,9 +186,7 @@ The spec is produced **in-process** — no server needs to be running:
 [`scripts/api-client-generate.ts`](../shared/frontend/scripts/api-client-generate.ts) imports the
 `API` class, calls `API.init([], false)`, requests `/docs/v1/openapi` from `API.getApp()`, writes
 the JSON to `./data/temp-api-openapi.json`, runs `bunx openapi-ts` (whose config has
-`input: "./data/temp-api-openapi.json"`), and deletes the temp file. There is **no patch step**:
-the full-stack `sdk.gen.ts` carries the upstream hey-api 0.99.0 typing errors, left unpatched by
-decision until upstream fixes them.
+`input: "./data/temp-api-openapi.json"`), and deletes the temp file.
 
 ## `updateAPIClient` and `useAPI`
 
@@ -330,7 +319,7 @@ developed. Do not break v1 paths until you are ready to deprecate and communicat
   `APIResponse.Schema.*`); success descriptions equal the runtime messages.
 - [ ] Error responses set `success: false` and **omit `data`**.
 - [ ] Frontend client is generated (`bun run api-client:generate`) into `app/api-client/`, committed,
-  and never hand-edited (the automated `patch-api-client.ts` in `nuxt-app` is the only exception).
+  and never hand-edited.
 - [ ] `openapi-ts.config.ts` uses the plugins `@hey-api/client-nuxt`, `@hey-api/typescript`,
   `@hey-api/sdk`, `zod`.
 - [ ] `updateAPIClient` sets `ignoreResponseError: true` and the right `baseURL` for the shape.

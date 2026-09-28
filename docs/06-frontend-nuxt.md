@@ -484,20 +484,10 @@ per-request state — they leak across requests on the server.
   `"<page> | <baseTitle>"`); see [07](07-state-and-data.md#usesubrouterpathdynamics).
 - `public/robots.txt` in the app templates disallows `/dashboard`.
 
-## Type checking and known limitations
+## Type checking
 
-`bun run typecheck` = `nuxt typecheck` (vue-tsc, covers `app/`) + `tsc -p
-./tsconfig/tsconfig.typecheck.json` (tests, plus `server/` in full-stack). Known limitations — see
-[02 — TypeScript](02-tooling.md#typescript):
-
-- Run under Bun, `nuxt typecheck` does **not** type-check `.vue` files — vue-tsc patches TypeScript
-  through a `fs.readFileSync` hook that Bun's module loader bypasses — so only `.ts` files are
-  checked. Rely on your editor's Vue language tools for `.vue` diagnostics.
-- `bunx --bun nuxt dev` fails on Windows (Bun treats the Nuxt CLI worker path as a package spec);
-  use WSL, Linux or macOS.
-- `@unhead/vue` 3.4.1 ships a broken `.d.ts` that fresh installs pick up.
-- `@hey-api/openapi-ts` 0.99 emits typing bugs in the generated client (see
-  [05](05-api-contract.md)).
+`bun run typecheck` = `nuxt typecheck` (vue-tsc, covers `app/` incl. `.vue` files) + `tsc -p
+./tsconfig/tsconfig.typecheck.json` (tests, plus `server/` in full-stack).
 
 ## Static content sites
 
