@@ -19,15 +19,17 @@ Follow the LeiCraftMC Style Guides: https://github.com/LeiCraftMC/Style-Guides.
   `server/plugins/startup.ts`.
 - Every API response uses the `{ success, code, message, data }` envelope via `APIResponse.*`
   (errors omit `data`).
-- Validate with `zValidator` from `hono-openapi`; routes in `server/lib/api/versions/v<n>/routes/<resource>/{index.ts, model.ts}`.
+- Validate with `hono-openapi`'s validator (`import { validator as zValidator } from "hono-openapi"`); routes in `server/lib/api/versions/v<n>/routes/<resource>/{index.ts, model.ts}`.
 - Auth uses opaque bearer tokens (`<prefix>_<kind>_<id>:<base>`, `Bun.password`-hashed) — not JWT.
   See docs/10-auth.md.
 - Frontend API access only through `useAPI`; global state via `AbstractStore` over `useState`;
   component-local form/UI state with `reactive()`/`ref()` is fine.
-- Lucide icons only (`i-lucide-*`). Never hand-edit `*.gen.ts` under `app/api-client/` (an
-  automated `scripts/patch-api-client.ts` is the only exception).
+- Lucide icons only (`i-lucide-*`). Never hand-edit `*.gen.ts` under `app/api-client/` —
+  regenerate with `bun run api-client:generate`.
 - `nitro.rollupConfig.external: ["bun:sqlite"]` in `nuxt.config.ts`. WebSocket routes
   (`server/routes/ws/`) require `nitro.experimental.websocket = true` (Bun preset).
 - Format with Biome before finishing. Conventional Commits.
 
-Replace `<ProjectName>` and the `FNA_` env prefix with the real project values.
+Replace `<ProjectName>`, the `APPPREFIX` env prefix / `appprefix` token prefix
+(`server/lib/utils/constants.ts`) and the `<PREFIX>` session-cookie name
+(`app/composables/useAppCookies.ts`) with the real project values.

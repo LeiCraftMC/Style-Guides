@@ -28,7 +28,6 @@ export default defineEventHandler(async (event) => {
 			success: false,
 			code: 503,
 			message: "API is starting, please retry shortly",
-			data: null,
 		};
 	}
 

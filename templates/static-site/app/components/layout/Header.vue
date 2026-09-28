@@ -3,38 +3,37 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import LCMCIcon from "~/components/img/LCMCIcon.vue";
 
 const links = computed<NavigationMenuItem[]>(() => [
-    {
-        label: "About",
-        to: "/"
-    },
-    {
-        label: "Kontakt",
-        to: "/contact"
-    },
-    {
-        label: "Blog",
-        to: "https://blog.leicraftmc.de/",
-        target: "_blank"
-    }
+	{
+		label: "About",
+		to: "/",
+	},
+	{
+		label: "Kontakt",
+		to: "/contact",
+	},
+	{
+		label: "Blog",
+		to: "https://blog.leicraftmc.de/",
+		target: "_blank",
+	},
 ]);
 
 const socialLinks = [
-    { icon: "i-lucide-github", to: "https://github.com/LeiCraft/", label: "GitHub" },
-    { icon: "i-lucide-gitlab", to: "https://git.leicraftmc.de/LeiCraft/", label: "GitLab" },
-    { icon: "i-lucide-message-circle", to: "https://discord.com/invite/3cdazADhtv", label: "Discord" },
-    { icon: "i-lucide-twitter", to: "https://twitter.com/leicraft_", label: "Twitter" }
+	{ icon: "i-lucide-github", to: "https://github.com/LeiCraft/", label: "GitHub" },
+	{ icon: "i-lucide-gitlab", to: "https://git.leicraftmc.de/LeiCraft/", label: "GitLab" },
+	{ icon: "i-lucide-message-circle", to: "https://discord.com/invite/3cdazADhtv", label: "Discord" },
+	{ icon: "i-lucide-twitter", to: "https://twitter.com/leicraft_", label: "Twitter" },
 ];
 
 const mobileLinks = computed<NavigationMenuItem[][]>(() => [
-    links.value,
-    socialLinks.map(social => ({
-        label: social.label,
-        to: social.to,
-        target: "_blank",
-        icon: social.icon
-    }))
+	links.value,
+	socialLinks.map((social) => ({
+		label: social.label,
+		to: social.to,
+		target: "_blank",
+		icon: social.icon,
+	})),
 ]);
-
 </script>
 
 <template>

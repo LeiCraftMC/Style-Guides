@@ -19,8 +19,8 @@ Use them when editing components, composables, or NuxtUI styling.
 
 ## API client
 
-Run `bun run api-client:generate` after backend route changes. The generated files live in
-`app/api-client/`.
+Run `bun run api-client:generate` after backend route changes (the backend must be running on
+port 12500 with docs enabled). The generated files live in `app/api-client/`.
 
 ## Frontend conventions
 
@@ -37,7 +37,5 @@ Run `bun run api-client:generate` after backend route changes. The generated fil
   into `import type` and breaks the page at runtime.
 - In `.vue` files, Biome *warnings* about unused variables/imports are expected (template usage).
   Biome *errors* are not.
-- `bun run typecheck` does not type-check `.vue` files under Bun: vue-tsc's TypeScript patch is
-  bypassed by Bun's module loader. Don't treat a passing typecheck as proof a page is correct.
 - Per-user stores live in `app/composables/stores/` (`useUserInfoStore`, `useOnboardingStore`).
   Clear them on logout; the login page refreshes/clears them for the new session.

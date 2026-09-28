@@ -20,8 +20,8 @@ https://github.com/LeiCraftMC/Style-Guides.
   `reactive()`/`ref()` is fine.
 - Session cookie via `useAppCookies()` (`secure; sameSite=lax; httpOnly:false`); `useAPI`
   redirects on any `code === 401`. See docs/10-auth.md.
-- Lucide icons only (`i-lucide-*`). Never hand-edit `*.gen.ts` under `app/api-client/` (an
-  automated `scripts/patch-api-client.ts` is the only exception).
+- Lucide icons only (`i-lucide-*`). Never hand-edit `*.gen.ts` under `app/api-client/` —
+  regenerate with `bun run api-client:generate`.
 - `openapi-ts.config.ts` `input` points at the separate backend's `/docs/v1/openapi`.
 - Format with Biome before finishing. Conventional Commits.
 

@@ -1,6 +1,6 @@
+import { z } from "zod";
 import { AppConstants } from "./constants";
 import { Logger } from "./logger";
-import { z } from "zod";
 
 interface ConfigSchemaSettings {
 	[key: string]: CS.ConfigItem<z.ZodType>;
@@ -22,9 +22,7 @@ class CS {
 	}
 
 	static boolean() {
-		// `z.coerce.boolean()` would turn the string "false" into true; accept real booleans and
-		// "true"/"false"/"1"/"0"/"yes"/"no"/"on"/"off" strings instead.
-		return new CS.ConfigItem(z.union([z.boolean(), z.stringbool()]));
+		return new CS.ConfigItem(z.coerce.boolean());
 	}
 
 	static enum<const T extends readonly string[]>(values: T) {

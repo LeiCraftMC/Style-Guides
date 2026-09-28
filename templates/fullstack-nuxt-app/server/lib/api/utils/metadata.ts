@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import { DB } from "../../db/index";
 import { z } from "zod";
+import { DB } from "../../db/index";
 
 export class RuntimeMetadata {
 	protected static readonly schemas = {

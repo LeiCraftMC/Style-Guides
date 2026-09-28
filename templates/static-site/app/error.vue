@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import Header from "~/components/layout/Header.vue";
-import Footer from "~/components/layout/Footer.vue";
 import type { NuxtError } from "#app";
+import Footer from "~/components/layout/Footer.vue";
+import Header from "~/components/layout/Header.vue";
 
 const props = defineProps<{
-    error: NuxtError
-}>()
-
+	error: NuxtError;
+}>();
 </script>
 
 <template>

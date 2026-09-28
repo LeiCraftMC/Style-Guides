@@ -3,19 +3,19 @@ import { AppConstants } from "../../src/utils/constants";
 /**
  * The compile engine: wraps `bun build --compile --sourcemap --minify --bytecode` and injects
  * `APP_VERSION` via `--define`. Targets: linux-x64 (modern), linux-x64-baseline, linux-arm64.
- * Replace `<binary-name>` with your compiled binary name. See docs/11-cli-and-infra.md.
+ * The binary name comes from `AppConstants.BINARY_NAME`. See docs/11-cli-and-infra.md.
  */
 export enum Platforms {
 	"linux-x64" = "bun-linux-x64-modern",
 	"linux-x64-baseline" = "bun-linux-x64-baseline",
 	"linux-arm64" = "bun-linux-arm64",
 
-    // "win-x64" = "bun-windows-x64-modern",
-    // "win-x64-baseline" = "bun-windows-x64-baseline",
+	// "win-x64" = "bun-windows-x64-modern",
+	// "win-x64-baseline" = "bun-windows-x64-baseline",
 
-    // "macos-x64" = "bun-darwin-x64-modern",
-    // "macos-x64-baseline" = "bun-darwin-x64-baseline",
-    // "macos-arm64" = "bun-darwin-arm64"
+	// "macos-x64" = "bun-darwin-x64-modern",
+	// "macos-x64-baseline" = "bun-darwin-x64-baseline",
+	// "macos-arm64" = "bun-darwin-arm64"
 }
 
 export type PlatformArg = keyof typeof Platforms | "auto";
@@ -25,7 +25,7 @@ class CompilerCommand {
 	public minify = true;
 	public bytecode = true;
 	public entrypoint = "./scripts/entrypoint.ts";
-	// Replace <binary-name> with your compiled binary name (e.g. leios-api, nowip-api).
+	// Set the name in AppConstants.BINARY_NAME (src/utils/constants.ts), e.g. leios-api, nowip-api.
 	public outfile = `./build/bin/${AppConstants.BINARY_NAME}`;
 	public platform: PlatformArg = "auto";
 	public env: NodeJS.ProcessEnv = {};
@@ -76,7 +76,6 @@ export class Compiler {
 
 		this.command.env.APP_VERSION = this.version;
 
-
 		this.command.addArg("--asset ./drizzle/migrations");
 	}
 
@@ -85,7 +84,7 @@ export class Compiler {
 			console.log(`Building from sources. Version: ${this.version} Platform: ${this.platform}`);
 
 			const output = await Bun.$`${{ raw: this.command.getCommand() }}`.text();
-			
+
 			console.log(output);
 		} catch (err: any) {
 			console.log(`Compiling Failed:\n`, err);

@@ -1,14 +1,22 @@
+# Run the production image locally: build the binary first
+# (`bun run compile linux-x64-baseline --no-version-tag`), then
+# `docker compose -f docker/docker-compose.yml up --build`.
 services:
   api:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
       - "12500:12500"
     environment:
-      SVC_LOG_LEVEL: info
-      SVC_API_HOST: "::"
-      SVC_API_PORT: "12500"
-      SVC_DB_PATH: /data/db.sqlite
-      SVC_DB_AUTO_MIGRATE: "true"
+      APPPREFIX_LOG_LEVEL: info
+      APPPREFIX_API_HOST: "::"
+      APPPREFIX_API_PORT: "12500"
+      APPPREFIX_APP_URL: http://localhost:12510
+      APPPREFIX_DB_PATH: /data/db.sqlite
+      APPPREFIX_DB_AUTO_MIGRATE: "true"
+      APPPREFIX_LOG_DIR: /data/logs
+      APPPREFIX_CONFIG_BASE_DIR: /data/config
     volumes:
       - ./data:/data
     restart: unless-stopped

@@ -15,17 +15,17 @@ Frontend template for LeiCraftMC projects.
 ```bash
 bun install
 cp example.env .env
-# Copy the LeiCraftMC biome.json from the style-guide root into this project.
-# Pick a unique port (never 3000) — set it in package.json + example.env; see docs/02 — Ports.
+# Default port 12510 (package.json + example.env). Give each app its own port — see docs/02 — Ports.
 bun run dev
 ```
 
 ## API client
 
-Generate the typed client from the backend OpenAPI spec:
+Generate the typed client from the backend's OpenAPI spec. The backend (backend-service template)
+must be running on port 12500 with its docs enabled:
 
 ```bash
-bun run api-client:generate
+bun run api-client:generate   # openapi-ts
 ```
 
 ## Frontend
@@ -65,8 +65,10 @@ in `composables/useAppCookies.ts`), and the links in `components/layout/Footer.v
 
 ## Scripts
 
-- `bun run dev` — dev server on port 3000
-- `bun run build` — production build
+- `bun run dev` — dev server on port 12510
+- `bun run build` — production build (`.output/`, Bun preset; see `docker/`)
+- `bun run start` — run the built server
+- `bun run check` / `bun run format` — Biome check / format
 - `bun run generate` — static generation
 - `bun run typecheck` — TypeScript check
 - `bun test` — run tests
