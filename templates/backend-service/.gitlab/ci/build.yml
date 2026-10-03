@@ -7,6 +7,7 @@ build-and-push:
   stage: build
   variables:
     BUN_INSTALL_CACHE_DIR: .bun/install/cache
+    BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
   cache:
     key:
       files:
