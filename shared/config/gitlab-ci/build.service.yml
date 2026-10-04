@@ -1,6 +1,6 @@
 # .gitlab/ci/build.yml — build stage: compiled binary → Docker image.
-# `bun run compile` bundles the service (plus the Drizzle migrations) into one binary;
-# docker/Dockerfile ships that binary on debian:stable-slim.
+# `bun run compile` bundles the service into one binary; docker/Dockerfile ships that
+# binary together with the drizzle/migrations dir on debian:stable-slim.
 # Runs on the default branch only and pushes $CI_REGISTRY_IMAGE:latest.
 
 build-and-push:

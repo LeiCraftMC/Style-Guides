@@ -16,6 +16,7 @@ function setTestEnv(rootDir: string) {
 
 		APPPREFIX_DB_PATH: path.join(rootDir, "db.sqlite"),
 		APPPREFIX_DB_AUTO_MIGRATE: true,
+		APPPREFIX_DB_MIGRATION_DIR: "./drizzle/migrations",
 
 		APPPREFIX_LOG_DIR: path.join(rootDir, "logs"),
 		APPPREFIX_CONFIG_BASE_DIR: rootDir,
@@ -90,7 +91,7 @@ beforeAll(async () => {
 
 	const config = await ConfigHandler.loadConfig();
 
-	await DB.init(path.join(TMP_ROOT, "db.sqlite"), true, TMP_ROOT);
+	await DB.init(path.join(TMP_ROOT, "db.sqlite"), true, TMP_ROOT, "./drizzle/migrations");
 
 	// EmailService is NOT initialised here — tests that need it call
 	// EmailService.init(mockTransport) in their own beforeAll.
