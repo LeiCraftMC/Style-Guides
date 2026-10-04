@@ -40,7 +40,7 @@ beforeAll(async () => {
 
 	const config = await ConfigHandler.loadConfig();
 
-	await DB.init(path.join(TMP_ROOT, "db.sqlite"), true, TMP_ROOT);
+	await DB.init(path.join(TMP_ROOT, "db.sqlite"), true, TMP_ROOT, "./drizzle/migrations");
 
 	// EmailService is NOT initialised here — tests that need it call
 	// EmailService.init(mockTransport) in their own beforeAll.

@@ -44,10 +44,12 @@ The templates ship placeholders you replace when you create a project:
 | Placeholder | Meaning | Where |
 | --- | --- | --- |
 | `<ProjectName>` / `ProjectName` | Project name | `AppConstants.APP_NAME`, READMEs, SEO titles, logo/footer texts |
-| `APPPREFIX` | Env-var prefix (upper case) | `AppConstants.APP_ENV_PREFIX`, `example.env`, `tests/helpers/preload.ts`, `scripts/entrypoint.ts`, `drizzle.config.ts`, `docker/`, fullstack `nuxt.config.ts` |
+| `APPPREFIX` | Env-var prefix (upper case) | `AppConstants.APP_ENV_PREFIX`, `example.env`, `tests/helpers/preload.ts`, `scripts/entrypoint.ts`, `drizzle/configs/drizzle.config.ts`, `docker/`, both Nuxt `nuxt.config.ts` |
 | `appprefix` | Token/key prefix (lower case) — session tokens and API keys start with it | `AppConstants.APP_KEYS_PREFIX` |
 | `<PREFIX>` | Nuxt session-cookie prefix → `<PREFIX>_session_token` | `app/composables/useAppCookies.ts` |
-| `my-project-api` | Compiled binary name | `AppConstants.BINARY_NAME`, backend `docker/Dockerfile` `ARG BINARY_NAME` |
+| `my-project` | Docker WORKDIR base (`/opt/leicraftmc/my-project`) | every `docker/Dockerfile` + `docker/docker-compose.yml` |
+| `gcr.leicraftmc.de/leicraftmc/my-project` | Registry image reference | every `docker/docker-compose.yml` `image:` — adjust to the project's registry (`$CI_REGISTRY_IMAGE`) |
+| `my-project-api` | Compiled binary name | `AppConstants.BINARY_NAME`, backend `docker/Dockerfile` |
 
 Also replace the default port if it collides with another app (see
 [02 — Ports](02-tooling.md#ports--one-unique-port-per-app-dev--prod)). The templates ship no

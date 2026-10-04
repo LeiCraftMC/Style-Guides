@@ -2,7 +2,8 @@
 # Build it first (CI does this): `bun run build`. .output/ is self-contained — no node_modules.
 # This shape is stateless: no volumes, and the HEALTHCHECK probes `/` — there is no dedicated
 # health route (see docs/14 for the /healthy + /ready pattern should the app grow one).
-# Runtime config comes from env, e.g. `-e NUXT_PUBLIC_API_URL=https://api.example.com`.
+# Runtime config comes from the prefixed env, e.g. `-e APPPREFIX_API_URL=https://api.example.com` —
+# the Nitro banner in nuxt.config.ts maps APPPREFIX_* onto NUXT_PUBLIC_* at server start.
 FROM oven/bun:1-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \

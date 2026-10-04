@@ -255,6 +255,67 @@ with `bytecode = true` (`--bytecode --format=esm`); services additionally add
 compiled: its `scripts/compile/` + `scripts/entrypoint.ts` do not produce a working binary, so it
 deploys as `.output/` + `drizzle/migrations` on `oven/bun` (see [14](14-deployment.md)).
 
+## 22. Migrations dir via `DB_MIGRATION_DIR`, embedded assets still win
+
+**Context:** Delivr-api (`DLA_DB_MIGRATION_DIR`) and LAVIAC (`LAVIAC_DB_MIGRATION_DIR`) both made
+the migrations folder configurable instead of hardcoding the relative `drizzle/migrations` in
+`DB.init`; the Docker images set it to the absolute in-image path.
+
+**Decision:** `DB.init(path, autoMigrate, configBaseDir, migrationsFolder)` takes the folder from
+the new `DB_MIGRATION_DIR` config key (default `./drizzle/migrations`, relative resolves against
+the working directory). The compiled binary keeps its self-contained behavior: `--asset` embeds
+the migrations and `DB.init` switches to the embedded `migrations/` folder when
+`Bun.isStandaloneExecutable` — a systemd deploy needs nothing but the binary. The Docker images
+additionally `COPY` `drizzle/migrations` next to the app and set `APPPREFIX_DB_MIGRATION_DIR` as a
+fallback for non-embedded runs (Delivr's execPath-relative resolution was **not** adopted; it
+conflicts with the embedded-asset default). `createInitialAdminUserIfNeeded` runs inside a
+transaction with `Logger.critical` on failure (as in Delivr-api). See
+[08](08-database.md#migrations).
+
+## 23. Container layout `/opt/leicraftmc/<project>/{app,data,config}`
+
+**Context:** The four real projects (Delivr-api, Delivr-Web, LAVIAC, login-ui) standardized their
+Dockerfiles: `WORKDIR /opt/<org>/<project>` with the app under `app/`, `curl` + `ca-certificates`
+installed with apt-list cleanup, a `HEALTHCHECK` probing the app's health URL, `VOLUME` for the
+stateful dirs, deployment-safe defaults baked in as `ENV`, and `NODE_ENV` / `NITRO_HOST` /
+`NITRO_PORT` for the Bun-served Nuxt apps. The templates ran at `/app` / `/opt/app`, had no
+`HEALTHCHECK`, and used the plain `PORT` env.
+
+**Decision:** Adopt the ref layout in all three templates, with `/opt/leicraftmc/my-project` as
+the placeholder (`/opt/leicraftmc/auth/laviac` groups by area; Delivr drops the org level:
+`/opt/delivr/api`). Health URLs per shape: `/health` (backend), `/api/health` (full-stack), `/`
+(nuxt-app — stateless, no volumes, no dedicated route). Liveness/readiness splits
+(`/healthy` + `/ready`, as in login-ui) remain a documented extension for apps with upstream
+dependencies. See [14](14-deployment.md#docker-image).
+
+## 24. Compose files pull the registry image
+
+**Context:** The refs' compose files reference published images (`ghcr.io/delivr-project/…`,
+`gcr.leicraftmc.de/leicraftmc/laviac:latest`), while the backend template's compose `build:`-ed
+from the local context and the Nuxt templates shipped none.
+
+**Decision:** Every template ships `docker/docker-compose.yml` that **pulls**
+`gcr.leicraftmc.de/leicraftmc/my-project:latest` — the `$CI_REGISTRY_IMAGE:latest` the CI build
+job pushes from the default branch — with per-deployment env overrides and the `data/` + `config/`
+volumes mounted (the nuxt-app has no volumes). The refs' compose drift (LAVIAC mounts
+`/opt/laviac/*` while its image runs at `/opt/leicraftmc/auth/laviac`, and its healthcheck hits
+`/health` instead of `/api/health`) is fixed in the template versions. See
+[14](14-deployment.md#backend-services).
+
+## 25. Nitro banner maps `APPPREFIX_*` onto `NUXT_PUBLIC_*`
+
+**Context:** Nuxt's `runtimeConfig.public` is overridden at runtime only from `NUXT_PUBLIC_*`
+variables, while the rest of the config lives under the project's `APPPREFIX_*` prefix — so the
+same URL had to be set twice in production (`APPPREFIX_APP_URL` for the API side and
+`NUXT_PUBLIC_APP_URL` for the browser).
+
+**Decision:** Both Nuxt templates inject a rollup `output.banner` into the Nitro server bundle:
+at server start it copies `APPPREFIX_APP_URL` → `NUXT_PUBLIC_APP_URL` (the nuxt-app also maps
+`APPPREFIX_API_URL` → `NUXT_PUBLIC_API_URL`) **only when the target isn't already set**, so the
+prefixed variables become canonical and `NUXT_PUBLIC_*` remains a pure override. The build-time
+`runtimeConfig.public` defaults likewise read the prefixed variables. See
+[06](06-frontend-nuxt.md) and [14](14-deployment.md#full-stack-nuxt-hono-in-server).
+
 ## Known future work (not yet decided)
 
 These gaps surfaced during the audit but are out of scope for this pass; record a decision here when

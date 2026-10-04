@@ -66,7 +66,7 @@ in `composables/useAppCookies.ts`), and the links in `components/layout/Footer.v
 ## Scripts
 
 - `bun run dev` — dev server on port 12510
-- `bun run build` — production build (`.output/`, Bun preset; see `docker/`)
+- `bun run build` — production build (`.output/`, Bun preset; see `docker/` for the image + compose)
 - `bun run start` — run the built server
 - `bun run check` / `bun run format` — Biome check / format
 - `bun run generate` — static generation

@@ -15,7 +15,31 @@ export default defineNuxtConfig({
 	css: ["~/assets/css/main.css"],
 
 	nitro: {
-		rollupConfig: { external: ["bun:sqlite"] },
+		rollupConfig: {
+			external: ["bun:sqlite"],
+
+			output: {
+				banner: (function () {
+					const mappings = {
+						APPPREFIX_APP_URL: "APP_URL",
+					};
+
+					const bannerCode = `
+						(function () {
+							const mappings = ${JSON.stringify(mappings)};
+							const env = globalThis.process?.env ?? {};
+							for (const [envName, runtimeName] of Object.entries(mappings)) {
+								if (!env['NUXT_PUBLIC_' + runtimeName] && env[envName]) {
+									env['NUXT_PUBLIC_' + runtimeName] = env[envName];
+								}
+							}
+						})();
+					`;
+
+					return bannerCode.replace(/^\s+|\s+$/g, "").replace(/\n\s*/g, " ");
+				})(),
+			},
+		},
 
 		esbuild: {
 			options: {

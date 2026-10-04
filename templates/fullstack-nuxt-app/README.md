@@ -72,7 +72,7 @@ in `composables/useAppCookies.ts`), and the links in `components/layout/Footer.v
 - `bun run dev` — dev server on port 12520 (frontend + API)
 - `bun run build` — production build (single `.output/`, Bun preset)
 - `bun run start` — run the built server
-- `docker/Dockerfile` — production image: `.output/` + `drizzle/migrations` on `oven/bun`
+- `docker/` — production image: `.output/` + `drizzle/migrations` on `oven/bun`; `docker-compose.yml` pulls the registry image
 - `bun run api-client:generate` — regenerate the typed API client
 - `bun run db:generate` / `db:migrate` — Drizzle migrations
 - `bun run check` / `bun run format` — Biome check / format

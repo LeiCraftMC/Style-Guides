@@ -30,15 +30,15 @@ isn't already used by another app in the ecosystem. The templates' defaults:
 | Template | Port | Where the port lives |
 | --- | --- | --- |
 | backend-service | 12500 | `APPPREFIX_API_PORT` (config default `API_PORT: CS.number().default(12500)`, `AppConstants.APP_API_DEFAULT_PORT`), `example.env`, `docker/Dockerfile` `EXPOSE`, `docker/docker-compose.yml` |
-| nuxt-app | 12510 | `package.json` `dev`/`start`, `NUXT_PUBLIC_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `PORT`/`EXPOSE`, the `/dev` prompt in `.claude/settings.json` |
-| fullstack-nuxt-app | 12520 | `package.json` `dev`/`start`, `APPPREFIX_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `PORT`/`EXPOSE`, the `/dev` prompt |
+| nuxt-app | 12510 | `package.json` `dev`/`start`, `APPPREFIX_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `NITRO_PORT`/`EXPOSE`, the `/dev` prompt in `.claude/settings.json` |
+| fullstack-nuxt-app | 12520 | `package.json` `dev`/`start`, `APPPREFIX_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `NITRO_PORT`/`EXPOSE`, the `/dev` prompt |
 | static-site | 12530 | `package.json` `dev` only |
 | static-site-with-docs | 12531 | `package.json` `dev` only |
 | cli-tool | — | — |
 
 Cross-references to keep in sync when you change a port:
 
-- The nuxt-app reaches the backend through `NUXT_PUBLIC_API_URL` (`http://localhost:12500`) and
+- The nuxt-app reaches the backend through `APPPREFIX_API_URL` (`http://localhost:12500`) and
   generates its client from the `openapi-ts.config.ts` input
   `http://localhost:12500/docs/v1/openapi` (the `/api-client` prompt names 12500 too).
 - The backend's `APPPREFIX_APP_URL` is the frontend origin (`http://localhost:12510` in its

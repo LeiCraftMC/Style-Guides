@@ -3,8 +3,9 @@
 # only the Drizzle migrations are copied next to it — DB.init applies them on startup
 # (APPPREFIX_DB_AUTO_MIGRATE) from APPPREFIX_DB_MIGRATION_DIR. Layout: app under app/, data/
 # and config/ are volumes beside it.
-# Runtime config comes from env: set the public app URL twice — `APPPREFIX_APP_URL` (API side:
-# CORS, links in emails) and `NUXT_PUBLIC_APP_URL` (the URL the browser's API client calls).
+# Runtime config comes from the prefixed env: one `APPPREFIX_APP_URL` drives both the API side
+# (CORS, links in emails) and the browser's config — the Nitro banner in nuxt.config.ts maps it
+# onto `NUXT_PUBLIC_APP_URL` at server start; NUXT_PUBLIC_* remains a pure override.
 FROM oven/bun:1-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
