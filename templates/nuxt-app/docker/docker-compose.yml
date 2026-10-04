@@ -1,0 +1,13 @@
+# Runs the registry image — CI (.gitlab/ci/build.yml) builds and pushes $CI_REGISTRY_IMAGE:latest
+# from the default branch. Adjust the image name to your registry and project.
+services:
+
+  my-project-web:
+    image: gcr.leicraftmc.de/leicraftmc/my-project:latest
+    container_name: my-project-web
+    restart: unless-stopped
+    ports:
+      - "12510:12510"
+    environment:
+      APPPREFIX_API_URL: http://localhost:12500
+      APPPREFIX_APP_URL: http://localhost:12510
