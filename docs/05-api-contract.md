@@ -148,6 +148,12 @@ flows ([17 — Decisions](17-decisions.md#15-one-api-client-plugin-set-two-gener
 plugins: ["@hey-api/client-nuxt", "@hey-api/typescript", "@hey-api/sdk", "zod"],
 ```
 
+> **Known issue (temporary divergence):** `client-nuxt`'s generated code currently fails
+> `vue-tsc` under Windows/Bun (both LAVIAC and login-ui hit it on fresh installs). While it's
+> unfixed, projects can switch the plugin to `"@hey-api/client-fetch"` — `useAPI` then unwraps the
+> `{ data, error }` result to the envelope, as in those repos — and migrate back once the upstream
+> type errors are fixed. The templates stay on `client-nuxt` as the standard.
+
 Output in `app/api-client/`: `client.gen.ts` (the `client` instance), `sdk.gen.ts` (one function per
 operation, e.g. `getAccount`, `postAuthLogin`, `getAdminUsersByUserId`), `types.gen.ts`
 (`*Data` / `*Responses` / `*Errors` types), `zod.gen.ts` (Zod schemas), `index.ts`, and the runtime
@@ -196,8 +202,8 @@ the JSON to `./data/temp-api-openapi.json`, runs `bunx openapi-ts` (whose config
 
 | Template | File | `baseURL` |
 | --- | --- | --- |
-| `nuxt-app` | [`updateAPIClient.ts`](../shared/frontend/app/composables/updateAPIClient.ts) | `<apiUrl>/v1` — `runtimeConfig.public.apiUrl` (`NUXT_PUBLIC_API_URL`, default `http://localhost:12500`) |
-| `fullstack-nuxt-app` | [`updateAPIClient.fullstack.ts`](../shared/frontend/app/composables/updateAPIClient.fullstack.ts) (copy as `updateAPIClient.ts`) | `<appUrl>/api/v1` — `runtimeConfig.public.appUrl` (default from `APPPREFIX_APP_URL` at build time; override at runtime with `NUXT_PUBLIC_APP_URL`) |
+| `nuxt-app` | [`updateAPIClient.ts`](../shared/frontend/app/composables/updateAPIClient.ts) | `<apiUrl>/v1` — `runtimeConfig.public.apiUrl` (from `APPPREFIX_API_URL`; default `http://localhost:12500`) |
+| `fullstack-nuxt-app` | [`updateAPIClient.fullstack.ts`](../shared/frontend/app/composables/updateAPIClient.fullstack.ts) (copy as `updateAPIClient.ts`) | `<appUrl>/api/v1` — `runtimeConfig.public.appUrl` (from `APPPREFIX_APP_URL`; the Nitro banner maps it to `NUXT_PUBLIC_APP_URL` at server start) |
 
 [`useAPI(handler, disableAuthRedirect = false)`](../shared/frontend/app/composables/useAPI.ts) is
 the single gateway for calling the generated SDK:

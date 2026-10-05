@@ -22,7 +22,12 @@ export class Main {
 		Logger.setLogLevel(config.LOG_LEVEL ?? "info");
 		Logger.log(`Starting ${AppConstants.APP_NAME} API...`);
 
-		await DB.init(config.DB_PATH, config.DB_AUTO_MIGRATE, config.CONFIG_BASE_DIR);
+		await DB.init(
+			config.DB_PATH,
+			config.DB_AUTO_MIGRATE,
+			config.CONFIG_BASE_DIR,
+			config.DB_MIGRATION_DIR,
+		);
 
 		await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 

@@ -54,7 +54,12 @@ The `DB` class is a static singleton holding the Drizzle instance. It exposes th
 export class DB {
 	protected static db: DrizzleDB.BunSQLite;
 
-	static async init(path: string, autoMigrate: boolean, configBaseDir: string) {
+	static async init(
+		path: string,
+		autoMigrate: boolean,
+		configBaseDir: string,
+		migrationsFolder: string,
+	) {
 		await fs_mkdir(path_dirname(path), { recursive: true });
 		await fs_mkdir(configBaseDir, { recursive: true });
 
@@ -62,7 +67,6 @@ export class DB {
 		if (autoMigrate) {
 			Logger.info("Running database migrations...");
 
-			let migrationsFolder = "drizzle/migrations";
 			//@ts-ignore
 			if (Bun?.isStandaloneExecutable) {
 				// `bun build --compile --asset ./drizzle/migrations` embeds the files as `migrations/...`
@@ -131,8 +135,9 @@ export namespace DB.Models {
 }
 ```
 
-- `DB.init(path, autoMigrate, configBaseDir)` — all three come from config (`DB_PATH`,
-  `DB_AUTO_MIGRATE`, `CONFIG_BASE_DIR`); it creates both directories.
+- `DB.init(path, autoMigrate, configBaseDir, migrationsFolder)` — all four come from config
+  (`DB_PATH`, `DB_AUTO_MIGRATE`, `CONFIG_BASE_DIR`, `DB_MIGRATION_DIR`); it creates both
+  directories and applies pending migrations from `migrationsFolder` when `autoMigrate` is set.
 - The instance is typed `DrizzleDB.BunSQLite`. The dialect-neutral declare-class **`DrizzleDB`**
   (from `db/utils.ts`) is the type for transaction handles and `tx` parameters.
 - Use `DB.Tables` in queries and `DB.Models.<Row>` for typing rows — not `DB.Schema` (the older
@@ -307,15 +312,42 @@ Scripts (backend-service and fullstack-nuxt-app) — there is **no `db:push`**:
 `scripts/db-utils.ts` only makes sure `./data/` exists before drizzle-kit touches the DB.
 
 Workflow: change `schema.ts` → `bun run db:generate` → commit the new files in
-`drizzle/migrations/`. At startup, `DB.init` applies pending migrations when
-`APPPREFIX_DB_AUTO_MIGRATE` is true (the default); otherwise run `bun run db:migrate`. The
-migrations folder is resolved as:
+`drizzle/migrations/`. At startup, `DB.init` applies pending migrations from
+`APPPREFIX_DB_MIGRATION_DIR` (default `./drizzle/migrations`) when `APPPREFIX_DB_AUTO_MIGRATE` is
+true (the default); otherwise run `bun run db:migrate`. The folder is resolved as:
 
-- `drizzle/migrations` relative to the working directory (dev, tests, the full-stack Docker image,
-  which ships `.output/` + `drizzle/migrations`);
-- the files embedded in a compiled binary (`bun build --compile --asset ./drizzle/migrations`, see
-  [11 — CLI & infra](11-cli-and-infra.md)), found at `migrations/` next to the entry
-  (`/$bunfs/root/migrations`) when `Bun.isStandaloneExecutable` is true.
+- **embedded assets** in a compiled binary — `bun build --compile --asset ./drizzle/migrations`
+  embeds the files as `migrations/…` next to the entry (`/$bunfs/root/migrations` on Linux), and
+  `DB.init` switches to that folder when `Bun.isStandaloneExecutable` is true, so the single
+  binary migrates on its own (see [11 — CLI & infra](11-cli-and-infra.md));
+- `APPPREFIX_DB_MIGRATION_DIR` otherwise (dev, tests, the full-stack Docker image): a relative
+  path resolves against the working directory. The Docker images additionally `COPY` the
+  migrations next to the app and set the variable to that absolute path — a fallback for
+  non-embedded runs (see [14 — Deployment](14-deployment.md)).
+
+### Hand-written and data migrations
+
+Schema changes always go through `db:generate`. Two escape hatches exist for cases drizzle-kit
+can't express:
+
+- **Custom data migrations** — plain SQL generated with
+  `drizzle-kit generate --custom --name=backfill_foo` into the same `drizzle/migrations/`.
+  They must be **idempotent** (guard with `WHERE NOT EXISTS` etc.) because they can re-run against
+  an already-migrated DB.
+- **Hand-written schema repairs** — when a generated migration would destroy data (e.g. changing
+  a column type), write the migration SQL by hand, keep the `meta/` journal in sync, and lead the
+  file with a comment block explaining what it does and why it isn't generated.
+
+### Multi-dialect extension
+
+The default is SQLite only. A project that needs PostgreSQL or MySQL keeps the same
+`drizzle/migrations/` tree but namespaces it per dialect — a factory
+(`drizzle/utils.ts` → `createDrizzleConfig(dialect)`) pointed at
+`drizzle/configs/drizzle.<dialect>.config.ts`, per-dialect schema files
+(`src/db/schema/<dialect>.ts`, mirrored across dialects) and
+`drizzle/migrations/<dialect>/`, plus `db:<dialect>:generate` / `db:<dialect>:migrate` script
+aliases (e.g. `db:sqlite:generate`). `DB_MIGRATION_DIR` then points at the dialect subfolder. The
+runtime driver stays `bun-sqlite` until the project actually switches dialects.
 
 ## Initial admin user
 
@@ -328,26 +360,32 @@ private static async createInitialAdminUserIfNeeded(configBaseDir: string) {
 	if (!usersTableEmpty) return;
 
 	const username = "admin";
-
-	const admin_user_id = await this.db
-		.insert(DB.Tables.users)
-		.values({
-			username,
-			email: `${username}@${AppConstants.DEFAULT_EMAIL_FROM_HOST}`,
-			password_hash: await Bun.password.hash(LCrypt.randomBytes(32).toString("hex")),
-			display_name: "Default Administrator",
-			role: "admin",
-		})
-		.returning()
-		.get().id;
-
 	const passwordResetToken = LCrypt.randomBytes(64).toString("hex");
 
-	await this.db.insert(DB.Tables.passwordResets).values({
-		token: LCrypt.sha256(passwordResetToken).toHex(),
-		user_id: admin_user_id,
-		expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 Days
-	});
+	try {
+		await this.db.transaction(async (tx) => {
+			const admin_user_id = await tx
+				.insert(DB.Tables.users)
+				.values({
+					username,
+					email: `${username}@${AppConstants.DEFAULT_EMAIL_FROM_HOST}`,
+					password_hash: await Bun.password.hash(LCrypt.randomBytes(32).toString("hex")),
+					display_name: "Default Administrator",
+					role: "admin",
+				})
+				.returning()
+				.get().id;
+
+			await tx.insert(DB.Tables.passwordResets).values({
+				token: LCrypt.sha256(passwordResetToken).toHex(),
+				user_id: admin_user_id,
+				expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 Days
+			});
+		});
+	} catch (error) {
+		Logger.critical("Failed to create initial admin user:", error);
+		throw error;
+	}
 
 	const APP_URL = ConfigHandler.getConfig()?.APP_URL || "https://<app-url>";
 
@@ -361,8 +399,6 @@ private static async createInitialAdminUserIfNeeded(configBaseDir: string) {
 	);
 
 	// … Logger.info(...) with the username, the reset URL, and the file path
-
-	return admin_user_id;
 }
 ```
 
@@ -486,23 +522,27 @@ static async deleteAllForUser(userID: number, tx: DrizzleDB = DB.instance()): Pr
 ## Testing
 
 The test preload creates a temp directory (`tmp-data-*` in the project root), points the config at
-it, and runs `DB.init(<tmp>/db.sqlite, true, <tmp>)` — the real migrations and the initial-admin
-seed run against a fresh file for every test run; `afterAll` closes the DB and deletes the
-directory. Seed rows with `seedUser(...)` / `seedSession(...)`. See [12 — Testing](12-testing.md).
+it, and runs `DB.init(<tmp>/db.sqlite, true, <tmp>, "./drizzle/migrations")` — the real migrations
+and the initial-admin seed run against a fresh file for every test run; `afterAll` closes the DB
+and deletes the directory. Seed rows with `seedUser(...)` / `seedSession(...)`.
+See [12 — Testing](12-testing.md).
 
 ## Checklist
 
-- [ ] `DB` is a static class with `init(path, autoMigrate, configBaseDir)` / `instance()` /
-  `close()`; `tx` parameters typed `DrizzleDB`.
+- [ ] `DB` is a static class with `init(path, autoMigrate, configBaseDir, migrationsFolder)` /
+  `instance()` / `close()`; `tx` parameters typed `DrizzleDB`.
 - [ ] Tables exported under `DB.Tables`; row types under `DB.Models`; raw consts `@deprecated`.
 - [ ] Standard tables: `users`, `sessions`, `api_keys`, `password_resets`, `user_preferences`,
   `metadata` (+ `scheduled_tasks*` when using `TaskScheduler`).
 - [ ] Roles via `UserAccountSettings.Roles` (`["admin", "user"]`) / `Role`, not a boolean `is_admin`.
 - [ ] Column helpers `SQLUtils.getCreatedAtColumn()` / `primaryKeyIntAutoIncrement()`; timestamps in
   epoch milliseconds.
-- [ ] `createInitialAdminUserIfNeeded` seeds the first admin and writes the reset URL file.
+- [ ] `createInitialAdminUserIfNeeded` seeds the first admin (in a transaction) and writes the
+  reset URL file.
 - [ ] `drizzle-zod` derives API schemas from `DB.Tables`, omitting `password_hash` / `hashed_token`.
 - [ ] Migrations committed in `drizzle/migrations/`; `db:generate` / `db:migrate` use
-  `--config=drizzle/configs/drizzle.config.ts`; compiled binaries embed them with `--asset`.
-- [ ] `APPPREFIX_DB_AUTO_MIGRATE` controls migration at startup.
+  `--config=drizzle/configs/drizzle.config.ts`; compiled binaries embed them with `--asset`, the
+  Docker images copy them as a fallback.
+- [ ] `APPPREFIX_DB_AUTO_MIGRATE` + `APPPREFIX_DB_MIGRATION_DIR` control migration at startup;
+  Docker images set the migration dir to the absolute in-image path.
 - [ ] Multi-dialect projects keep dialect files isolated; the Bun + D1 `Runtime` is opt-in.

@@ -27,7 +27,7 @@ bun run dev
 - `bun test` — run tests
 - `bun run db:generate` — generate migrations
 - `bun run db:migrate` — run migrations
-- `bun run compile linux-x64-baseline` — single binary in `build/bin/` (see `docker/` for the image)
+- `bun run compile linux-x64-baseline` — single binary in `build/bin/` (see `docker/` for the image + compose)
 - `bun run start` — run via `scripts/entrypoint.ts` (auto-migrates the DB)
 
 ## Structure

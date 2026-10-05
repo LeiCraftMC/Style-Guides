@@ -12,6 +12,31 @@ export default defineNuxtConfig({
 	css: ["~/assets/css/main.css"],
 
 	nitro: {
+		rollupConfig: {
+			output: {
+				banner: (function () {
+					const mappings = {
+						APPPREFIX_API_URL: "API_URL",
+						APPPREFIX_APP_URL: "APP_URL",
+					};
+
+					const bannerCode = `
+						(function () {
+							const mappings = ${JSON.stringify(mappings)};
+							const env = globalThis.process?.env ?? {};
+							for (const [envName, runtimeName] of Object.entries(mappings)) {
+								if (!env['NUXT_PUBLIC_' + runtimeName] && env[envName]) {
+									env['NUXT_PUBLIC_' + runtimeName] = env[envName];
+								}
+							}
+						})();
+					`;
+
+					return bannerCode.replace(/^\s+|\s+$/g, "").replace(/\n\s*/g, " ");
+				})(),
+			},
+		},
+
 		esbuild: {
 			options: {
 				target: "esnext",
@@ -21,8 +46,8 @@ export default defineNuxtConfig({
 
 	runtimeConfig: {
 		public: {
-			apiUrl: process.env.NUXT_PUBLIC_API_URL || "http://localhost:12500",
-			appUrl: process.env.NUXT_PUBLIC_APP_URL || "http://localhost:12510",
+			apiUrl: process.env.APPPREFIX_API_URL || "http://localhost:12500",
+			appUrl: process.env.APPPREFIX_APP_URL || "http://localhost:12510",
 		},
 	},
 

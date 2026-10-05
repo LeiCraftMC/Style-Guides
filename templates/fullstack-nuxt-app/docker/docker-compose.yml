@@ -2,19 +2,19 @@
 # from the default branch. Adjust the image name to your registry and project. Ports and DB paths
 # are baked into the image (docker/Dockerfile ENV) — set only what differs for this deployment.
 services:
-
-  my-project-api:
+  
+  my-project:
     image: gcr.leicraftmc.de/leicraftmc/my-project:latest
-    container_name: my-project-api
+    container_name: my-project
     restart: unless-stopped
     ports:
-      - "12500:12500"
+      - "12520:12520"
     environment:
       APPPREFIX_LOG_LEVEL: info
 
-      APPPREFIX_APP_URL: http://localhost:12510
-
       APPPREFIX_API_DISABLE_DOCS: false
+
+      APPPREFIX_APP_URL: http://localhost:12520
 
       APPPREFIX_SMTP_HOST: "mail.example.com"
       APPPREFIX_SMTP_PORT: 465
@@ -24,5 +24,5 @@ services:
       APPPREFIX_SMTP_SECURE: true
 
     volumes:
-      - /opt/leicraftmc/my-project/data:/opt/leicraftmc/my-project/data
-      - /opt/leicraftmc/my-project/config:/opt/leicraftmc/my-project/config
+      - ./data:/opt/leicraftmc/my-project/data
+      - ./config:/opt/leicraftmc/my-project/config

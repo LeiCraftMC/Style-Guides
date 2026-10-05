@@ -12,7 +12,12 @@ import { type DrizzleDB } from "./utils";
 export class DB {
 	protected static db: DrizzleDB.BunSQLite;
 
-	static async init(path: string, autoMigrate: boolean, configBaseDir: string) {
+	static async init(
+		path: string,
+		autoMigrate: boolean,
+		configBaseDir: string,
+		migrationsFolder: string,
+	) {
 		await fs_mkdir(path_dirname(path), { recursive: true });
 		await fs_mkdir(configBaseDir, { recursive: true });
 
@@ -20,7 +25,6 @@ export class DB {
 		if (autoMigrate) {
 			Logger.info("Running database migrations...");
 
-			let migrationsFolder = "drizzle/migrations";
 			//@ts-ignore
 			if (Bun?.isStandaloneExecutable) {
 				// `bun build --compile --asset ./drizzle/migrations` embeds the files as `migrations/...`
@@ -43,26 +47,36 @@ export class DB {
 		if (!usersTableEmpty) return;
 
 		const username = "admin";
-
-		const admin_user_id = await this.db
-			.insert(DB.Tables.users)
-			.values({
-				username,
-				email: `${username}@${AppConstants.DEFAULT_EMAIL_FROM_HOST}`,
-				password_hash: await Bun.password.hash(LCrypt.randomBytes(32).toString("hex")),
-				display_name: "Default Administrator",
-				role: "admin",
-			})
-			.returning()
-			.get().id;
-
 		const passwordResetToken = LCrypt.randomBytes(64).toString("hex");
+		
+		let admin_user_id: number;
 
-		await this.db.insert(DB.Tables.passwordResets).values({
-			token: LCrypt.sha256(passwordResetToken).toHex(),
-			user_id: admin_user_id,
-			expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 Days
-		});
+		try {
+			admin_user_id = await this.db.transaction(async (tx) => {
+				const admin_user_id = await tx
+					.insert(DB.Tables.users)
+					.values({
+						username,
+						email: `${username}@${AppConstants.DEFAULT_EMAIL_FROM_HOST}`,
+						password_hash: await Bun.password.hash(LCrypt.randomBytes(32).toString("hex")),
+						display_name: "Default Administrator",
+						role: "admin",
+					})
+					.returning()
+					.get().id;
+
+				await tx.insert(DB.Tables.passwordResets).values({
+					token: LCrypt.sha256(passwordResetToken).toHex(),
+					user_id: admin_user_id,
+					expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 Days
+				});
+
+				return admin_user_id;
+			});
+		} catch (error) {
+			Logger.critical("Failed to create initial admin user:", error);
+			throw error;
+		}
 
 		// APP_URL is a required config value; the fallback only covers the
 		// impossible-after-loadConfig undefined case so the token file is still usable.

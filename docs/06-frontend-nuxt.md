@@ -36,6 +36,31 @@ export default defineNuxtConfig({
 	css: ["~/assets/css/main.css"],
 
 	nitro: {
+		rollupConfig: {
+			output: {
+				banner: (function () {
+					const mappings = {
+						APPPREFIX_API_URL: "API_URL",
+						APPPREFIX_APP_URL: "APP_URL",
+					};
+
+					const bannerCode = `
+						(function () {
+							const mappings = ${JSON.stringify(mappings)};
+							const env = globalThis.process?.env ?? {};
+							for (const [envName, runtimeName] of Object.entries(mappings)) {
+								if (!env['NUXT_PUBLIC_' + runtimeName] && env[envName]) {
+									env['NUXT_PUBLIC_' + runtimeName] = env[envName];
+								}
+							}
+						})();
+					`;
+
+					return bannerCode.replace(/^\s+|\s+$/g, "").replace(/\n\s*/g, " ");
+				})(),
+			},
+		},
+
 		esbuild: {
 			options: {
 				target: "esnext",
@@ -45,8 +70,8 @@ export default defineNuxtConfig({
 
 	runtimeConfig: {
 		public: {
-			apiUrl: process.env.NUXT_PUBLIC_API_URL || "http://localhost:12500",
-			appUrl: process.env.NUXT_PUBLIC_APP_URL || "http://localhost:12510",
+			apiUrl: process.env.APPPREFIX_API_URL || "http://localhost:12500",
+			appUrl: process.env.APPPREFIX_APP_URL || "http://localhost:12510",
 		},
 	},
 
@@ -60,8 +85,37 @@ The full-stack [`nuxt.config.ts`](../templates/fullstack-nuxt-app/nuxt.config.ts
 	compatibilityDate: "2026-09-01",
 
 	nitro: {
-		rollupConfig: { external: ["bun:sqlite"] }, // the embedded API uses bun:sqlite
-		esbuild: { options: { target: "esnext" } },
+		rollupConfig: {
+			external: ["bun:sqlite"],
+
+			output: {
+				banner: (function () {
+					const mappings = {
+						APPPREFIX_APP_URL: "APP_URL",
+					};
+
+					const bannerCode = `
+						(function () {
+							const mappings = ${JSON.stringify(mappings)};
+							const env = globalThis.process?.env ?? {};
+							for (const [envName, runtimeName] of Object.entries(mappings)) {
+								if (!env['NUXT_PUBLIC_' + runtimeName] && env[envName]) {
+									env['NUXT_PUBLIC_' + runtimeName] = env[envName];
+								}
+							}
+						})();
+					`;
+
+					return bannerCode.replace(/^\s+|\s+$/g, "").replace(/\n\s*/g, " ");
+				})(),
+			},
+		},
+
+		esbuild: {
+			options: {
+				target: "esnext",
+			},
+		},
 	},
 
 	runtimeConfig: {
@@ -206,10 +260,11 @@ const { apiUrl, appUrl } = useRuntimeAppConfigs(); // "" when unset
 | Standalone | [`updateAPIClient.ts`](../shared/frontend/app/composables/updateAPIClient.ts) | `<apiUrl>/v1` (backend-service has no `/api` prefix) |
 | Full-stack | [`updateAPIClient.fullstack.ts`](../shared/frontend/app/composables/updateAPIClient.fullstack.ts) | `<appUrl>/api/v1` (Hono mounted at `/api`) |
 
-`process.env` in `nuxt.config.ts` is read when Nuxt builds (or starts `dev`). At runtime Nuxt
-overrides public values only from `NUXT_PUBLIC_*` variables: `NUXT_PUBLIC_API_URL` /
-`NUXT_PUBLIC_APP_URL`. The full-stack default reads `APPPREFIX_APP_URL`, so for a production image
-either set it at build time or set `NUXT_PUBLIC_APP_URL` on the container.
+`process.env` in `nuxt.config.ts` is read when Nuxt builds (or starts `dev`). At runtime the
+server bootstraps the public config from the **prefixed** variables: the Nitro rollup banner
+(above) copies `APPPREFIX_API_URL` → `NUXT_PUBLIC_API_URL` and `APPPREFIX_APP_URL` →
+`NUXT_PUBLIC_APP_URL` at server start, and Nuxt's own `NUXT_PUBLIC_*` override mechanism applies
+afterwards. So `APPPREFIX_*` is enough — set `NUXT_PUBLIC_*` only to override the prefixed value.
 
 Use the project's own 12xxx ports — never `3000` (see
 [02 — Ports](02-tooling.md#ports--one-unique-port-per-app-dev--prod)).

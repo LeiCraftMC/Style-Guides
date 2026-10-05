@@ -168,7 +168,10 @@ Services differ in one place
 
 - `this.command.addArg("--asset ./drizzle/migrations")` — embeds the migrations in the binary as
   `migrations/…` (no `drizzle/` segment). `DB.init` switches to that folder when
-  `Bun.isStandaloneExecutable` is set, so the binary migrates without any files next to it.
+  `Bun.isStandaloneExecutable` is set, so the binary migrates without any files next to it. The
+  Docker images still copy `drizzle/migrations/` next to the binary and set
+  `APPPREFIX_DB_MIGRATION_DIR` — a fallback for non-embedded runs
+  (see [08 — Migrations](08-database.md#migrations)).
 
 ## Entrypoint script
 
@@ -222,11 +225,11 @@ if (envFile) {
 
 Services ship the **compiled binary only** — no Bun runtime, no multi-stage build. The backend
 template's [`docker/Dockerfile`](../templates/backend-service/docker/Dockerfile) copies
-`build/bin/${BINARY_NAME}-linux-x64-baseline` (`ARG BINARY_NAME=my-project-api`, must match
-`AppConstants.BINARY_NAME`) into `debian:stable-slim`, and
+`build/bin/<BINARY_NAME>-linux-x64-baseline` (must match `AppConstants.BINARY_NAME`) plus
+`drizzle/migrations/` into `debian:stable-slim` under `/opt/leicraftmc/<project>/app/`, and
 [`docker/docker-compose.yml`](../templates/backend-service/docker/docker-compose.yml) runs it with
-`APPPREFIX_*` env and a `./data:/data` volume. Build the binary first (CI does); details in
-[14 — Deployment](14-deployment.md#backend-services).
+`APPPREFIX_*` env overrides and `data/` + `config/` volumes. Build the binary first (CI does);
+details in [14 — Deployment](14-deployment.md#backend-services).
 
 The compose file publishes `12500:12500` on all interfaces, which is fine for local runs. On a
 server behind a reverse proxy on the same host, bind loopback instead: `"127.0.0.1:12500:12500"`.
@@ -275,7 +278,7 @@ Vault, not template defaults** — adopt them when a tool needs them:
       `Logger`, return `true` from `run()`.
 - [ ] `VersionCMD` prints `<ProjectName> ${version}` from `process.env.APP_VERSION`.
 - [ ] `src/utils/constants.ts` exists and `AppConstants.BINARY_NAME` is set (the Dockerfile's
-      `ARG BINARY_NAME` matches).
+      binary name matches).
 - [ ] `scripts/entrypoint.ts` matches the shape (CLI: `import "../src/index"`).
 - [ ] `scripts/compile/` from `shared/cli/scripts/compile/`; targets `linux-x64`,
       `linux-x64-baseline`, `linux-arm64`.

@@ -65,8 +65,8 @@ config/*
 DB, logs) while `!app/data/` keeps the static sites' `app/data/*.ts` modules; `config/*` is
 `CONFIG_BASE_DIR` (it receives the initial admin reset link). `example.env` is committed; `.env` is
 not. `drizzle/migrations/` is **not** ignored — commit the
-generated migrations (the compiled service embeds them). The cli-tool template still ships an older,
-shorter `.gitignore`; use the shared one.
+generated migrations (the compiled service embeds them with `--asset`; the Docker images also copy
+them). The cli-tool template still ships an older, shorter `.gitignore`; use the shared one.
 
 ## Renovate
 

@@ -26,16 +26,18 @@ The backend-service template's keys (the schema in `src/utils/config.ts` is the 
 | `API_DISABLE_DOCS` | boolean | `false` | disables `/docs/v1` + `/docs/v1/openapi` |
 | `DB_PATH` | string | `./data/db.sqlite` | |
 | `DB_AUTO_MIGRATE` | boolean | `true` | run migrations in `DB.init` |
+| `DB_MIGRATION_DIR` | string | `./drizzle/migrations` | where `DB.init` reads them; the Docker images set the absolute in-image path |
 | `LOG_DIR` | string | `./data/logs` | task log files go to `<LOG_DIR>/tasks/` |
 | `CONFIG_BASE_DIR` | string | `./config` | writable dir for runtime artifacts (initial-admin reset URL) |
 | `APP_URL` | string | — (**required**) | frontend URL: CORS origin, reset links |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_SECURE` | string / number / boolean | optional | email is disabled while `SMTP_HOST` is unset |
 
 The full-stack template has the same keys **without `API_HOST` / `API_PORT`** (Nitro listens on
-`PORT`); its browser-facing `runtimeConfig.public.appUrl` defaults to `APPPREFIX_APP_URL` at build
-time and is overridden at runtime with `NUXT_PUBLIC_APP_URL`. The standalone `nuxt-app` has no
-`ConfigHandler`; it reads `NUXT_PUBLIC_API_URL` and `NUXT_PUBLIC_APP_URL` through Nuxt's
-`runtimeConfig`.
+`NITRO_PORT`). Its browser-facing `runtimeConfig.public.appUrl` is driven by the same
+`APPPREFIX_APP_URL`: the Nitro banner in `nuxt.config.ts` copies it to `NUXT_PUBLIC_APP_URL` at
+server start. The standalone `nuxt-app` has no `ConfigHandler`; it reads
+`APPPREFIX_API_URL` / `APPPREFIX_APP_URL` the same way (the banner maps them to the
+`NUXT_PUBLIC_*` names that override Nuxt's `runtimeConfig`).
 
 The backend template's [`example.env`](../templates/backend-service/example.env):
 
@@ -49,6 +51,7 @@ APPPREFIX_API_DISABLE_DOCS=
 
 APPPREFIX_DB_PATH=./data/db.sqlite
 APPPREFIX_DB_AUTO_MIGRATE=true
+APPPREFIX_DB_MIGRATION_DIR=./drizzle/migrations
 
 APPPREFIX_LOG_DIR=./data/logs
 APPPREFIX_CONFIG_BASE_DIR=./config

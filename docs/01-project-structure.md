@@ -61,7 +61,7 @@ my-service/
 ├── tests/
 │   ├── api-routes-v1.test.ts  email.test.ts
 │   └── helpers/{api,preload,seed,memory-transport}.ts
-├── docker/{Dockerfile, docker-compose.yml}      # compiled binary on debian:stable-slim
+├── docker/{Dockerfile, docker-compose.yml}      # binary + drizzle/migrations on debian:stable-slim
 ├── tsconfig.json  tsconfig/{tsconfig.base,tsconfig.typecheck}.json
 ├── package.json  bun.lock  bunfig.toml  biome.json  example.env  .gitignore
 ├── .claude/settings.json
@@ -110,7 +110,7 @@ my-app/
 │   └── utils/{abstractStore,routeMatcher,format,roles,types,url}.ts
 ├── public/{favicon.ico, robots.txt, static/logo/icon.{png,svg}, static/utils/sitemap.xml}
 ├── tests/basic.test.ts
-├── docker/Dockerfile               # oven/bun:1-slim + .output/, PORT 12510
+├── docker/{Dockerfile, docker-compose.yml}      # oven/bun:1-slim + .output/, NITRO_PORT 12510
 ├── nuxt.config.ts  openapi-ts.config.ts
 ├── tsconfig.json  tsconfig/tsconfig.typecheck.json
 ├── package.json  bun.lock  biome.json  example.env  .gitignore
@@ -138,8 +138,8 @@ my-org/
 │   └── … serves /docs/v1/openapi (docs enabled)
 └── my-service-web/        # the nuxt-app shape (port 12510)
     ├── openapi-ts.config.ts   # input: "http://localhost:12500/docs/v1/openapi"
-    └── example.env            # NUXT_PUBLIC_API_URL=http://localhost:12500
-                               # NUXT_PUBLIC_APP_URL=http://localhost:12510
+    └── example.env            # APPPREFIX_API_URL=http://localhost:12500
+                               # APPPREFIX_APP_URL=http://localhost:12510
 ```
 
 Rules:
@@ -149,8 +149,9 @@ Rules:
   (`APPPREFIX_API_DISABLE_DOCS` empty) when you run `bun run api-client:generate`
   (`openapi-ts`). See
   [05 — API contract](05-api-contract.md).
-- `NUXT_PUBLIC_API_URL` configures the backend origin; `updateAPIClient` sets the SDK `baseURL` to
-  `<apiUrl>/v1`.
+- `APPPREFIX_API_URL` configures the backend origin (the Nitro banner maps it to
+  `NUXT_PUBLIC_API_URL` at runtime, so the `NUXT_PUBLIC_*` spelling is only an override);
+  `updateAPIClient` sets the SDK `baseURL` to `<apiUrl>/v1`.
 - The backend's `APPPREFIX_APP_URL` is the frontend origin (`http://localhost:12510` in
   `example.env`). It is the CORS allowlist (`credentials: true`, preflight `maxAge: 600`) and the
   base of the password-reset links.
@@ -189,7 +190,7 @@ my-app/
 │   ├── api-routes-v1.test.ts  email.test.ts
 │   └── helpers/{api,preload,seed,memory-transport}.ts
 ├── public/{favicon.ico, robots.txt, static/logo/icon.{png,svg}, static/utils/sitemap.xml}
-├── docker/Dockerfile               # oven/bun:1-slim + .output/ + drizzle/migrations, PORT 12520
+├── docker/{Dockerfile, docker-compose.yml}      # oven/bun:1-slim + .output/ + drizzle/migrations
 ├── nuxt.config.ts  openapi-ts.config.ts  bunfig.toml
 ├── tsconfig.json  tsconfig/tsconfig.typecheck.json
 ├── package.json  bun.lock  biome.json  example.env  .gitignore
@@ -203,9 +204,39 @@ The relevant `nuxt.config.ts` bits:
 
 ```ts
 nitro: {
-	rollupConfig: { external: ["bun:sqlite"] },
-	esbuild: { options: { target: "esnext" } },
+	rollupConfig: {
+		external: ["bun:sqlite"],
+
+		output: {
+			banner: (function () {
+				const mappings = {
+					APPPREFIX_APP_URL: "APP_URL",
+				};
+
+				const bannerCode = `
+					(function () {
+						const mappings = ${JSON.stringify(mappings)};
+						const env = globalThis.process?.env ?? {};
+						for (const [envName, runtimeName] of Object.entries(mappings)) {
+							if (!env['NUXT_PUBLIC_' + runtimeName] && env[envName]) {
+								env['NUXT_PUBLIC_' + runtimeName] = env[envName];
+							}
+						}
+					})();
+				`;
+
+				return bannerCode.replace(/^\s+|\s+$/g, "").replace(/\n\s*/g, " ");
+			})(),
+		},
+	},
+
+	esbuild: {
+		options: {
+			target: "esnext",
+		},
+	},
 },
+
 runtimeConfig: {
 	public: {
 		//@ts-ignore

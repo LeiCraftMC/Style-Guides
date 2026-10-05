@@ -20,4 +20,6 @@ and a `.vscode/mcp.json` only if it grows a Nuxt frontend (see
 
 Replace the `APPPREFIX` env prefix and `appprefix` token prefix in
 `src/utils/constants.ts`, `example.env`, and the test env (`tests/helpers/preload.ts`) with the
-real project prefix before writing domain code.
+real project prefix before writing domain code. The `docker/` files (`Dockerfile`,
+`docker-compose.yml`) carry the same prefix in their `ENV`/env keys plus the
+`my-project`/`my-project-api` path and image-name placeholders — replace those too.

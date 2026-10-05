@@ -16,7 +16,7 @@ Main.main()                                   // src/index.ts, self-invoked at t
   ├─ process.once(SIGINT | SIGTERM | uncaughtException | unhandledRejection)
   ├─ ConfigHandler.loadConfig()
   ├─ Logger.setLogLevel(LOG_LEVEL)
-  ├─ DB.init(DB_PATH, DB_AUTO_MIGRATE, CONFIG_BASE_DIR)   // bun-sqlite, migrations, initial admin
+  ├─ DB.init(DB_PATH, DB_AUTO_MIGRATE, CONFIG_BASE_DIR, DB_MIGRATION_DIR)   // bun-sqlite, migrations, initial admin
   ├─ Utils.ensureDirectoryExists(LOG_DIR)
   ├─ TaskScheduler.processQueue()             // resume pending/paused background tasks
   ├─ EmailService.init()                      // SMTP, or disabled when SMTP_HOST is unset
@@ -47,7 +47,12 @@ export class Main {
 		Logger.setLogLevel(config.LOG_LEVEL ?? "info");
 		Logger.log(`Starting ${AppConstants.APP_NAME} API...`);
 
-		await DB.init(config.DB_PATH, config.DB_AUTO_MIGRATE, config.CONFIG_BASE_DIR);
+		await DB.init(
+			config.DB_PATH,
+			config.DB_AUTO_MIGRATE,
+			config.CONFIG_BASE_DIR,
+			config.DB_MIGRATION_DIR,
+		);
 
 		await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 
@@ -560,7 +565,12 @@ export default defineNitroPlugin(async (nitroApp) => {
 	Logger.setLogLevel(config.LOG_LEVEL ?? "info");
 	Logger.log(`Starting ${AppConstants.APP_NAME}...`);
 
-	await DB.init(config.DB_PATH, config.DB_AUTO_MIGRATE, config.CONFIG_BASE_DIR);
+	await DB.init(
+		config.DB_PATH,
+		config.DB_AUTO_MIGRATE,
+		config.CONFIG_BASE_DIR,
+		config.DB_MIGRATION_DIR,
+	);
 
 	await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 
@@ -646,7 +656,31 @@ The relevant [`nuxt.config.ts`](../templates/fullstack-nuxt-app/nuxt.config.ts) 
 
 ```ts
 nitro: {
-	rollupConfig: { external: ["bun:sqlite"] },
+	rollupConfig: {
+		external: ["bun:sqlite"],
+
+		output: {
+			banner: (function () {
+				const mappings = {
+					APPPREFIX_APP_URL: "APP_URL",
+				};
+
+				const bannerCode = `
+					(function () {
+						const mappings = ${JSON.stringify(mappings)};
+						const env = globalThis.process?.env ?? {};
+						for (const [envName, runtimeName] of Object.entries(mappings)) {
+							if (!env['NUXT_PUBLIC_' + runtimeName] && env[envName]) {
+								env['NUXT_PUBLIC_' + runtimeName] = env[envName];
+							}
+						}
+					})();
+				`;
+
+				return bannerCode.replace(/^\s+|\s+$/g, "").replace(/\n\s*/g, " ");
+			})(),
+		},
+	},
 
 	esbuild: {
 		options: {
@@ -673,9 +707,10 @@ Notes:
 
 - `rollupConfig.external: ["bun:sqlite"]` keeps Nitro from bundling the native SQLite binding;
   `target: "esnext"` keeps modern syntax such as the route modules' top-level `await` intact.
-- Set the public URL twice in production: `APPPREFIX_APP_URL` (API side: CORS, reset links) and
-  `NUXT_PUBLIC_APP_URL` (runtime override of `public.appUrl`, which the browser's API client uses) —
-  see `docker/Dockerfile`.
+- One env var drives both sides: the Nitro banner copies `APPPREFIX_APP_URL` →
+  `NUXT_PUBLIC_APP_URL` at server start (API side: CORS, reset links; browser side: the runtime
+  override of `public.appUrl` the API client uses). Set `NUXT_PUBLIC_APP_URL` only to override the
+  prefixed value — see `docker/Dockerfile`.
 - While the startup plugin is still running, `/api/**` answers 503 (an error envelope without
   `data`); the wrapper is cached only after `API.getApp()` succeeds.
 - Bare `/api` is not routed (Nitro's `[...]` catch-all needs `/api/…`); open the docs at
