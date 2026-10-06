@@ -22,7 +22,7 @@ class CS {
 	}
 
 	static boolean() {
-		return new CS.ConfigItem(z.coerce.boolean());
+		return new CS.ConfigItem(z.stringbool());
 	}
 
 	static enum<const T extends readonly string[]>(values: T) {

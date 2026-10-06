@@ -230,12 +230,12 @@ a weekly schedule.
 ([`shared/config/renovate.json`](../shared/config/renovate.json) is the same). This is deliberate:
 the org-level Renovate config applies. Add per-repo rules only for a real need.
 
-## 20. Config booleans via `z.coerce.boolean()`
+## 20. Config booleans via `z.stringbool()`
 
-**Context:** `z.coerce.boolean()` uses JavaScript truthiness, so the string `"false"` becomes
+**Context:** `z.stringbool()` uses JavaScript truthiness, so the string `"false"` becomes
 `true` — surprising the first time you meet it.
 
-**Decision:** Keep `CS.boolean()` = `z.coerce.boolean()` — deliberately, no custom parser. Any
+**Decision:** Keep `CS.boolean()` = `z.stringbool()` — deliberately, no custom parser. Any
 **non-empty** value, including the string `"false"`, is `true`; an **empty** value (`KEY=`) is
 `false`; an **unset** variable takes the schema default (so `API_DISABLE_DOCS` is off when unset,
 while `DB_AUTO_MIGRATE`, default `true`, needs `APPPREFIX_DB_AUTO_MIGRATE=` to turn it off).

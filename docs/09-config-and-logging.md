@@ -122,7 +122,7 @@ Builders:
 | --- | --- | --- |
 | `CS.string()` | `z.string()` | the raw value |
 | `CS.number()` | `z.coerce.number()` | `"12500"` → `12500` |
-| `CS.boolean()` | `z.coerce.boolean()` | see the boolean rule below |
+| `CS.boolean()` | `z.stringbool()` | see the boolean rule below |
 | `CS.enum([...])` | `z.enum([...])` | one of the listed values, **case-sensitive** (`INFO` fails) |
 | `CS.array()` | string → `string[]` | comma-separated, trimmed, empty entries dropped |
 
@@ -135,7 +135,7 @@ Rules:
   through.
 - **Booleans: any non-empty value is `true` — including `"false"` and `"0"`. Leave the variable
   empty (`KEY=`) for `false`; an unset variable takes the schema default.** This is deliberate
-  (`z.coerce.boolean()` is plain JavaScript truthiness; see
+  (`z.stringbool()` is plain JavaScript truthiness; see
   [17 — Decisions](17-decisions.md#20-config-booleans-via-zcoerceboolean)):
 
   ```

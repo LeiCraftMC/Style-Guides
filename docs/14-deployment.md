@@ -356,7 +356,7 @@ git push origin v1.2.3
   The backend and full-stack shapes require `APPPREFIX_APP_URL`; the rest have defaults
   ([09](09-config-and-logging.md)). The Docker images *do* bake in the deployment-safe defaults
   (ports, absolute `data/`/`config/` paths, `DB_MIGRATION_DIR`) — override per deployment.
-- Booleans use `z.coerce.boolean()`: any non-empty value — **including `"false"`** — is true; set
+- Booleans use `z.stringbool()`: any non-empty value — **including `"false"`** — is true; set
   the variable empty to get false. Unset means the default.
 - Keep the SQLite database (and `CONFIG_BASE_DIR`) on a persistent volume — the images declare
   `VOLUME`s for both.
