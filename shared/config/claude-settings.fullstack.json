@@ -12,11 +12,11 @@
 	"commands": {
 		"api-client": {
 			"description": "Regenerate the typed API client",
-			"prompt": "Regenerate and verify the generated API client for this full-stack Nuxt project.\n\n1. Run `bun run api-client:generate` (scripts/api-client-generate.ts boots the API in-process and reads its OpenAPI spec — no dev server needed).\n2. Do not hand-edit generated `*.gen.ts` files under `app/api-client/`.\n3. If generation fails, diagnose whether the Hono backend or the OpenAPI route is the issue.\n4. Summarize the outcome and any follow-up needed."
+			"prompt": "Regenerate and verify the generated API client for this full-stack Nuxt project.\n\n1. Run `bun run api-client:generate` (scripts/api-client-generate.ts boots the API in-process, reads its OpenAPI spec, and patches the generated files — no dev server needed).\n2. Do not hand-edit generated `*.gen.ts` files under `app/api-client/`.\n3. If generation fails, diagnose whether the Hono backend or the OpenAPI route is the issue.\n4. Summarize the outcome and any follow-up needed."
 		},
 		"db": {
 			"description": "Run Drizzle migrations",
-			"prompt": "Run the Drizzle migration flow for this project.\n\n1. Run `bun run db:generate` to generate migrations from `server/lib/db/schema.ts` into `drizzle/migrations/`.\n2. Run `bun run db:migrate` to apply them (the app also auto-migrates on startup when `APPPREFIX_DB_AUTO_MIGRATE` is set).\n3. Summarize what was generated or applied."
+			"prompt": "Run the Drizzle migration flow for this project.\n\n1. Run `bun run db:generate` to generate migrations from `server/lib/db/schema.ts` into `drizzle/migrations/`.\n2. Run `bun run db:migrate` to apply them (the app also auto-migrates on startup when `APPPREFIX_DB_AUTO_MIGRATE` is true — the default).\n3. Summarize what was generated or applied."
 		},
 		"verify": {
 			"description": "Run the repo verification flow",
