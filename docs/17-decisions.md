@@ -180,8 +180,14 @@ on the shape:
   `API.init([], false)` → `API.getApp().request("/docs/v1/openapi")` → temp JSON → `openapi-ts`) —
   no server, no port.
 
-Generated `*.gen.ts` files are never edited — if the generator output is wrong, fix or pin the
-generator, not the generated code.
+Both flows end with `scripts/patch-api-client.ts`, which prepends `// @ts-nocheck` to the two
+generated files whose `client-nuxt` internals trip `nuxt typecheck` (see
+[05 — API contract](05-api-contract.md#patch-api-clientts)).
+
+Generated `*.gen.ts` files are never edited **by hand** — if the generator output is wrong, fix or
+pin the generator, not the generated code. The patch script is the one sanctioned exception: it
+runs automatically as part of `api-client:generate` and leaves a marker comment on every file it
+touches.
 
 See [05 — API contract](05-api-contract.md).
 
@@ -230,16 +236,25 @@ a weekly schedule.
 ([`shared/config/renovate.json`](../shared/config/renovate.json) is the same). This is deliberate:
 the org-level Renovate config applies. Add per-repo rules only for a real need.
 
-## 20. Config booleans via `z.coerce.boolean()`
+## 20. Config booleans: exactly `true` or `false`
 
-**Context:** `z.coerce.boolean()` uses JavaScript truthiness, so the string `"false"` becomes
-`true` — surprising the first time you meet it.
+**Context:** `z.coerce.boolean()` used plain JavaScript truthiness, so the string `"false"` parsed
+to **true** — the `false` values that docker-compose files and test preloads set actually *enabled*
+the thing they meant to disable (e.g. `APPPREFIX_API_DISABLE_DOCS: false` silently turned the docs
+off). The interim `z.stringbool()` fixed the direction but accepted a dozen loose words (`on`,
+`y`, `enabled`, …, case-insensitive) — too permissive for config, where a typo should fail rather
+than guess.
 
-**Decision:** Keep `CS.boolean()` = `z.coerce.boolean()` — deliberately, no custom parser. Any
-**non-empty** value, including the string `"false"`, is `true`; an **empty** value (`KEY=`) is
-`false`; an **unset** variable takes the schema default (so `API_DISABLE_DOCS` is off when unset,
-while `DB_AUTO_MIGRATE`, default `true`, needs `APPPREFIX_DB_AUTO_MIGRATE=` to turn it off).
-`example.env` ships `APPPREFIX_API_DISABLE_DOCS=` (empty) with a comment explaining the rule. See
+**Decision:** `CS.boolean()` is a strict parser — `z.union([z.boolean(), z.string().refine(…)])`
+accepting a real boolean or exactly the strings `"true"`/`"false"` (case-sensitive) and nothing
+else. The message lives on the union's `error` param (`Expected a boolean value ('true' or
+'false')`) — a refine-level message never surfaces, because `ConfigSchema.parse` prints
+`issues[0]`, which for a failed union is the union's own error. Anything else — **including an
+empty value (`KEY=`)** — fails and the process exits with code 1 at startup: misconfiguration
+fails fast instead of silently meaning something else. An **unset** variable takes the schema
+default (so `API_DISABLE_DOCS` is off when unset, while `DB_AUTO_MIGRATE`, default `true`, is
+disabled with `APPPREFIX_DB_AUTO_MIGRATE=false`). `example.env` ships
+`APPPREFIX_API_DISABLE_DOCS=false` with a comment explaining the rule. See
 [09](09-config-and-logging.md).
 
 ## 21. Compiled binaries: one compile script, bytecode on

@@ -356,8 +356,8 @@ git push origin v1.2.3
   The backend and full-stack shapes require `APPPREFIX_APP_URL`; the rest have defaults
   ([09](09-config-and-logging.md)). The Docker images *do* bake in the deployment-safe defaults
   (ports, absolute `data/`/`config/` paths, `DB_MIGRATION_DIR`) — override per deployment.
-- Booleans use `z.coerce.boolean()`: any non-empty value — **including `"false"`** — is true; set
-  the variable empty to get false. Unset means the default.
+- Booleans accept exactly `true` or `false` (case-sensitive); anything else, **including an empty
+  value**, fails at startup. Unset means the default.
 - Keep the SQLite database (and `CONFIG_BASE_DIR`) on a persistent volume — the images declare
   `VOLUME`s for both.
 - **Auto-migration.** `DB_AUTO_MIGRATE` defaults to `true`. The backend's `scripts/entrypoint.ts`
@@ -365,7 +365,7 @@ git push origin v1.2.3
   full-stack image runs `.output/` directly, so there the env var (default `true`) decides. That
   is right for the normal single-instance SQLite deployment. Turn it off when migrations must run as
   a separate step — e.g. several processes sharing one database, or a manual `bun run db:migrate`
-  before a risky release: set `APPPREFIX_DB_AUTO_MIGRATE=` (empty) and, for the backend binary,
+  before a risky release: set `APPPREFIX_DB_AUTO_MIGRATE=false` and, for the backend binary,
   remove the override from `scripts/entrypoint.ts`.
 - `DB_MIGRATION_DIR` is `./drizzle/migrations` by default and applies to non-compiled runs; the
   images set the absolute in-image path, so it never depends on the working directory. Compiled
@@ -411,7 +411,7 @@ probe liveness only — e.g. the login UI does.
 - [ ] Static site: `nitro.preset: "static"`, `bun run generate` → `.output/public/`, `deploy.sh`
       with the `DEPLOY_REMOTE_*` variables, `public/.htaccess` for Apache.
 - [ ] CLI: `package.json` version bumped, then `v*` tag → GitHub Release.
-- [ ] Config injected at runtime via env vars; booleans set empty for false; image ENV defaults
-      only cover deployment-safe values.
+- [ ] Config injected at runtime via env vars; booleans set to exactly `true`/`false` — empty
+      values fail at startup; image ENV defaults only cover deployment-safe values.
 - [ ] Auto-migration off (and migrations run separately) if more than one process shares a DB.
 - [ ] `/health` (`/api/health` full-stack) monitored via the Docker `HEALTHCHECK`.

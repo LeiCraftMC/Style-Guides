@@ -148,11 +148,13 @@ flows ([17 — Decisions](17-decisions.md#15-one-api-client-plugin-set-two-gener
 plugins: ["@hey-api/client-nuxt", "@hey-api/typescript", "@hey-api/sdk", "zod"],
 ```
 
-> **Known issue (temporary divergence):** `client-nuxt`'s generated code currently fails
-> `vue-tsc` under Windows/Bun (both LAVIAC and login-ui hit it on fresh installs). While it's
-> unfixed, projects can switch the plugin to `"@hey-api/client-fetch"` — `useAPI` then unwraps the
-> `{ data, error }` result to the envelope, as in those repos — and migrate back once the upstream
-> type errors are fixed. The templates stay on `client-nuxt` as the standard.
+> **`client-nuxt` typecheck quirk:** `@hey-api/client-nuxt` emits internal generics that do not
+> line up with Nuxt's `useFetch`/`RequestResult` types, so the raw generator output fails
+> `nuxt typecheck` although the runtime code and the public SDK signatures are fine. Generation
+> therefore always ends with `scripts/patch-api-client.ts` (see
+> [`patch-api-client.ts`](#patch-api-clientts) below), which marks exactly the affected files with
+> `// @ts-nocheck` — callers keep their full types. The earlier workaround (switching the plugin
+> to `"@hey-api/client-fetch"` and unwrapping `{ data, error }` in `useAPI`) is no longer needed.
 
 Output in `app/api-client/`: `client.gen.ts` (the `client` instance), `sdk.gen.ts` (one function per
 operation, e.g. `getAccount`, `postAuthLogin`, `getAdminUsersByUserId`), `types.gen.ts`
@@ -175,10 +177,12 @@ export default defineConfig({
 ```
 
 ```json
-"api-client:generate": "openapi-ts"
+"api-client:generate": "bun scripts/api-client-generate.ts"
 ```
 
-- Start the backend first, with docs enabled (`APPPREFIX_API_DISABLE_DOCS` empty/unset).
+- Start the backend first, with docs enabled (`APPPREFIX_API_DISABLE_DOCS` unset or `false`).
+- `scripts/api-client-generate.ts` runs `openapi-ts` against the live spec, then
+  `scripts/patch-api-client.ts`.
 - Hand-editing generated files is forbidden; regenerate with `bun run api-client:generate`.
 
 ### Full-stack (`fullstack-nuxt-app`)
@@ -192,7 +196,30 @@ The spec is produced **in-process** — no server needs to be running:
 [`scripts/api-client-generate.ts`](../shared/frontend/scripts/api-client-generate.ts) imports the
 `API` class, calls `API.init([], false)`, requests `/docs/v1/openapi` from `API.getApp()`, writes
 the JSON to `./data/temp-api-openapi.json`, runs `bunx openapi-ts` (whose config has
-`input: "./data/temp-api-openapi.json"`), and deletes the temp file.
+`input: "./data/temp-api-openapi.json"`), then `bun scripts/patch-api-client.ts`, and deletes the
+temp file.
+
+### `patch-api-client.ts`
+
+Both `api-client:generate` flows end with
+[`scripts/patch-api-client.ts`](../shared/frontend/scripts/patch-api-client.ts) — the same file in
+both Nuxt templates. It prepends the line
+`// @ts-nocheck — patched by scripts/patch-api-client.ts` to `app/api-client/sdk.gen.ts` and
+`app/api-client/client/client.gen.ts`, idempotently (files that already start with the marker are
+skipped, so reruns are no-ops).
+
+Why those two files: `@hey-api/client-nuxt`'s generated internals do not line up with Nuxt's
+`useFetch`/`RequestResult` types, which fails `nuxt typecheck` although the runtime code and the
+public SDK signatures are correct. `@ts-nocheck` silences the internal mismatch without weakening
+callers — the SDK's exported functions carry explicit `RequestResult<…>` annotations, so consumers
+keep full end-to-end types.
+
+Consequences:
+
+- `bun run api-client:generate` is the only entry point — it runs the patch after `openapi-ts`. A
+  bare `openapi-ts` run drops the markers and re-breaks `nuxt typecheck` until the next generate.
+- A `// @ts-nocheck` marker in a generated file is expected: it is written by the patch script,
+  not by hand.
 
 ## `updateAPIClient` and `useAPI`
 

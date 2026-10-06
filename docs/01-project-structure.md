@@ -109,6 +109,7 @@ my-app/
 │   │       └── admin/users.vue
 │   └── utils/{abstractStore,routeMatcher,format,roles,types,url}.ts
 ├── public/{favicon.ico, robots.txt, static/logo/icon.{png,svg}, static/utils/sitemap.xml}
+├── scripts/{api-client-generate,patch-api-client}.ts   # api-client generation + patch (see 05)
 ├── tests/basic.test.ts
 ├── docker/{Dockerfile, docker-compose.yml}      # oven/bun:1-slim + .output/, NITRO_PORT 12510
 ├── nuxt.config.ts  openapi-ts.config.ts
@@ -146,8 +147,8 @@ Rules:
 
 - The frontend's `openapi-ts.config.ts` `input` is the **live** backend spec
   (`http://localhost:12500/docs/v1/openapi`), so the backend must be running with its docs enabled
-  (`APPPREFIX_API_DISABLE_DOCS` empty) when you run `bun run api-client:generate`
-  (`openapi-ts`). See
+  (`APPPREFIX_API_DISABLE_DOCS` unset or `false`) when you run `bun run api-client:generate`
+  (`scripts/api-client-generate.ts` → `openapi-ts` + patch). See
   [05 — API contract](05-api-contract.md).
 - `APPPREFIX_API_URL` configures the backend origin (the Nitro banner maps it to
   `NUXT_PUBLIC_API_URL` at runtime, so the `NUXT_PUBLIC_*` spelling is only an override);
@@ -184,6 +185,7 @@ my-app/
 ├── drizzle/{configs/drizzle.config.ts, migrations/}
 ├── scripts/
 │   ├── api-client-generate.ts      # in-process: API.init → /docs/v1/openapi → openapi-ts
+│   ├── patch-api-client.ts         # post-generation patch on sdk.gen.ts / client/client.gen.ts (see 05)
 │   ├── db-utils.ts
 │   └── compile/  entrypoint.ts     # present, not wired to a script; no working binary (see 14)
 ├── tests/
