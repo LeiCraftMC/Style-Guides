@@ -22,7 +22,18 @@ class CS {
 	}
 
 	static boolean() {
-		return new CS.ConfigItem(z.stringbool());
+		return new CS.ConfigItem(
+			z.union(
+				[
+					z.boolean(),
+					z
+						.string()
+						.refine((val) => val === "true" || val === "false")
+						.transform((val) => val === "true"),
+				],
+				{ error: "Expected a boolean value ('true' or 'false')" },
+			),
+		);
 	}
 
 	static enum<const T extends readonly string[]>(values: T) {

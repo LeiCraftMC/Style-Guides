@@ -54,7 +54,7 @@ auto-imports and is checked inside the Nuxt templates.
 | `src/api/utils/apiVersionRouter.ts` | `APIVersionRouter` base for mounting `/v{n}` routers with their OpenAPI config. |
 | `src/api/utils/authHandler.ts` | Opaque bearer-token auth: `AuthUtils`, `SessionHandler`, `APIKeyHandler`, `AuthHandler` (+ `AuthContext` helpers). Needs the template's DB schema + `LCrypt`. |
 | `src/api/versions/v1/middleware/auth.ts` | `authMiddlewareV1` — resolves the `AuthContext`; public auth paths stay reachable with a stale token. |
-| `src/utils/config.ts` | `ConfigHandler` + the Zod `CS` builder (`CS.string()/number()/boolean()/enum()/array()`). Booleans: any non-empty value is true. |
+| `src/utils/config.ts` | `ConfigHandler` + the Zod `CS` builder (`CS.string()/number()/boolean()/enum()/array()`). Booleans: exactly `"true"`/`"false"` (case-sensitive) — anything else fails at startup. |
 | `src/utils/constants.ts` | `AppConstants` — app name, `APPPREFIX`/`appprefix`, default port, `BINARY_NAME`. |
 | `src/utils/logger.ts` | `Logger` — leveled logging with ISO timestamps. |
 | `src/utils/index.ts` | `Utils` — small helpers (`getRandomU32`, `splitNTimes`, `sleep`, `ensureDirectoryExists`, `mergeObjects`, …). |
@@ -78,7 +78,8 @@ auto-imports and is checked inside the Nuxt templates.
 | `app/components/dashboard/*.vue` | `DashboardPageHeader`, `DashboardPageBody`, `DashboardModal`, `DashboardDeleteModal`, `DataTable` (see docs/15). |
 | `app/components/form/DateRangePicker.vue` | Date-range filter used by `DataTable`. |
 | `app/app.config.ts`, `app/assets/css/main.css` | NuxtUI theme + Tailwind v4 entry (dark-only). |
-| `scripts/api-client-generate.ts` | Full-stack: generates the client from the in-process API spec. |
+| `scripts/api-client-generate.ts` | Full-stack: generates the client from the in-process API spec, then patches it. |
+| `scripts/patch-api-client.ts` | Both Nuxt templates: prepends `// @ts-nocheck` to the generated `sdk.gen.ts` / `client/client.gen.ts` after every `openapi-ts` (the `client-nuxt` typecheck quirk; see docs/05). |
 
 > Generated `*.gen.ts` files are never edited by hand — regenerate with
 > `bun run api-client:generate`. See [docs/05](../docs/05-api-contract.md).

@@ -46,8 +46,9 @@ APPPREFIX_LOG_LEVEL=info
 
 APPPREFIX_API_HOST=::
 APPPREFIX_API_PORT=12500
-# Booleans: any non-empty value (even "false") is true — leave empty for false; an unset variable falls back to the schema default.
-APPPREFIX_API_DISABLE_DOCS=
+# Booleans: exactly "true" or "false" (case-sensitive); anything else — including an empty value — fails at startup.
+# An unset variable falls back to the schema default.
+APPPREFIX_API_DISABLE_DOCS=false
 
 APPPREFIX_DB_PATH=./data/db.sqlite
 APPPREFIX_DB_AUTO_MIGRATE=true
@@ -122,7 +123,7 @@ Builders:
 | --- | --- | --- |
 | `CS.string()` | `z.string()` | the raw value |
 | `CS.number()` | `z.coerce.number()` | `"12500"` → `12500` |
-| `CS.boolean()` | `z.stringbool()` | see the boolean rule below |
+| `CS.boolean()` | `z.union([z.boolean(), …])` | see the boolean rule below |
 | `CS.enum([...])` | `z.enum([...])` | one of the listed values, **case-sensitive** (`INFO` fails) |
 | `CS.array()` | string → `string[]` | comma-separated, trimmed, empty entries dropped |
 
@@ -133,24 +134,26 @@ Rules:
   and exits with code 1.
 - **Defaults live in the schema.** Don't re-default in `Main` or the Nitro plugin; pass `config.*`
   through.
-- **Booleans: any non-empty value is `true` — including `"false"` and `"0"`. Leave the variable
-  empty (`KEY=`) for `false`; an unset variable takes the schema default.** This is deliberate
-  (`z.stringbool()` is plain JavaScript truthiness; see
-  [17 — Decisions](17-decisions.md#20-config-booleans-via-zcoerceboolean)):
+- **Booleans are exactly `true` or `false` — nothing else.** `CS.boolean()` accepts a real boolean
+  or the case-sensitive strings `"true"`/`"false"`; anything else — **including an empty value
+  (`KEY=`)** — fails validation with `Expected a boolean value ('true' or 'false')` and exits
+  with code 1: a misconfigured boolean fails fast instead of silently meaning something else. An
+  unset variable takes the schema default (see
+  [17 — Decisions](17-decisions.md#20-config-booleans-exactly-true-or-false)):
 
   ```
+  APPPREFIX_API_DISABLE_DOCS=false   # false → docs enabled
   APPPREFIX_API_DISABLE_DOCS=true    # true  → docs disabled
-  APPPREFIX_API_DISABLE_DOCS=false   # true  → docs disabled (!)
-  APPPREFIX_API_DISABLE_DOCS=        # false → docs enabled
-  # (variable absent)                # default false → docs enabled
+  APPPREFIX_API_DISABLE_DOCS=        # FAILS at startup — set true/false or remove the line
+  # (variable absent)                 # default false → docs enabled
 
-  APPPREFIX_DB_AUTO_MIGRATE=         # false → no migrations at startup
-  # (variable absent)                # default true → migrations run
+  APPPREFIX_DB_AUTO_MIGRATE=false    # false → no migrations at startup
+  # (variable absent)                 # default true → migrations run
   ```
 
 - A default applies only when the variable is **unset**. An empty value is still a value: for an
-  enum it fails validation, a number becomes `0`, a string stays `""`. Leave unused non-boolean
-  variables out entirely.
+  enum or a boolean it fails validation, a number becomes `0`, a string stays `""`. Leave variables
+  you don't need out entirely.
 - `ConfigHandler.loadConfig()` returns the parsed config — use that value at startup.
   `ConfigHandler.getConfig()` returns `ParsedConfig | null` (null before `loadConfig()`), so later
   callers use `ConfigHandler.getConfig()?.APP_URL` or assert it where startup guarantees it.
@@ -220,8 +223,8 @@ Web services do not do this; rely on Bun's built-in `.env` loading.
 - [ ] Env names are `<PREFIX>_<KEY>` with the project prefix in `AppConstants.APP_ENV_PREFIX`.
 - [ ] `example.env` documents every variable; `.env` is gitignored.
 - [ ] Every key is declared with `CS.*` in the `ConfigHandler.schema`; defaults live there.
-- [ ] Booleans documented as "non-empty = true, empty = false, unset = schema default"; enums
-  matched case-sensitively.
+- [ ] Booleans set to exactly `true` or `false` (case-sensitive); empty or unknown values fail at
+  startup; enums matched case-sensitively.
 - [ ] `ConfigHandler.loadConfig()` runs before any other service init; `getConfig()` treated as
   nullable.
 - [ ] Log level set from `APPPREFIX_LOG_LEVEL` at startup.

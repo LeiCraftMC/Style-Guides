@@ -49,11 +49,13 @@ Cross-references to keep in sync when you change a port:
 Two flows exist, one per shape — details in
 [05 — Generating the frontend client](05-api-contract.md#generating-the-frontend-client):
 
-- **nuxt-app** (split repo): `openapi-ts` reads the **running** backend's spec at
-  `http://localhost:12500/docs/v1/openapi` (docs must be enabled).
+- **nuxt-app** (split repo): `bun scripts/api-client-generate.ts` runs `openapi-ts` against the
+  **running** backend's spec at `http://localhost:12500/docs/v1/openapi` (docs must be enabled).
 - **fullstack-nuxt-app**: `bun scripts/api-client-generate.ts` boots the API **in-process**
   (`API.init([], false)`), fetches `/docs/v1/openapi` via `API.getApp().request(…)`, writes
-  `./data/temp-api-openapi.json` and runs `bunx openapi-ts`. No server, no port.
+  `./data/temp-api-openapi.json` and runs `bunx openapi-ts`. No server, no port. Both flows end
+  with `scripts/patch-api-client.ts` (`// @ts-nocheck` on the generated `sdk.gen.ts` /
+  `client/client.gen.ts`, see 05).
 
 ## TypeScript
 
@@ -208,7 +210,7 @@ reads it for `--no-version-tag` builds, so release binaries report it.
 	"generate": "bunx --bun nuxt generate",
 	"preview": "bunx --bun nuxt preview",
 	"postinstall": "bunx --bun nuxt prepare",
-	"api-client:generate": "openapi-ts",
+	"api-client:generate": "bun scripts/api-client-generate.ts",
 	"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 	"test": "bun test"
 }
