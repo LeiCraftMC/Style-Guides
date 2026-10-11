@@ -39,9 +39,8 @@ Project primaries:
 `main.css` and applies it to each layout root (`default`, `auth`, `onboarding`, the dashboard's
 `UDashboardGroup` and sidebar `:ui` slots, `error.vue`) and to dropdown viewports
 (`:ui="{ viewport: 'main-bg-color' }"`). The value is per-project — Delivr uses pure black
-`rgb(0 0 0)`, Personal-Website `#0b0c1b` — so change it in one place. The static templates'
-`theme-color` meta is `#0b0c1b` while their background is slate-950; set it to your real
-background.
+`rgb(0 0 0)`, Personal-Website `#0b0c1b` — so change it in one place. Set the static sites'
+`theme-color` meta to the same value (the templates use `#020617`, slate-950).
 
 **Surfaces and text** used throughout the templates: cards `border-slate-800 bg-slate-900/60`
 (landing cards `bg-slate-900/50`), dividers `divide-slate-800`, headings `text-white`, body
@@ -95,6 +94,18 @@ Use Lucide only. NuxtUI exposes them as `i-lucide-*`:
 Do not mix FontAwesome, Heroicons, or custom SVG icons unless the icon does not exist in Lucide — in
 that case, add a single-purpose component in `components/img/` (the templates keep their brand
 marks there: `AppIcon.vue`, `AppLogo.vue`, and the static sites' inline-SVG `LCMCIcon.vue`).
+
+Static sites bundle every icon at build time and never fetch from the Iconify API (`icon.provider:
+"none"`, see [06](06-frontend-nuxt.md#static-content-sites)), so an icon whose name is built at
+runtime (`` `i-lucide-${name}` ``) must be listed in `icon.clientBundle.icons`.
+
+**Code-block labels.** Nuxt UI shows a filename icon for ` ```lang [label] ` blocks and defaults to
+vscode-icons. static-site-with-docs maps every default key to Lucide in
+[`app/data/code-icons.ts`](../templates/static-site-with-docs/app/data/code-icons.ts) (wired up as
+`ui.prose.codeIcon` in `app.config.ts`). A label is therefore either a file name or extension from
+that map (`[nuxt.config.ts]`, `[install.sh]`) or a plain label without a dot (`[Docker]`, no icon).
+Anything else falls back to vscode-icons; extend the map instead. `tests/code-icons.test.ts` fails
+on unmapped labels in `content/`.
 
 ## Dark mode
 
@@ -504,23 +515,28 @@ The templates' idioms:
   `.app-layout` class) on `main-bg-color`: `Header` + `UMain` (static-site: `py-8` + `UContainer`;
   with-docs: pages bring their own `UContainer`) + `Footer`.
 - **Header:** `UHeader class="backdrop-blur-xl"`; `#title` = `LCMCIcon` (`h-10 w-10`) + the name in
-  `text-3xl font-extrabold`; social ghost buttons (`hover:scale-110`) in `#right`, hidden below
-  `lg` and repeated in the mobile `#body` menu. static-site-with-docs adds a solid primary "Docs"
-  button.
+  `text-3xl font-extrabold`, wrapped in a `<span>`. `UHeader` already links the title to `/`, so
+  never put a `NuxtLink` there (nested `<a>` is invalid HTML). If the title is only a logo image,
+  set `title="<Name>"` on `UHeader` — the link's `aria-label` otherwise falls back to "Nuxt UI".
+  Social ghost buttons (`hover:scale-110`) in `#right`, hidden below `lg` and repeated in the
+  mobile `#body` menu. static-site-with-docs adds a solid primary "Docs" button.
 - **Footer:** `UFooter class="mt-8 bg-neutral-900"`, centered `text-sm text-slate-500`:
   `© 2021 - {{ new Date().getFullYear() }} LeiCraft_MC. All rights reserved.` and Impressum |
-  Datenschutz links (`hover:text-slate-300`).
+  Datenschutz links (`hover:text-slate-300`). Sites with many pages may use the column footer
+  from the app templates instead (see [Public site](#public-site)); its Legal column still links
+  to legal.leicraftmc.de.
 - **`ProjectCard`:** a `NuxtLink` card (`bg-[#1a1b2e] rounded-lg p-6`, hover `bg-[#22233a]
   scale-[1.02]`) with logo, a status pill, title, slot text and tag chips (`bg-neutral-800
   text-neutral-300`).
 - **Prose:** `prose prose-invert max-w-none` for Markdown/legal text; custom blocks inside prose
   (`IconCardGrid`, the docs prev/next) use `not-prose`.
-- **Docs shell** (`DocsPage.vue`): sticky `w-56` sidebar with uppercase `text-xs text-slate-500`
-  section labels and an active link `bg-sky-500/10 text-sky-400`; prev/next cards
-  `border-slate-800 bg-slate-900/50 hover:border-sky-400/50`.
-
-The static templates hard-code `sky-*` (status pills, docs sidebar, `IconCardGrid`) — switch those
-to `primary-*` if the site's primary isn't `sky`.
+- **Docs shell** (`DocsPage.vue` + `DocsNavigation.vue`): sticky `w-56` sidebar (scrolls on its
+  own, `max-h-[calc(100vh-6rem)] overflow-y-auto`) with uppercase `text-xs text-slate-500` section
+  labels, each link showing its `docs.ts` icon, and the active link `bg-primary-500/10
+  text-primary-400` + `aria-current="page"`. Below `lg` the same navigation opens from a "Docs
+  menu" button in a left `USlideover`. An "On this page" `UContentToc` sits in a right-hand
+  column from `xl` and above the content (collapsed) below it. Prev/next cards and `IconCardGrid`
+  cards are `border-slate-800 bg-slate-900/50 hover:border-primary-400/50`.
 
 ### Domain-specific examples
 
@@ -543,7 +559,7 @@ to `primary-*` if the site's primary isn't `sky`.
 - [ ] `.main-bg-color` value picked once in `main.css` and applied to every layout root;
       `theme-color` (static sites) matches it.
 - [ ] Rubik is the default sans font.
-- [ ] Only Lucide icons (`i-lucide-*`) used.
+- [ ] Only Lucide icons (`i-lucide-*`) used — code-block filename labels included.
 - [ ] Dark-only — `color-scheme: dark` + `colorMode` pinned to dark, no toggle.
 - [ ] `Dashboard*` / `DataTable` / `DateRangePicker` copied from `shared/frontend/app/components/`,
       not re-invented; used by auto-import names.

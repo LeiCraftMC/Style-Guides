@@ -2,4 +2,4 @@ User-Agent: *
 Allow: /
 Disallow: /dashboard
 
-sitemap: https://www.leicraft.de/utils/sitemap.xml
+sitemap: https://www.leicraft.de/static/utils/sitemap.xml

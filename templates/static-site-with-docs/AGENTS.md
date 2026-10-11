@@ -20,10 +20,15 @@ https://github.com/LeiCraftMC/Style-Guides.
 - Format with Biome before finishing.
 - Conventional Commits.
 
-Replace `<ProjectName>` with the real project name.
+Replace `<ProjectName>` with the real project name, `runtimeConfig.public.appUrl` in
+`nuxt.config.ts` with the public site URL, and the domain in `public/robots.txt` /
+`public/static/utils/sitemap.xml`.
 
 ## Docs
 
 - Add new docs as `.md` files in `content/docs/`.
-- Update `app/data/docs.ts` when adding or removing docs pages (sidebar + prev/next).
+- Update `app/data/docs.ts` when adding or removing docs pages (sidebar + prev/next), and
+  `public/static/utils/sitemap.xml`.
+- Label code blocks with a file name or extension from `app/data/code-icons.ts`, or a plain label
+  without a dot (`[Docker]`); `tests/code-icons.test.ts` fails otherwise.
 - Keep docs content generic; project-specific details go in the generated project, not the template.

@@ -99,6 +99,7 @@ auto-imports and is checked inside the Nuxt templates.
 | File | Copy to |
 | --- | --- |
 | `github-actions/ci.yml`, `github-actions/release.yml` | `.github/workflows/` (release: CLI binaries on `v*` tags) |
+| `github-actions/ci.static.yml` | `.github/workflows/ci.yml` (static sites: test + generate + rsync via `.gitlab/ci/deploy.sh`) |
 | `gitlab-ci/gitlab-ci.yml` | `.gitlab-ci.yml` |
 | `gitlab-ci/testing.yml` | `.gitlab/ci/testing.yml` |
 | `gitlab-ci/build.{docker,service,static}.yml` | `.gitlab/ci/build.yml` — Nuxt image / compiled service image / static rsync deploy |

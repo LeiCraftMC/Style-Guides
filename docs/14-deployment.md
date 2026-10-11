@@ -324,6 +324,12 @@ sshpass -p "$DEPLOY_REMOTE_PASSWORD" rsync -avz \
 e.g. no permission on the remote root dir) is tolerated; any other non-zero code fails the job.
 The job runs the script via `bash`, so it needs no executable bit.
 
+GitHub-hosted static sites deploy the same way: the templates' `.github/workflows/ci.yml`
+([`ci.static.yml`](../shared/config/github-actions/ci.static.yml)) runs the test job and, on
+pushes to `main`, a `deploy` job that installs `rsync` + `sshpass`, runs `bun run generate` and
+the same `bash .gitlab/ci/deploy.sh`. The four `DEPLOY_REMOTE_*` values are repository secrets
+(Settings → Secrets and variables → Actions). See [13](13-git-and-ci.md#ci--github).
+
 The target is an Apache host: [`public/.htaccess`](../templates/static-site/public/.htaccess) is
 copied into the output and
 
@@ -409,7 +415,8 @@ probe liveness only — e.g. the login UI does.
       `APPPREFIX_APP_URL` drives both the API side and the browser config (Nitro banner).
 - [ ] `.dockerignore` keeps local state, `.env` files and `node_modules/` out of the build context.
 - [ ] Static site: `nitro.preset: "static"`, `bun run generate` → `.output/public/`, `deploy.sh`
-      with the `DEPLOY_REMOTE_*` variables, `public/.htaccess` for Apache.
+      with the `DEPLOY_REMOTE_*` variables (GitLab CI variables or GitHub secrets),
+      `public/.htaccess` for Apache.
 - [ ] CLI: `package.json` version bumped, then `v*` tag → GitHub Release.
 - [ ] Config injected at runtime via env vars; booleans set to exactly `true`/`false` — empty
       values fail at startup; image ENV defaults only cover deployment-safe values.

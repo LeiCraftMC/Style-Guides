@@ -331,6 +331,32 @@ prefixed variables become canonical and `NUXT_PUBLIC_*` remains a pure override.
 `runtimeConfig.public` defaults likewise read the prefixed variables. See
 [06](06-frontend-nuxt.md) and [14](14-deployment.md#full-stack-nuxt-hono-in-server).
 
+## 27. Static sites bundle their icons
+
+**Context:** For `nuxt generate` builds, `@nuxt/icon` defaults to the `iconify` provider, so every
+page view fetched the site's icons from `api.iconify.design` — sending each visitor's IP to a third
+party (the reason fonts are self-hosted), showing icons late, and losing them when the API is
+blocked. Its default scan also skips `.ts` files, where `app/data/` keeps its icon names. Nuxt
+UI's code-block filename icons come from vscode-icons, not Lucide.
+
+**Decision:** Both static templates set `icon: { provider: "none", clientBundle: { scan: {
+globInclude: ["app/**/*.{vue,ts}", …] } } }`. `"none"` turns runtime fetching off; an icon that
+isn't bundled renders blank, so runtime-built names go into `clientBundle.icons`. Nuxt UI adds its
+own icons to the bundle through the `icon:clientBundleIcons` hook, so scanning
+`node_modules/@nuxt/ui/dist` is unnecessary. static-site-with-docs maps every key of Nuxt UI's
+default `prose.codeIcon` map to Lucide (`app/data/code-icons.ts`) and tests that every code-block
+label in `content/` resolves to it. See [06](06-frontend-nuxt.md#static-content-sites) and
+[15](15-design-system.md#icons).
+
+## 28. Sitemap stays at `/static/utils/sitemap.xml`
+
+**Context:** All four Nuxt templates ship `public/static/utils/sitemap.xml` (and doc 06 said to
+point robots there), but their `robots.txt` pointed at `/utils/sitemap.xml`, which 404s.
+
+**Decision:** Keep the file where it is and fix `robots.txt` (`sitemap:
+https://<domain>/static/utils/sitemap.xml`) — four one-line edits, and the docs were already
+right. Moving the file to `public/utils/` instead would have meant changing every doc reference.
+
 ## Known future work (not yet decided)
 
 These gaps surfaced during the audit but are out of scope for this pass; record a decision here when

@@ -18,12 +18,12 @@ const { title, img, to, tags = [], status } = defineProps<Props>();
         <img :src="img" :alt="`${title} Logo`" height="70" width="70" class="mx-auto mb-3" />
 
         <div v-if="status" class="mb-2">
-            <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-sky-500/20 text-sky-300">
+            <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
                 {{ status }}
             </span>
         </div>
 
-        <h3 class="text-xl font-bold text-white group-hover:text-sky-300 transition-colors">{{ title }}</h3>
+        <h3 class="text-xl font-bold text-white group-hover:text-primary-300 transition-colors">{{ title }}</h3>
 
         <p class="text-[17px] text-[#9193a8] hyphens-auto text-justify mt-2 grow">
             <slot></slot>

@@ -28,6 +28,6 @@ cards:
   - icon: i-lucide-rocket
     title: Getting Started
     description: Install dependencies, run the dev server, and generate the static site.
-    to: /docs/getting-started
+    to: /docs/guides/getting-started
 ---
 ::

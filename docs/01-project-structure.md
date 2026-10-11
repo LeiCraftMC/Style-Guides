@@ -294,19 +294,22 @@ docs section powered by `@nuxt/content`. It adds:
 
 ```
 my-site/                            # everything from static-site, plus:
-├── content/docs/{index,getting-started,about}.md    # the docs pages (Markdown + MDC)
+├── content/docs/{index,about}.md + guides/getting-started.md   # the docs pages (Markdown + MDC)
 ├── content.config.ts               # `docs` collection: source "docs/**/*.md"
+├── tests/code-icons.test.ts        # code-block labels in content/ map to Lucide icons
 └── app/
+    ├── app.config.ts               # + ui.prose.codeIcon (Lucide code-block icons)
     ├── pages/docs/[...slug].vue    # queryCollection("docs") + <ContentRenderer> (prose prose-invert)
-    ├── components/docs/DocsPage.vue        # sidebar + prev/next
+    ├── components/docs/DocsPage.vue        # docs shell: sidebar, mobile menu, "On this page", prev/next
+    ├── components/docs/DocsNavigation.vue  # the sidebar navigation (desktop + mobile slide-over)
     ├── components/content/IconCardGrid.vue # MDC component usable inside Markdown
-    └── data/docs.ts                # docs navigation — register every page here
+    └── data/{docs,code-icons}.ts   # docs navigation (register every page here) + code-block icon map
 ```
 
 Differences from `static-site`: `modules: ["@nuxt/ui", "@nuxt/content"]`; prerendering crawls links
 (`crawlLinks: true`) and ignores `/__nuxt_content/**`; dev port 12531; its `biome.json` turns
 `noUnusedImports`/`noUnusedVariables` off. When you add or remove a page in `content/docs/`,
-update `app/data/docs.ts`.
+update `app/data/docs.ts` and `public/static/utils/sitemap.xml`.
 
 ## CLI tool (`@cleverjs/cli` + compile)
 

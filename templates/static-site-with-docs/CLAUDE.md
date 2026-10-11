@@ -23,4 +23,4 @@ Run `bun run generate` before deploying. The output is in `.output/public/`.
 
 Docs are markdown files in `content/docs/`. The sidebar and prev/next links are driven by
 `app/data/docs.ts`. The docs renderer is `app/pages/docs/[...slug].vue` and uses
-`app/components/docs/DocsPage.vue` for layout.
+`app/components/docs/DocsPage.vue` for layout (`DocsNavigation.vue` is the sidebar).

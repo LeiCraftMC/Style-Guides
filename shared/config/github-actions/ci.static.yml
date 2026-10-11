@@ -1,0 +1,50 @@
+# .github/workflows/ci.yml for static sites.
+# Runs biome, typecheck and tests on every push/PR; on pushes to main it also generates the site
+# (`bun run generate` → .output/public/) and rsyncs it to the web host via .gitlab/ci/deploy.sh.
+# Needs the repository secrets DEPLOY_REMOTE_USER, DEPLOY_REMOTE_PASSWORD, DEPLOY_REMOTE_HOST and
+# DEPLOY_REMOTE_DIR.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run check:ci
+      - run: bun run typecheck
+      - run: bun test
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # Never let two deploys rsync to the host at the same time.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    env:
+      NUXT_TELEMETRY_DISABLED: "1"
+      DEPLOY_REMOTE_USER: ${{ secrets.DEPLOY_REMOTE_USER }}
+      DEPLOY_REMOTE_PASSWORD: ${{ secrets.DEPLOY_REMOTE_PASSWORD }}
+      DEPLOY_REMOTE_HOST: ${{ secrets.DEPLOY_REMOTE_HOST }}
+      DEPLOY_REMOTE_DIR: ${{ secrets.DEPLOY_REMOTE_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: sudo apt-get update && sudo apt-get install -y rsync sshpass
+      - run: bun install --frozen-lockfile
+      - run: bun run generate
+      - run: bash .gitlab/ci/deploy.sh

@@ -26,9 +26,10 @@ Dev server runs on port **12531** (set in `package.json`; see docs/02 — Ports)
 bun run generate   # → .output/public/
 ```
 
-On the default branch, GitLab CI (`.gitlab/ci/build.yml`) generates the site and rsyncs
-`.output/public/` to your web host via `.gitlab/ci/deploy.sh`. Set the CI variables
-`DEPLOY_REMOTE_USER`, `DEPLOY_REMOTE_PASSWORD`, `DEPLOY_REMOTE_HOST` and `DEPLOY_REMOTE_DIR`.
+On the default branch, GitLab CI (`.gitlab/ci/build.yml`) or GitHub Actions (the `deploy` job in
+`.github/workflows/ci.yml`) generates the site and rsyncs `.output/public/` to your web host via
+`.gitlab/ci/deploy.sh`. Set `DEPLOY_REMOTE_USER`, `DEPLOY_REMOTE_PASSWORD`, `DEPLOY_REMOTE_HOST`
+and `DEPLOY_REMOTE_DIR` as CI variables (GitLab) or repository secrets (GitHub).
 `public/.htaccess` configures Apache (clean URLs, trailing slashes, 404 page).
 
 ## Scripts

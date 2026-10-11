@@ -42,10 +42,11 @@ const mobileLinks = computed<NavigationMenuItem[][]>(() => [
 <template>
 	<UHeader class="backdrop-blur-xl">
 		<template #title>
-			<NuxtLink to="/" class="flex items-center gap-1.5">
+			<!-- UHeader already links the title to "/"; don't nest another link here. -->
+			<span class="flex items-center gap-1.5">
 				<LCMCIcon class="h-10 w-10" />
 				<span class="text-3xl font-extrabold">App Name</span>
-			</NuxtLink>
+			</span>
 		</template>
 
 		<UNavigationMenu :items="[links]" />

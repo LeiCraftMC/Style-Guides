@@ -200,6 +200,13 @@ jobs:
       - run: bun test
 ```
 
+Static sites ship [`ci.static.yml`](../shared/config/github-actions/ci.static.yml) as
+`.github/workflows/ci.yml` instead: the same `test` job plus a `deploy` job that runs only on
+pushes to `main` (`needs: test`), generates the site and rsyncs it with `bash .gitlab/ci/deploy.sh`
+— the script GitLab uses, so both CI systems deploy identically. The `DEPLOY_REMOTE_*` values are
+repository secrets, and `concurrency: { group: deploy, cancel-in-progress: false }` keeps two
+deploys from writing to the host at once. See [14](14-deployment.md#static-sites).
+
 CLI tools add `.github/workflows/release.yml`
 ([`shared/config/github-actions/release.yml`](../shared/config/github-actions/release.yml)): on a
 `v*` tag it runs `bun run compile all --no-version-tag` and attaches `build/bin/*` to a GitHub
@@ -213,7 +220,7 @@ Which template ships what:
 | --- | --- | --- |
 | backend-service | service | — (GitLab only; copy `ci.yml` if hosted on GitHub) |
 | nuxt-app, fullstack-nuxt-app | docker | `ci.yml` |
-| static-site, static-site-with-docs | static | `ci.yml` (older variant: PRs to `main` only, no `workflow_dispatch`) |
+| static-site, static-site-with-docs | static | `ci.yml` (from `ci.static.yml`: test + deploy) |
 | cli-tool | — | `ci.yml`, `release.yml` |
 
 ## CI rules
@@ -239,8 +246,8 @@ reason in [17 — Decisions](17-decisions.md).
 - [ ] GitLab: `.gitlab-ci.yml` from `shared/config/gitlab-ci/gitlab-ci.yml`,
       `.gitlab/ci/testing.yml` from `testing.yml`, `.gitlab/ci/build.yml` from the matching
       `build.{docker,service,static}.yml` (+ `deploy.sh` for static sites).
-- [ ] GitHub: `.github/workflows/ci.yml` from `shared/config/github-actions/ci.yml`; CLI tools also
-      `release.yml`.
+- [ ] GitHub: `.github/workflows/ci.yml` from `shared/config/github-actions/ci.yml` (static sites:
+      `ci.static.yml`, with the `DEPLOY_REMOTE_*` secrets set); CLI tools also `release.yml`.
 - [ ] CI runs `bun run check:ci`, `bun run typecheck`, `bun test` with `--frozen-lockfile`.
 - [ ] GitLab CI uses `oven/bun`; GitHub uses `oven-sh/setup-bun`.
 - [ ] `LICENSE` is AGPL-3.0 unless otherwise decided.
