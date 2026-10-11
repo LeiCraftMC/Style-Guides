@@ -141,21 +141,14 @@ const allFilters = computed<FilterConfig[]>(() => props.filters ?? []);
 // Column filters state
 const columnFilters = ref<ColumnFiltersState>([]);
 
-// Initialize filters for all specified columns, cleanup stale ones
-watchEffect(() => {
-	const filterColumns = allFilters.value.map((f) => f.column as string);
-	// Remove filters for columns no longer in allFilters
-	columnFilters.value = columnFilters.value.filter((f) => filterColumns.includes(f.id));
-	// Add filters for new columns
-	for (const col of filterColumns) {
-		const existingFilter = columnFilters.value.find((f) => f.id === col);
-		if (!existingFilter) {
-			const filter = allFilters.value.find((f) => f.column === col);
-			const initialValue = filter?.type === "multi-select" ? [] : "";
-			columnFilters.value.push({ id: col, value: initialValue });
-		}
-	}
-});
+// Drop filter state for columns that no longer have a filter. Unset filters stay out of the
+// state: TanStack applies every entry in it, even an empty one.
+watch(
+	() => allFilters.value.map((f) => f.column as string),
+	(filterColumns) => {
+		columnFilters.value = columnFilters.value.filter((f) => filterColumns.includes(f.id));
+	},
+);
 
 // Helper to get/set filter value for a specific column
 function getFilterValue(column: string): any {
@@ -173,7 +166,7 @@ function setFilterValue(column: string, value: any) {
 	if (filter?.type === "multi-select") {
 		table.value?.tableApi?.getColumn(column)?.setFilterValue(value?.length ? value : undefined);
 	} else {
-		table.value?.tableApi?.getColumn(column)?.setFilterValue(value || undefined);
+		table.value?.tableApi?.getColumn(column)?.setFilterValue(value ?? undefined);
 	}
 }
 
@@ -203,16 +196,27 @@ const enhancedColumns = computed<TableColumn<T>[]>(() => {
 
 		if (!filter) return col;
 
-		// Add custom filter function based on filter type
+		// Explicit filter function per type; TanStack's "auto" picks one from the first row's value
 		let filterFn: FilterFn<T> | undefined;
 
 		if (filter.filterFn) {
 			filterFn = filter.filterFn;
+		} else if (!filter.type || filter.type === "text") {
+			filterFn = (row, columnId, filterValue) => {
+				if (filterValue == null || filterValue === "") return true;
+				const cellValue = String(row.getValue(columnId) ?? "").toLowerCase();
+				return cellValue.includes(String(filterValue).toLowerCase());
+			};
+		} else if (filter.type === "number") {
+			filterFn = (row, columnId, filterValue) => {
+				if (filterValue == null || filterValue === "") return true;
+				const cellValue = row.getValue(columnId);
+				return cellValue != null && Number(cellValue) === Number(filterValue);
+			};
 		} else if (filter.type === "select") {
 			filterFn = (row, columnId, filterValue) => {
-				if (!filterValue || filterValue === "" || filterValue === null) return true;
-				const cellValue = row.getValue(columnId);
-				return cellValue === filterValue;
+				if (filterValue == null || filterValue === "") return true;
+				return row.getValue(columnId) === filterValue;
 			};
 		} else if (filter.type === "multi-select") {
 			filterFn = (row, columnId, filterValue) => {
@@ -306,7 +310,7 @@ defineExpose({
 							type="number"
 							:model-value="getFilterValue(filter.column as string) as string"
 							:class="filter.class || 'w-full sm:w-auto sm:max-w-32 sm:min-w-24'"
-							:icon="filter.icon || 'i-lucide-calendar'"
+							:icon="filter.icon || 'i-lucide-hash'"
 							:placeholder="filter.placeholder || 'Number...'"
 							@update:model-value="(val: string) => setFilterValue(filter.column as string, val)"
 						/>

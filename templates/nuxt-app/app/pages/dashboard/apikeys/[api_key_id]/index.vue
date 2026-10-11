@@ -118,111 +118,89 @@ const headerTexts = computed(() =>
 			<p class="mt-1 text-sm text-slate-400">{{ headerTexts.description }}</p>
 		</div>
 
-		<div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm">
-			<div class="border-b border-slate-800 px-6 py-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-						<UIcon name="i-lucide-info" class="h-5 w-5 text-primary-400" />
-					</div>
-					<div>
-						<h3 class="font-medium text-white">API Key Information</h3>
-						<p class="text-sm text-slate-400">API keys can't be edited — create a new one instead.</p>
-					</div>
-				</div>
-			</div>
-
-			<div class="p-6">
-				<UForm
-					class="divide-y divide-slate-800"
-					:schema="formSchema"
-					:state="formState"
-					:disabled="!apiKey.isNew"
-					@submit="onCreate"
-				>
-					<UFormField
-						name="description"
-						label="Description"
-						description="What this key is used for."
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
-						:ui="{ container: 'w-full' }"
-					>
-						<UTextarea
-							v-model="formState.description"
-							placeholder="No description provided."
-							:rows="3"
-							autoresize
-							class="w-full"
-						/>
-					</UFormField>
-
-					<UFormField
-						name="expires_at"
-						label="Expiration"
-						description="When this key stops working."
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
-						:ui="{ container: 'w-full sm:w-60' }"
-					>
-						<USelect
-							v-if="apiKey.isNew"
-							v-model="formState.expires_at"
-							:items="expiryOptions"
-							placeholder="Select expiration"
-							class="w-full"
-						/>
-						<UInput
-							v-else
-							:model-value="apiKey.data.value.expires_at ? formatDate(apiKey.data.value.expires_at) : 'Never'"
-							disabled
-							class="w-full"
-						/>
-					</UFormField>
-
-					<div v-if="apiKey.isNew" class="pt-4">
-						<UButton
-							label="Create API Key"
-							color="primary"
-							type="submit"
-							:loading="creating"
-							icon="i-lucide-plus-circle"
-						/>
-					</div>
-				</UForm>
-			</div>
-		</div>
-
-		<!-- Danger zone -->
-		<div
-			v-if="!apiKey.isNew"
-			class="overflow-hidden rounded-xl border border-red-900/50 bg-red-950/20 backdrop-blur-sm"
+		<DashboardSectionCard
+			title="API Key Information"
+			description="API keys can't be edited — create a new one instead."
+			icon="i-lucide-info"
 		>
-			<div class="border-b border-red-900/50 px-6 py-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-						<UIcon name="i-lucide-alert-triangle" class="h-5 w-5 text-red-400" />
-					</div>
-					<div>
-						<h3 class="font-medium text-red-400">Danger Zone</h3>
-						<p class="text-sm text-slate-400">Irreversible and destructive actions</p>
-					</div>
-				</div>
-			</div>
+			<UForm
+				class="divide-y divide-slate-800"
+				:schema="formSchema"
+				:state="formState"
+				:disabled="!apiKey.isNew"
+				@submit="onCreate"
+			>
+				<UFormField
+					name="description"
+					label="Description"
+					description="What this key is used for."
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
+					:ui="{ container: 'w-full' }"
+				>
+					<UTextarea
+						v-model="formState.description"
+						placeholder="No description provided."
+						:rows="3"
+						autoresize
+						class="w-full"
+					/>
+				</UFormField>
 
-			<div class="p-6">
-				<div class="flex flex-col gap-4 md:flex-row md:items-center">
-					<div class="flex-1">
-						<h4 class="font-medium text-white">Delete API Key</h4>
-						<p class="mt-1 text-sm text-slate-400">Anything using this key stops working immediately.</p>
-					</div>
+				<UFormField
+					name="expires_at"
+					label="Expiration"
+					description="When this key stops working."
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
+					:ui="{ container: 'w-full sm:w-60' }"
+				>
+					<USelect
+						v-if="apiKey.isNew"
+						v-model="formState.expires_at"
+						:items="expiryOptions"
+						placeholder="Select expiration"
+						class="w-full"
+					/>
+					<UInput
+						v-else
+						:model-value="apiKey.data.value.expires_at ? formatDate(apiKey.data.value.expires_at) : 'Never'"
+						disabled
+						class="w-full"
+					/>
+				</UFormField>
+
+				<div v-if="apiKey.isNew" class="pt-4">
 					<UButton
-						label="Delete API Key"
-						color="error"
-						variant="soft"
-						icon="i-lucide-trash-2"
-						@click="deleteConfirmOpen = true"
+						label="Create API Key"
+						color="primary"
+						type="submit"
+						:loading="creating"
+						icon="i-lucide-plus-circle"
 					/>
 				</div>
+			</UForm>
+		</DashboardSectionCard>
+
+		<DashboardSectionCard
+			v-if="!apiKey.isNew"
+			title="Danger Zone"
+			description="Irreversible and destructive actions"
+			icon="i-lucide-alert-triangle"
+			tone="danger"
+		>
+			<div class="flex flex-col gap-4 md:flex-row md:items-center">
+				<div class="flex-1">
+					<h4 class="font-medium text-white">Delete API Key</h4>
+					<p class="mt-1 text-sm text-slate-400">Anything using this key stops working immediately.</p>
+				</div>
+				<UButton
+					label="Delete API Key"
+					color="error"
+					variant="soft"
+					icon="i-lucide-trash-2"
+					@click="deleteConfirmOpen = true"
+				/>
 			</div>
-		</div>
+		</DashboardSectionCard>
 
 		<DashboardDeleteModal
 			v-if="!apiKey.isNew"

@@ -83,19 +83,12 @@ async function complete(to = "/dashboard") {
 			</p>
 		</div>
 
-		<div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm">
-			<div class="border-b border-slate-800 px-6 py-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-						<UIcon name="i-lucide-list-checks" class="h-5 w-5 text-primary-400" />
-					</div>
-					<div>
-						<h3 class="font-medium text-white">Getting started</h3>
-						<p class="text-sm text-slate-400">Pick any step — onboarding is marked complete either way</p>
-					</div>
-				</div>
-			</div>
-
+		<DashboardSectionCard
+			title="Getting started"
+			description="Pick any step — onboarding is marked complete either way"
+			icon="i-lucide-list-checks"
+			flush
+		>
 			<div class="divide-y divide-slate-800">
 				<button
 					v-for="step in steps"
@@ -113,7 +106,7 @@ async function complete(to = "/dashboard") {
 					<UIcon name="i-lucide-chevron-right" class="size-5 text-slate-500" />
 				</button>
 			</div>
-		</div>
+		</DashboardSectionCard>
 
 		<div class="flex items-center justify-between gap-3">
 			<UButton label="Skip for now" color="neutral" variant="ghost" :disabled="finishing" @click="complete()" />

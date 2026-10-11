@@ -108,7 +108,13 @@ and `tsconfig/tsconfig.typecheck.json` — copied from
 `"types": ["bun-types"]`, and includes only `../tests/**/*` (plus `../server/**/*` in the full-stack
 app). `app/**` is left to `nuxt typecheck` (vue-tsc), which provides the Nuxt auto-import
 declarations (`ref`, `computed`, `useState`, …) that plain `tsc` cannot resolve. The `typecheck`
-script runs `bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json`.
+script runs
+`BUN_OPTIONS=--preload=./scripts/vue-tsc-bun.ts bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json`.
+The `BUN_OPTIONS` preload is required. Without it, vue-tsc on Bun skips every `.vue` file and still
+passes: Bun's `require()` bypasses the `fs.readFileSync` hook vue-tsc uses to add Vue support.
+[`scripts/vue-tsc-bun.ts`](../shared/frontend/scripts/vue-tsc-bun.ts) routes that load back
+through the hook, and it fails the run if vue-tsc's patch is missing or never applied (see
+[17 #26](17-decisions.md#26-vue-tsc-on-bun-the-vue-tsc-bunts-preload)).
 
 ## Biome (formatter + linter)
 
@@ -211,10 +217,13 @@ reads it for `--no-version-tag` builds, so release binaries report it.
 	"preview": "bunx --bun nuxt preview",
 	"postinstall": "bunx --bun nuxt prepare",
 	"api-client:generate": "bun scripts/api-client-generate.ts",
-	"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
+	"typecheck": "BUN_OPTIONS=--preload=./scripts/vue-tsc-bun.ts bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 	"test": "bun test"
 }
 ```
+
+Every Nuxt template, the static sites included, ships `scripts/vue-tsc-bun.ts` for that `typecheck`
+preload (see [TypeScript](#typescript) above).
 
 **Full-stack Nuxt app** (port 12520): the same shape with `"api-client:generate": "bun
 scripts/api-client-generate.ts"` plus the backend's `db:generate` / `db:migrate` (config path

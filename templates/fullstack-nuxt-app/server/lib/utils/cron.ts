@@ -1,4 +1,5 @@
 import type { CronJob as BunCronJob } from "bun";
+import { Logger } from "./logger";
 
 class CronJob {
 	private _job: BunCronJob | null = null;
@@ -9,7 +10,14 @@ class CronJob {
 	) {}
 
 	start() {
-		this._job = Bun.cron(this.cronExpression, this.callback);
+		// A rejected Bun.cron callback ends the process, so a failing run is logged instead.
+		this._job = Bun.cron(this.cronExpression, async () => {
+			try {
+				await this.callback();
+			} catch (err) {
+				Logger.error(`Cron job "${this.cronExpression}" failed:`, err);
+			}
+		});
 	}
 
 	async stop() {

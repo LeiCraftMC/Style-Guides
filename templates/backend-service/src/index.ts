@@ -31,12 +31,16 @@ export class Main {
 
 		await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 
-		await TaskScheduler.processQueue();
-
 		await EmailService.init();
 
 		await CronJobHandler.init();
 		await CronJobHandler.startAll();
+
+		// Not awaited: it runs the queued tasks to completion. Started before the API so that no
+		// request can enqueue first (TaskHandler then skips loading the stored pending/paused tasks).
+		TaskScheduler.processQueue().catch((err) => {
+			Logger.error("Task queue processing failed:", err);
+		});
 
 		await API.init([config.APP_URL], config.API_DISABLE_DOCS === true);
 

@@ -14,7 +14,7 @@ try {
 		process.exit(1);
 	}
 
-	Bun.write("./data/temp-api-openapi.json", res);
+	await Bun.write("./data/temp-api-openapi.json", res);
 
 	await Bun.$`bunx openapi-ts`;
 	await Bun.$`bun scripts/patch-api-client.ts`;

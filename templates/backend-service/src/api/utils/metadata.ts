@@ -7,9 +7,9 @@ export class RuntimeMetadata {
 		dummy: z.record(z.string(), z.any()).default({}),
 	} as const;
 
+	/** A key without a stored row reads as its schema default; nothing is written. */
 	protected static async getMetadata<T extends keyof typeof this.schemas>(
 		key: T,
-		createIfNotFound = false,
 	): Promise<z.infer<(typeof this.schemas)[T]>> {
 		const record = await DB.instance()
 			.select()
@@ -17,31 +17,25 @@ export class RuntimeMetadata {
 			.where(eq(DB.Tables.metadata.key, key))
 			.get();
 
-		if (!record) {
-			if (!createIfNotFound) {
-				throw new Error(`Metadata with key '${key}' not found`);
-			}
+		// Indexing the heterogeneous `schemas` record by the generic key widens the
+		// parse result to a union, so narrow it back to this key's inferred type.
+		type Parsed = z.infer<(typeof this.schemas)[T]>;
 
-			const defaultData = this.schemas[key].parse(undefined);
-			await DB.instance().insert(DB.Tables.metadata).values({
-				key: key,
-				data: defaultData,
-			});
-			return defaultData;
-		}
-
-		return this.schemas[key].parse(record.data);
+		return this.schemas[key].parse(record?.data) as Parsed;
 	}
 
 	protected static async setMetadata<T extends keyof typeof this.schemas>(
 		key: T,
 		data: z.infer<(typeof this.schemas)[T]>,
 	): Promise<void> {
+		const parsed = this.schemas[key].parse(data);
+
 		await DB.instance()
-			.update(DB.Tables.metadata)
-			.set({
-				data: data,
-			})
-			.where(eq(DB.Tables.metadata.key, key));
+			.insert(DB.Tables.metadata)
+			.values({ key, data: parsed })
+			.onConflictDoUpdate({
+				target: DB.Tables.metadata.key,
+				set: { data: parsed },
+			});
 	}
 }

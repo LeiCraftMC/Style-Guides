@@ -16,12 +16,23 @@ imports between the copied files keep working.
 
 ```
 shared/
-├── backend/    # from templates/backend-service   (src/…, tests/helpers/…)
+├── backend/    # from templates/backend-service   (src/…, tests/helpers/…) — full-stack: see below
 ├── cli/        # from templates/cli-tool          (src/…, scripts/…)
 ├── frontend/   # from templates/nuxt-app          (app/…, scripts/…) + fullstack variants
 ├── config/     # CI, Claude Code, Biome, Renovate, gitignore, bunfig — flat, copy to the named location
 └── tsconfig/   # tsconfig.base.json + typecheck configs
 ```
+
+**Full-stack Nuxt projects** keep the backend in `server/lib/` instead of `src/`: copy
+`shared/backend/src/**` to `server/lib/**` (same relative layout, so imports between the copied
+files keep working). In `utils/config.ts`, drop `API_HOST`/`API_PORT` — Nitro owns the port. Take
+`tests/helpers/` from [`templates/fullstack-nuxt-app/tests/helpers/`](../templates/fullstack-nuxt-app/tests/helpers/)
+instead: its imports point at `../../server/lib/`, its preload sets no `API_HOST`/`API_PORT`, uses
+`APP_URL` port 12520 and doesn't call `API.start()` (see [docs/12](../docs/12-testing.md)).
+
+**`.fullstack` variants:** where the two Nuxt shapes need different content at the same path, the
+full-stack copy carries a `.fullstack` suffix (`updateAPIClient.fullstack.ts`,
+`api-client-generate.fullstack.ts`). Drop the suffix when copying.
 
 **Feature modules stay template-only**: email, background tasks, cron jobs, crypto, user preferences,
 runtime metadata, the DB schema, routes, pages/layouts, Docker files, `.htaccess`. Copy those from
@@ -52,7 +63,7 @@ auto-imports and is checked inside the Nuxt templates.
 | `src/api/utils/api-res.ts` | The `{ success, code, message, data }` envelope: `APIResponse.*` helpers + `APIResponse.Schema/Utils/Types` Zod factories. |
 | `src/api/utils/specHelpers.ts` | `APIRouteSpec` (`authenticated`/`unauthenticated`/…) + `APIResponseSpec` — hono-openapi `describeRoute` wrappers. |
 | `src/api/utils/apiVersionRouter.ts` | `APIVersionRouter` base for mounting `/v{n}` routers with their OpenAPI config. |
-| `src/api/utils/authHandler.ts` | Opaque bearer-token auth: `AuthUtils`, `SessionHandler`, `APIKeyHandler`, `AuthHandler` (+ `AuthContext` helpers). Needs the template's DB schema + `LCrypt`. |
+| `src/api/utils/authHandler.ts` | Opaque bearer-token auth: `AuthUtils`, `SessionHandler`, `APIKeyHandler`, `AuthHandler` (+ `AuthContext` helpers). Needs the template's DB schema, `LCrypt` and `shared-models/accountData.ts`. |
 | `src/api/versions/v1/middleware/auth.ts` | `authMiddlewareV1` — resolves the `AuthContext`; public auth paths stay reachable with a stale token. |
 | `src/utils/config.ts` | `ConfigHandler` + the Zod `CS` builder (`CS.string()/number()/boolean()/enum()/array()`). Booleans: exactly `"true"`/`"false"` (case-sensitive) — anything else fails at startup. |
 | `src/utils/constants.ts` | `AppConstants` — app name, `APPPREFIX`/`appprefix`, default port, `BINARY_NAME`. |
@@ -75,10 +86,13 @@ auto-imports and is checked inside the Nuxt templates.
 | `app/middleware/auth.global.ts` | The route guard — tune `HOME_ROUTE`, `PROTECTED_PREFIXES`, `ADMIN_PREFIXES`, `PUBLIC_ROUTES`, `REQUIRE_ONBOARDING`. |
 | `app/middleware/rewrites.global.ts` | Trailing-slash stripper. |
 | `app/utils/{abstractStore,routeMatcher}.ts` | SSR-safe stores over `useState`; `SimpleRouteMatcher`. |
-| `app/components/dashboard/*.vue` | `DashboardPageHeader`, `DashboardPageBody`, `DashboardModal`, `DashboardDeleteModal`, `DataTable` (see docs/15). |
+| `app/utils/types.ts` | API type aliases derived from the generated client (`UserInfo`, `APIKey`, `NewAPIKey`) + `UtilityTypes.SomePartial`. Imported by `useUserStore` and `useSubrouterInjectedData`; adapt the aliases to your API. |
+| `app/components/dashboard/*.vue` | `DashboardPageHeader`, `DashboardPageBody`, `DashboardSectionCard`, `DashboardStatCard`, `DashboardModal`, `DashboardDeleteModal`, `DataTable` (see docs/15). |
 | `app/components/form/DateRangePicker.vue` | Date-range filter used by `DataTable`. |
 | `app/app.config.ts`, `app/assets/css/main.css` | NuxtUI theme + Tailwind v4 entry (dark-only). |
-| `scripts/api-client-generate.ts` | Full-stack: generates the client from the in-process API spec, then patches it. |
+| `scripts/api-client-generate.ts` | Split repo: runs `openapi-ts` against the running backend's spec, then patches it. |
+| `scripts/api-client-generate.fullstack.ts` | Full-stack variant: generates the client from the in-process API spec, then patches it — copy it as `scripts/api-client-generate.ts`. |
+| `scripts/vue-tsc-bun.ts` | Every Nuxt template: preloaded by `bun run typecheck` (`BUN_OPTIONS=--preload=…`) so vue-tsc checks `.vue` files on Bun; fails loudly if that stops working (see docs/17 #26). |
 | `scripts/patch-api-client.ts` | Both Nuxt templates: prepends `// @ts-nocheck` to the generated `sdk.gen.ts` / `client/client.gen.ts` after every `openapi-ts` (the `client-nuxt` typecheck quirk; see docs/05). |
 
 > Generated `*.gen.ts` files are never edited by hand — regenerate with

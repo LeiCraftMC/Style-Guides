@@ -193,9 +193,10 @@ The spec is produced **in-process** — no server needs to be running:
 "api-client:generate": "bun scripts/api-client-generate.ts"
 ```
 
-[`scripts/api-client-generate.ts`](../shared/frontend/scripts/api-client-generate.ts) imports the
-`API` class, calls `API.init([], false)`, requests `/docs/v1/openapi` from `API.getApp()`, writes
-the JSON to `./data/temp-api-openapi.json`, runs `bunx openapi-ts` (whose config has
+[`scripts/api-client-generate.ts`](../shared/frontend/scripts/api-client-generate.fullstack.ts)
+(in `shared/` as `api-client-generate.fullstack.ts`) imports the `API` class, calls
+`API.init([], false)`, requests `/docs/v1/openapi` from `API.getApp()`, awaits writing the JSON to
+`./data/temp-api-openapi.json`, runs `bunx openapi-ts` (whose config has
 `input: "./data/temp-api-openapi.json"`), then `bun scripts/patch-api-client.ts`, and deletes the
 temp file.
 

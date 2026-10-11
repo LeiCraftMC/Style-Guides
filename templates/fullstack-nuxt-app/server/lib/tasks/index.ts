@@ -3,7 +3,6 @@ import { and, asc, eq, or } from "drizzle-orm";
 import fs from "fs";
 import { dirname } from "path";
 import { DB } from "../db";
-import { Utils } from "../utils";
 import { ConfigHandler } from "../utils/config";
 import { Logger } from "../utils/logger";
 import { SampleTask } from "./sampleTask";
@@ -13,25 +12,6 @@ type AdditionalTaskMeta = {
 	created_by_user_id: number | null;
 };
 type TaskData = TaskHandler.BaseTaskData<AdditionalTaskMeta>;
-
-function buildPendingTaskData(
-	fn: TaskData["fn"],
-	args: TaskData["args"],
-	additionalMeta: AdditionalTaskMeta,
-	execOpts?: TaskHandler.TaskExecOptions,
-): Omit<TaskData, "id"> {
-	return {
-		...additionalMeta,
-		fn,
-		args,
-		execOptions: execOpts ?? null,
-		status: "pending",
-		created_at: Date.now(),
-		finished_at: null,
-		result: null,
-		message: null,
-	};
-}
 
 export class TaskStorage extends TaskHandler.AbstractStorageDriver<TaskData, AdditionalTaskMeta> {
 	private transportToDBFormat(task: TaskData, withID?: true): DB.Models.ScheduledTask;
@@ -185,28 +165,40 @@ class PersistentLogger implements TaskHandler.PersistentTaskLoggerLike {
 	constructor(taskID: number) {
 		try {
 			const filePath = TaskUtils.getTaskLogFilePath(taskID);
-			Utils.ensureDirectoryExists(dirname(filePath));
+			// Synchronous: the stream below opens right away and must not race the directory creation.
+			fs.mkdirSync(dirname(filePath), { recursive: true });
 
 			this.writeStream = fs.createWriteStream(filePath, { flags: "a" });
+			// The open happens asynchronously; without a listener a failure (full disk, read-only
+			// volume) would be an uncaught exception.
+			this.writeStream.on("error", (err) => {
+				Logger.error("Persistent task logger failed:", err.message);
+			});
 		} catch (err) {
 			Logger.error("Failed to create persistent task logger:", (err as Error).message);
 		}
 	}
 
-	public debug(...msg: string[]) {
-		this.writeSafe(`[${new Date(Date.now()).toISOString()}] [DEBUG] ${msg.join(" ")}\n`);
+	public debug(...msg: any[]) {
+		this.writeSafe(this.formatLine("DEBUG", msg));
 	}
 
-	public info(...msg: string[]) {
-		this.writeSafe(`[${new Date(Date.now()).toISOString()}] [INFO] ${msg.join(" ")}\n`);
+	public info(...msg: any[]) {
+		this.writeSafe(this.formatLine("INFO", msg));
 	}
 
-	public warn(...msg: string[]) {
-		this.writeSafe(`[${new Date(Date.now()).toISOString()}] [WARN] ${msg.join(" ")}\n`);
+	public warn(...msg: any[]) {
+		this.writeSafe(this.formatLine("WARN", msg));
 	}
 
-	public error(...msg: string[]) {
-		this.writeSafe(`[${new Date(Date.now()).toISOString()}] [ERROR] ${msg.join(" ")}\n`);
+	public error(...msg: any[]) {
+		this.writeSafe(this.formatLine("ERROR", msg));
+	}
+
+	private formatLine(level: string, msg: any[]) {
+		// Tasks also log objects and errors; inspect them instead of printing "[object Object]".
+		const text = msg.map((m) => (typeof m === "string" ? m : Bun.inspect(m))).join(" ");
+		return `[${new Date(Date.now()).toISOString()}] [${level}] ${text}\n`;
 	}
 
 	async close() {
@@ -274,32 +266,3 @@ export const TaskScheduler = new TaskHandler<
 	},
 	Registry,
 );
-
-export class TaskQueueUtils {
-	static async createPendingTaskRecord(
-		fn: TaskData["fn"],
-		args: TaskData["args"],
-		additionalMeta: AdditionalTaskMeta,
-		execOpts?: TaskHandler.TaskExecOptions,
-	) {
-		return await taskStorage.createTask(buildPendingTaskData(fn, args, additionalMeta, execOpts));
-	}
-
-	static async activatePendingTask(taskID: number) {
-		const task = await taskStorage.loadTask(taskID);
-
-		if (!task) {
-			throw new Error(`Task ${taskID} not found after creation.`);
-		}
-
-		// Access the pending-tasks queue via the public processQueue method.
-		// The internal pending queue is not part of the documented API, so we
-		// rely on the queue being populated by enqueueTask for the scheduler to pick up.
-		(TaskScheduler as any).pendingTasks.push(task);
-		void TaskScheduler.processQueue();
-	}
-
-	static async deleteTaskRecord(taskID: number) {
-		await taskStorage.deleteTask(taskID);
-	}
-}

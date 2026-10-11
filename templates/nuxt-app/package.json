@@ -15,7 +15,7 @@
 		"preview": "bunx --bun nuxt preview",
 		"postinstall": "bunx --bun nuxt prepare",
 		"api-client:generate": "bun scripts/api-client-generate.ts",
-		"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
+		"typecheck": "BUN_OPTIONS=--preload=./scripts/vue-tsc-bun.ts bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 		"test": "bun test"
 	},
 	"dependencies": {

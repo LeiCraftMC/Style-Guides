@@ -202,6 +202,7 @@ app also marks `bun:sqlite` as a Rollup external), and tests run on `bun test`. 
 is an **optional** extension for the rare app that needs it — the helper for it,
 [`shared/backend/src/utils/runtime.ts`](../shared/backend/src/utils/runtime.ts), is unused by every
 template. Don't add dual-runtime branches to a project unless it actually deploys to Cloudflare.
+`nuxt typecheck` stays on Bun too, through a small preload that makes vue-tsc work there (see #26).
 
 ## 17. Fixed default ports per template
 
@@ -330,6 +331,37 @@ at server start it copies `APPPREFIX_APP_URL` → `NUXT_PUBLIC_APP_URL` (the nux
 prefixed variables become canonical and `NUXT_PUBLIC_*` remains a pure override. The build-time
 `runtimeConfig.public` defaults likewise read the prefixed variables. See
 [06](06-frontend-nuxt.md) and [14](14-deployment.md#full-stack-nuxt-hono-in-server).
+
+## 26. vue-tsc on Bun: the `vue-tsc-bun.ts` preload
+
+**Context:** `bunx --bun nuxt typecheck` never type-checked a `.vue` file. vue-tsc injects Vue
+support by patching `fs.readFileSync` while it `require()`s `typescript/lib/tsc.js`; Bun's
+`require()` reads module source natively and bypasses that hook, so on Bun vue-tsc silently runs
+plain `tsc`, the `.vue` files drop out of the program, and the check passes. Errors in `.ts` files
+were still reported, so the gap went unnoticed. Dropping `--bun` does not help everywhere: the
+`oven/bun` CI image (and `bun run` on any machine without Node) puts a `node` that is really Bun on
+`PATH`.
+
+**Decision:** Every Nuxt template ships `scripts/vue-tsc-bun.ts` (mirrored in
+[`shared/frontend/scripts/`](../shared/frontend/scripts/vue-tsc-bun.ts)), and the `typecheck`
+script preloads it into the Bun processes `nuxt typecheck` spawns:
+`BUN_OPTIONS=--preload=./scripts/vue-tsc-bun.ts bunx --bun nuxt typecheck && …`. The preload hooks
+`Module._extensions[".js"]` (which Bun honours) to load `tsc.js` through `fs.readFileSync`, so
+vue-tsc's patch applies. If the loaded `tsc.js` is still unpatched, it throws, and if a vue-tsc
+process exits without having loaded `tsc.js` through the hook at all, it sets exit code 1, so a
+change in vue-tsc fails the typecheck loudly instead of silently skipping `.vue` files again.
+
+**Why not Node:** running vue-tsc on Node would break #16 and need a Node-capable CI image and a
+guard against Bun's `node` stand-in. The preload keeps the toolchain Bun-only. Like the
+`patch-api-client.ts` step (#15), it is a small, automatic, documented workaround.
+
+**Relation to #21:** #21 reverted a workaround that *degraded* the output (bytecode off) and was
+written up as a rule. This one restores a check that was silently missing, and it is temporary
+plumbing, not a rule projects design around. Report it upstream (vuejs/language-tools, Volar's
+`runTsc` in `@volar/typescript`: hook `Module._extensions`, not `fs.readFileSync`). **Remove** the
+preload and the `BUN_OPTIONS=…` prefix once vue-tsc type-checks `.vue` files under `bunx --bun`
+without it. See [06](06-frontend-nuxt.md#type-checking) and
+[02](02-tooling.md#typescript).
 
 ## Known future work (not yet decided)
 

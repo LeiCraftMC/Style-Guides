@@ -10,12 +10,12 @@ const currentIndex = computed(() =>
 );
 
 const prevPage = computed<DocsPage | null>(() =>
-	currentIndex.value > 0 ? docsPagesFlat[currentIndex.value - 1] : null,
+	currentIndex.value > 0 ? (docsPagesFlat[currentIndex.value - 1] ?? null) : null,
 );
 
 const nextPage = computed<DocsPage | null>(() =>
 	currentIndex.value >= 0 && currentIndex.value < docsPagesFlat.length - 1
-		? docsPagesFlat[currentIndex.value + 1]
+		? (docsPagesFlat[currentIndex.value + 1] ?? null)
 		: null,
 );
 </script>

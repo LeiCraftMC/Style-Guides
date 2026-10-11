@@ -136,7 +136,11 @@ config.
 ## Verifying `.vue` work
 
 `bun run typecheck` type-checks `.vue` files (vue-tsc) alongside the `.ts` files, so a passing
-typecheck does cover an edited page or component. An agent that edited `.vue` files must still:
+typecheck does cover an edited page or component. That holds only through the project's script:
+it preloads `scripts/vue-tsc-bun.ts`. A bare `bunx --bun nuxt typecheck` or `bunx --bun vue-tsc`
+skips every `.vue` file on Bun and still passes (see
+[17 #26](17-decisions.md#26-vue-tsc-on-bun-the-vue-tsc-bunts-preload)). An agent that edited `.vue`
+files must still:
 
 - Run `bun run check:ci` — Biome errors must be zero; unused-binding **warnings** in `.vue` files
   are expected.

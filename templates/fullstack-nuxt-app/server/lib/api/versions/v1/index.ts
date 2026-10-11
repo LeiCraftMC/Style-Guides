@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { type GenerateSpecOptions } from "hono-openapi";
 import { AppConstants } from "../../../utils/constants";
 import { APIVersionRouter } from "../../utils/apiVersionRouter";
+import { DOCS_TAGS } from "./docs";
 import { authMiddlewareV1 } from "./middleware/auth";
 import { router as accountRouter } from "./routes/account";
 import { router as adminRouter } from "./routes/admin";
@@ -50,47 +51,52 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 		"x-tagGroups": [
 			{
 				name: "Account & Authentication",
-				tags: ["Account", "Account / API Keys", "Account / Preferences", "Authentication"],
+				tags: [
+					DOCS_TAGS.ACCOUNT,
+					DOCS_TAGS.ACCOUNT_API_KEYS,
+					DOCS_TAGS.ACCOUNT_PREFERENCES,
+					DOCS_TAGS.AUTHENTICATION,
+				],
 			},
 			{
-				name: "Admin",
-				tags: ["Admin / Users"],
+				name: DOCS_TAGS.ADMIN_API.BASE,
+				tags: [DOCS_TAGS.ADMIN_API.USERS],
 			},
 		],
 
 		tags: [
 			{
-				name: "Account",
+				name: DOCS_TAGS.ACCOUNT,
 				description: "Endpoints for user account management",
 			},
 			{
-				name: "Account / API Keys",
+				name: DOCS_TAGS.ACCOUNT_API_KEYS,
 				// @ts-ignore
 				"x-displayName": "API Keys",
 				summary: "API Keys",
-				parent: "Account",
+				parent: DOCS_TAGS.ACCOUNT,
 				description: "Endpoints for managing account API keys",
 			},
 			{
-				name: "Account / Preferences",
+				name: DOCS_TAGS.ACCOUNT_PREFERENCES,
 				// @ts-ignore
 				"x-displayName": "Preferences",
 				summary: "Preferences",
-				parent: "Account",
+				parent: DOCS_TAGS.ACCOUNT,
 				description: "Endpoints for managing account preferences (e.g. remote email content policy)",
 			},
 
 			{
-				name: "Authentication",
+				name: DOCS_TAGS.AUTHENTICATION,
 				description: "Endpoints for authentication and authorization",
 			},
 
 			{
-				name: "Admin / Users",
+				name: DOCS_TAGS.ADMIN_API.USERS,
 				// @ts-ignore
 				"x-displayName": "Users",
 				summary: "Users",
-				parent: "Admin",
+				parent: DOCS_TAGS.ADMIN_API.BASE,
 				description: "Endpoints for user management",
 			},
 		],
