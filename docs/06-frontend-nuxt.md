@@ -563,20 +563,15 @@ per-request state — they leak across requests on the server.
 
 ## Type checking
 
-`bun run typecheck` = `nuxt typecheck` (vue-tsc, covers `app/` incl. `.vue` files) + `tsc -p
-./tsconfig/tsconfig.typecheck.json` (tests, plus `server/` in full-stack):
+`bun run typecheck` = `nuxt typecheck` (vue-tsc, covers `app/`) + `tsc -p
+./tsconfig/tsconfig.typecheck.json` (tests, plus `server/` in full-stack).
 
-```json
-"typecheck": "BUN_OPTIONS=--preload=./scripts/vue-tsc-bun.ts bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'"
-```
-
-The `.vue` coverage depends on the `BUN_OPTIONS` preload. On Bun, vue-tsc's Vue support never
-loads by itself: Bun's `require()` bypasses the `fs.readFileSync` hook vue-tsc patches `tsc`
-through. `nuxt typecheck` then checks only the `.ts` files and still passes.
-[`scripts/vue-tsc-bun.ts`](../shared/frontend/scripts/vue-tsc-bun.ts) fixes the load and fails
-the run if vue-tsc's patch is missing or never applied. Keep the file and the prefix in every Nuxt
-project, static sites included, and don't run `nuxt typecheck` on Bun without them. See
-[17 #26](17-decisions.md#26-vue-tsc-on-bun-the-vue-tsc-bunts-preload).
+> **Known gap: `.vue` files are not type-checked yet.** vue-tsc adds Vue support by patching
+> TypeScript 6's `tsc.js` while loading it, and Bun's module loader bypasses that patch, so
+> `nuxt typecheck` checks only the `.ts` files and still passes. This is accepted for now instead of
+> a workaround. Once vue-tsc supports TypeScript 7, move the Nuxt templates to TypeScript 7, confirm
+> that a type error in a `.vue` file fails `bun run typecheck`, and update this section,
+> [02](02-tooling.md#typescript) and [16](16-ai-tooling.md#verifying-vue-work).
 
 ## Static content sites
 

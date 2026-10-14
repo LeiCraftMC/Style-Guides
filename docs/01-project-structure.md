@@ -110,7 +110,6 @@ my-app/
 │   └── utils/{abstractStore,routeMatcher,format,roles,types,url}.ts
 ├── public/{favicon.ico, robots.txt, static/logo/icon.{png,svg}, static/utils/sitemap.xml}
 ├── scripts/{api-client-generate,patch-api-client}.ts   # api-client generation + patch (see 05)
-├── scripts/vue-tsc-bun.ts          # typecheck preload: vue-tsc checks .vue files on Bun (see 17 #26)
 ├── tests/basic.test.ts
 ├── docker/{Dockerfile, docker-compose.yml}      # oven/bun:1-slim + .output/, NITRO_PORT 12510
 ├── nuxt.config.ts  openapi-ts.config.ts
@@ -187,7 +186,6 @@ my-app/
 ├── scripts/
 │   ├── api-client-generate.ts      # in-process: API.init → /docs/v1/openapi → openapi-ts
 │   ├── patch-api-client.ts         # post-generation patch on sdk.gen.ts / client/client.gen.ts (see 05)
-│   ├── vue-tsc-bun.ts              # typecheck preload (see 17 #26)
 │   ├── db-utils.ts
 │   └── compile/  entrypoint.ts     # present, not wired to a script; no working binary (see 14)
 ├── tests/
@@ -274,7 +272,6 @@ my-site/
 │   ├── layouts/default.vue
 │   └── pages/{index,about,contact}.vue + projects/{index,[id]}.vue
 ├── public/{.htaccess, favicon.ico, robots.txt, static/logo/icon.{png,svg}, static/utils/sitemap.xml}
-├── scripts/vue-tsc-bun.ts          # typecheck preload (see 17 #26)
 ├── tests/basic.test.ts
 ├── nuxt.config.ts                  # nitro.preset "static" + prerender routes
 ├── tsconfig.json  tsconfig/tsconfig.typecheck.json

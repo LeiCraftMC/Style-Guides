@@ -92,7 +92,6 @@ auto-imports and is checked inside the Nuxt templates.
 | `app/app.config.ts`, `app/assets/css/main.css` | NuxtUI theme + Tailwind v4 entry (dark-only). |
 | `scripts/api-client-generate.ts` | Split repo: runs `openapi-ts` against the running backend's spec, then patches it. |
 | `scripts/api-client-generate.fullstack.ts` | Full-stack variant: generates the client from the in-process API spec, then patches it — copy it as `scripts/api-client-generate.ts`. |
-| `scripts/vue-tsc-bun.ts` | Every Nuxt template: preloaded by `bun run typecheck` (`BUN_OPTIONS=--preload=…`) so vue-tsc checks `.vue` files on Bun; fails loudly if that stops working (see docs/17 #26). |
 | `scripts/patch-api-client.ts` | Both Nuxt templates: prepends `// @ts-nocheck` to the generated `sdk.gen.ts` / `client/client.gen.ts` after every `openapi-ts` (the `client-nuxt` typecheck quirk; see docs/05). |
 
 > Generated `*.gen.ts` files are never edited by hand — regenerate with
