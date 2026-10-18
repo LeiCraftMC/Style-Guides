@@ -225,12 +225,15 @@ only way to call the generated SDK.
 
 `useAPI(handler, disableAuthRedirect = false)`:
 
-- **Server:** reads the session cookie, applies it with `updateAPIClient(token)`, calls the handler.
-  No redirects on the server.
-- **Client:** reads the cookie. Without one it resets the client and — unless
-  `disableAuthRedirect` — navigates to `/auth/login?url=<current fullPath>` (the call still runs).
-  If the result has `code === 401` it clears the cookie and redirects the same way (unless
-  disabled).
+- **Server:** reads the session cookie, applies it with `updateAPIClient(token)` (`null` without a
+  cookie), calls the handler. No redirects on the server.
+- **Client:** reads the cookie. Without one it resets the client (`updateAPIClient(null)`) and —
+  unless `disableAuthRedirect` — navigates to `/auth/login?url=<current fullPath>` (the call still
+  runs). If the result has `code === 401` it clears the cookie and resets the client, then
+  redirects the same way (unless disabled).
+- **Resetting means removing the header:** `updateAPIClient(null)` sets `Authorization: null`. The
+  generated client's `setConfig` merges headers, so leaving `Authorization` out would keep sending
+  the previous token.
 - **Never throws:** exceptions become `{ success: false, code: 500, message, data: null }`. Branch
   on `result.success`.
 - Pass `true` for calls that must not bounce the user: stores, login, forgot/reset password,
@@ -492,7 +495,9 @@ Adding a sub-page = a file in the child folder + an entry in `getRoutesConfig()`
 ## `utils/types.ts`
 
 Never hand-write API types. Derive them from the generated types in
-[`app/utils/types.ts`](../templates/nuxt-app/app/utils/types.ts):
+[`app/utils/types.ts`](../shared/frontend/app/utils/types.ts). `useUserStore` (`UserInfo`) and
+`useSubrouterInjectedData` (`UtilityTypes`) import it, so copy it along with them and adapt the
+aliases to your API:
 
 ```ts
 import type {

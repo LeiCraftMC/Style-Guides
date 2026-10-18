@@ -3,7 +3,6 @@ import { and, asc, eq, or } from "drizzle-orm";
 import fs from "fs";
 import { dirname } from "path";
 import { DB } from "../db";
-import { Utils } from "../utils";
 import { ConfigHandler } from "../utils/config";
 import { Logger } from "../utils/logger";
 import { SampleTask } from "./sampleTask";
@@ -185,28 +184,40 @@ class PersistentLogger implements TaskHandler.PersistentTaskLoggerLike {
 	constructor(taskID: number) {
 		try {
 			const filePath = TaskUtils.getTaskLogFilePath(taskID);
-			Utils.ensureDirectoryExists(dirname(filePath));
+			// Synchronous: the stream below opens right away and must not race the directory creation.
+			fs.mkdirSync(dirname(filePath), { recursive: true });
 
 			this.writeStream = fs.createWriteStream(filePath, { flags: "a" });
+			// The open happens asynchronously; without a listener a failure (full disk, read-only
+			// volume) would be an uncaught exception.
+			this.writeStream.on("error", (err) => {
+				Logger.error("Persistent task logger failed:", err.message);
+			});
 		} catch (err) {
 			Logger.error("Failed to create persistent task logger:", (err as Error).message);
 		}
 	}
 
-	public debug(...msg: string[]) {
-		this.writeSafe(`[${new Date(Date.now()).toISOString()}] [DEBUG] ${msg.join(" ")}\n`);
+	public debug(...msg: any[]) {
+		this.writeSafe(this.formatLine("DEBUG", msg));
 	}
 
-	public info(...msg: string[]) {
-		this.writeSafe(`[${new Date(Date.now()).toISOString()}] [INFO] ${msg.join(" ")}\n`);
+	public info(...msg: any[]) {
+		this.writeSafe(this.formatLine("INFO", msg));
 	}
 
-	public warn(...msg: string[]) {
-		this.writeSafe(`[${new Date(Date.now()).toISOString()}] [WARN] ${msg.join(" ")}\n`);
+	public warn(...msg: any[]) {
+		this.writeSafe(this.formatLine("WARN", msg));
 	}
 
-	public error(...msg: string[]) {
-		this.writeSafe(`[${new Date(Date.now()).toISOString()}] [ERROR] ${msg.join(" ")}\n`);
+	public error(...msg: any[]) {
+		this.writeSafe(this.formatLine("ERROR", msg));
+	}
+
+	private formatLine(level: string, msg: any[]) {
+		// Tasks also log objects and errors; inspect them instead of printing "[object Object]".
+		const text = msg.map((m) => (typeof m === "string" ? m : Bun.inspect(m))).join(" ");
+		return `[${new Date(Date.now()).toISOString()}] [${level}] ${text}\n`;
 	}
 
 	async close() {
@@ -275,6 +286,10 @@ export const TaskScheduler = new TaskHandler<
 	Registry,
 );
 
+/**
+ * @deprecated Use `TaskScheduler.enqueueTask(fn, args, additionalMeta, execOpts)`, which stores the
+ * task and queues it in one call. `activatePendingTask` reaches into TaskHandler's private queue.
+ */
 export class TaskQueueUtils {
 	static async createPendingTaskRecord(
 		fn: TaskData["fn"],

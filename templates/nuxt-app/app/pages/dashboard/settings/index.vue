@@ -86,97 +86,87 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 			<p class="mt-1 text-sm text-slate-400">Manage your public profile information</p>
 		</div>
 
-		<div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm">
-			<div class="border-b border-slate-800 px-6 py-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-						<UIcon name="i-lucide-user" class="h-5 w-5 text-primary-400" />
-					</div>
-					<div>
-						<h3 class="font-medium text-white">Profile Information</h3>
-						<p class="text-sm text-slate-400">Update your account profile details</p>
-					</div>
-				</div>
-			</div>
-
-			<div class="p-6">
-				<UForm
-					id="settings"
-					:schema="profileSchema"
-					:state="profile"
-					class="divide-y divide-slate-800"
-					@submit="onSubmit"
+		<DashboardSectionCard
+			title="Profile Information"
+			description="Update your account profile details"
+			icon="i-lucide-user"
+		>
+			<UForm
+				id="settings"
+				:schema="profileSchema"
+				:state="profile"
+				class="divide-y divide-slate-800"
+				@submit="onSubmit"
+			>
+				<UFormField
+					name="username"
+					label="Username"
+					description="Your unique username for logging in."
+					required
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
+					:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
 				>
-					<UFormField
-						name="username"
-						label="Username"
-						description="Your unique username for logging in."
-						required
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
-						:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
-					>
-						<UInput v-model="profile.username" placeholder="Enter username" class="w-full sm:w-96" />
-					</UFormField>
+					<UInput v-model="profile.username" placeholder="Enter username" class="w-full sm:w-96" />
+				</UFormField>
 
-					<UFormField
-						name="display_name"
-						label="Display Name"
-						description="Shown to other users."
-						required
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
-						:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
-					>
-						<UInput
-							v-model="profile.display_name"
-							placeholder="Enter display name"
-							class="w-full sm:w-96"
-						/>
-					</UFormField>
+				<UFormField
+					name="display_name"
+					label="Display Name"
+					description="Shown to other users."
+					required
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
+					:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
+				>
+					<UInput
+						v-model="profile.display_name"
+						placeholder="Enter display name"
+						class="w-full sm:w-96"
+					/>
+				</UFormField>
 
-					<UFormField
-						name="email"
-						label="Email"
-						description="Used for notifications and password resets."
-						required
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
-						:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
-					>
-						<UInput
-							v-model="profile.email"
-							type="email"
-							placeholder="Enter email"
-							class="w-full sm:w-96"
-						/>
-					</UFormField>
+				<UFormField
+					name="email"
+					label="Email"
+					description="Used for notifications and password resets."
+					required
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
+					:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
+				>
+					<UInput
+						v-model="profile.email"
+						type="email"
+						placeholder="Enter email"
+						class="w-full sm:w-96"
+					/>
+				</UFormField>
 
-					<UFormField
-						name="current_password"
-						label="Current Password"
-						description="Enter your current password to confirm changes."
-						required
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
-						:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
-					>
-						<UInput
-							v-model="profile.current_password"
-							type="password"
-							placeholder="Enter current password"
-							class="w-full sm:w-96"
-						/>
-					</UFormField>
+				<UFormField
+					name="current_password"
+					label="Current Password"
+					description="Enter your current password to confirm changes."
+					required
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
+					:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
+				>
+					<UInput
+						v-model="profile.current_password"
+						type="password"
+						placeholder="Enter current password"
+						class="w-full sm:w-96"
+					/>
+				</UFormField>
 
-					<div class="pt-4">
-						<UButton
-							label="Save Changes"
-							color="primary"
-							type="submit"
-							:loading="loading"
-							icon="i-lucide-save"
-						/>
-					</div>
-				</UForm>
-			</div>
-		</div>
+				<div class="pt-4">
+					<UButton
+						label="Save Changes"
+						color="primary"
+						type="submit"
+						:loading="loading"
+						icon="i-lucide-save"
+					/>
+				</div>
+			</UForm>
+		</DashboardSectionCard>
 
 		<!-- Account summary -->
 		<div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-sm">

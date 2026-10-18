@@ -6,8 +6,8 @@ export const DOCS_TAGS = {
 	AUTHENTICATION: "Authentication",
 
 	ADMIN_API: {
-		BASE: "Admin API",
+		BASE: "Admin",
 
-		USERS: "Admin API / Users",
+		USERS: "Admin / Users",
 	},
 };

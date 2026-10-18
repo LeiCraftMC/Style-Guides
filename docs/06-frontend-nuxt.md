@@ -376,6 +376,28 @@ Trimming it down:
 - **Everything behind login (no public landing page):** set `PROTECTED_PREFIXES = ["/"]` and
   `HOME_ROUTE = "/"` in the guard, and replace `pages/index.vue` with your app's home (for example
   the dashboard overview).
+- **Internal-only (no public site at all):** do the above, or keep `HOME_ROUTE = "/dashboard"` and
+  make `pages/index.vue` a `layout: false` page that redirects there. Then delete
+  `layouts/default.vue` and `components/layout/` and drop `LayoutHeader` / `LayoutFooter` from
+  `layouts/auth.vue` and `error.vue`. Both take the `onboarding` layout's shape: no header or
+  footer and `<ImgAppLogo class="mb-8 h-8" />` centered above the content. In `auth.vue`, the
+  `min-h-[calc(100vh-80px)]` wrapper becomes `flex min-h-screen flex-col items-center
+  justify-center px-4 py-10`. `UError`'s root reserves
+  `min-h-[calc(100vh-var(--ui-header-height))]`, so override it and let `UMain` do the centering:
+
+  ```vue
+  <template>
+  	<div class="main-bg-color flex min-h-screen flex-col text-slate-100">
+  		<UMain class="flex flex-1 flex-col items-center justify-center px-4 py-10">
+  			<ImgAppLogo class="mb-8 h-8" />
+  			<UError :error="error" :ui="{ root: 'min-h-0' }" />
+  		</UMain>
+  	</div>
+  </template>
+  ```
+
+  Set `public/robots.txt` to `Disallow: /`, drop its `sitemap:` line and delete
+  `public/static/utils/sitemap.xml`.
 - **No dashboard:** delete `layouts/dashboard.vue`, `pages/dashboard/` and `components/dashboard/`,
   remove the Dashboard links from `components/layout/Header.vue` and `Footer.vue`, and point
   `PROTECTED_PREFIXES` at your protected pages.
@@ -543,8 +565,15 @@ per-request state — they leak across requests on the server.
 
 ## Type checking
 
-`bun run typecheck` = `nuxt typecheck` (vue-tsc, covers `app/` incl. `.vue` files) + `tsc -p
+`bun run typecheck` = `nuxt typecheck` (vue-tsc, covers `app/`) + `tsc -p
 ./tsconfig/tsconfig.typecheck.json` (tests, plus `server/` in full-stack).
+
+> **Known gap: `.vue` files are not type-checked yet.** vue-tsc adds Vue support by patching
+> TypeScript 6's `tsc.js` while loading it, and Bun's module loader bypasses that patch, so
+> `nuxt typecheck` checks only the `.ts` files and still passes. This is accepted for now instead of
+> a workaround. Once vue-tsc supports TypeScript 7, move the Nuxt templates to TypeScript 7, confirm
+> that a type error in a `.vue` file fails `bun run typecheck`, and update this section,
+> [02](02-tooling.md#typescript) and [16](16-ai-tooling.md#verifying-vue-work).
 
 ## Static content sites
 

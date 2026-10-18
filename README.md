@@ -111,6 +111,9 @@ This guide is itself a LeiCraftMC project: it is formatted with Biome and type-c
 Before committing, run `bun install && bun run check:ci && bun run typecheck`. The root Biome
 config excludes `templates/` and `shared/config/`: when you change a template, run its own
 `bun run check:ci`, `bun run typecheck` and `bun test` inside it, and keep `shared/` in sync with it.
+A change that would break code copied from an earlier version keeps the old API as `@deprecated`
+instead of removing it; only security fixes and bugs every project must fix anyway may break
+directly (see [`docs/17-decisions.md` #26](docs/17-decisions.md#26-breaking-template-changes-go-through-deprecation)).
 The `/verify`, `/typecheck`, `/format`, and `/test` helper slash commands are defined in
 [`.claude/settings.json`](.claude/settings.json) (see [docs/16](docs/16-ai-tooling.md)).
 

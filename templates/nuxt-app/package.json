@@ -16,13 +16,14 @@
 		"postinstall": "bunx --bun nuxt prepare",
 		"api-client:generate": "bun scripts/api-client-generate.ts",
 		"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
-		"test": "bun test"
+		"test": "bun test",
+		"test:ci": "bun test --coverage --reporter=junit --reporter-outfile=./junit.xml"
 	},
 	"dependencies": {
 		"@hey-api/nuxt": "^0.2.1",
 		"@hey-api/openapi-ts": "^0.99.0",
 		"@nuxt/ui": "^4.9.0",
-		"nuxt": "^4.4.8",
+		"nuxt": "^4.6.2",
 		"vue": "^3.5.39",
 		"vue-router": "^5.1.0",
 		"zod": "^4.4.3"

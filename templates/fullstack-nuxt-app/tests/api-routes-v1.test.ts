@@ -35,6 +35,22 @@ describe("Global API routes", async () => {
 		expect(res.status).toBe(302);
 		expect(res.headers.get("location")).toBe("/docs/v1");
 	});
+
+	test("every operation tag is declared and every declared tag is used", async () => {
+		const res = await API.getApp().request("/docs/v1/openapi");
+		const spec = (await res.json()) as any;
+
+		const declared = new Set<string>(spec.tags.map((tag: any) => tag.name));
+		const used = new Set<string>();
+		for (const operations of Object.values<any>(spec.paths)) {
+			for (const operation of Object.values<any>(operations)) {
+				for (const tag of operation.tags ?? []) used.add(tag);
+			}
+		}
+
+		expect([...used].filter((tag) => !declared.has(tag))).toEqual([]);
+		expect([...declared].filter((tag) => !used.has(tag))).toEqual([]);
+	});
 });
 
 describe("Auth routes and access checks", async () => {

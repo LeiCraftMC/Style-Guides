@@ -39,23 +39,26 @@ const { data: users, loading: loadingUsers } = await useAPILazyAsyncData(
 const stats = computed(() => [
 	{
 		label: "API Keys",
-		value: loadingApiKeys.value ? "…" : (apiKeys.value?.length ?? 0),
+		value: apiKeys.value?.length ?? 0,
+		loading: loadingApiKeys.value,
 		icon: "i-lucide-key",
-		color: "text-primary-400",
+		iconColor: "primary" as const,
 	},
 	{
 		label: "Member since",
 		value: formatDate(user.value.created_at),
+		loading: false,
 		icon: "i-lucide-calendar",
-		color: "text-emerald-400",
+		iconColor: "emerald" as const,
 	},
 	...(isAdmin.value
 		? [
 				{
 					label: "Users",
-					value: loadingUsers.value ? "…" : (users.value?.length ?? 0),
+					value: users.value?.length ?? 0,
+					loading: loadingUsers.value,
 					icon: "i-lucide-users",
-					color: "text-amber-400",
+					iconColor: "amber" as const,
 				},
 			]
 		: []),
@@ -116,17 +119,15 @@ const quickActions = computed(() => [
 
 				<!-- Stats -->
 				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<UCard v-for="stat in stats" :key="stat.label" class="border-slate-800 bg-slate-900/60">
-						<div class="flex items-center gap-4">
-							<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-800">
-								<UIcon :name="stat.icon" :class="['text-xl', stat.color]" />
-							</div>
-							<div>
-								<p class="text-2xl font-bold">{{ stat.value }}</p>
-								<p class="text-sm text-slate-400">{{ stat.label }}</p>
-							</div>
-						</div>
-					</UCard>
+					<DashboardStatCard
+						v-for="stat in stats"
+						:key="stat.label"
+						:label="stat.label"
+						:value="stat.value"
+						:loading="stat.loading"
+						:icon="stat.icon"
+						:icon-color="stat.iconColor"
+					/>
 				</div>
 
 				<!-- Quick actions -->

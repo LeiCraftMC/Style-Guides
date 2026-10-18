@@ -118,122 +118,100 @@ async function onDeleteAccount() {
 			<p class="mt-1 text-sm text-slate-400">Manage your password and account security</p>
 		</div>
 
-		<!-- Password -->
-		<div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm">
-			<div class="border-b border-slate-800 px-6 py-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-						<UIcon name="i-lucide-key-round" class="h-5 w-5 text-primary-400" />
-					</div>
-					<div>
-						<h3 class="font-medium text-white">Change Password</h3>
-						<p class="text-sm text-slate-400">Update your password to keep your account secure</p>
-					</div>
-				</div>
-			</div>
-
-			<div class="p-6">
-				<UForm
-					:schema="passwordSchema"
-					:state="password"
-					:validate="validate"
-					class="divide-y divide-slate-800"
-					@submit="onPasswordSubmit"
+		<DashboardSectionCard
+			title="Change Password"
+			description="Update your password to keep your account secure"
+			icon="i-lucide-key-round"
+		>
+			<UForm
+				:schema="passwordSchema"
+				:state="password"
+				:validate="validate"
+				class="divide-y divide-slate-800"
+				@submit="onPasswordSubmit"
+			>
+				<UFormField
+					name="current_password"
+					label="Current Password"
+					description="Enter your current password to verify."
+					required
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
+					:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
 				>
-					<UFormField
-						name="current_password"
-						label="Current Password"
-						description="Enter your current password to verify."
-						required
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
-						:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
-					>
-						<UInput
-							v-model="password.current_password"
-							type="password"
-							placeholder="Current password"
-							class="w-full sm:w-96"
-						/>
-					</UFormField>
+					<UInput
+						v-model="password.current_password"
+						type="password"
+						placeholder="Current password"
+						class="w-full sm:w-96"
+					/>
+				</UFormField>
 
-					<UFormField
-						name="new_password"
-						label="New Password"
-						description="At least 8 characters."
-						required
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
-						:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
-					>
-						<UInput
-							v-model="password.new_password"
-							type="password"
-							placeholder="New password"
-							class="w-full sm:w-96"
-						/>
-					</UFormField>
+				<UFormField
+					name="new_password"
+					label="New Password"
+					description="At least 8 characters."
+					required
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
+					:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
+				>
+					<UInput
+						v-model="password.new_password"
+						type="password"
+						placeholder="New password"
+						class="w-full sm:w-96"
+					/>
+				</UFormField>
 
-					<UFormField
-						name="confirm_password"
-						label="Confirm Password"
-						description="Re-enter your new password."
-						required
-						class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
-						:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
-					>
-						<UInput
-							v-model="password.confirm_password"
-							type="password"
-							placeholder="Confirm password"
-							class="w-full sm:w-96"
-						/>
-					</UFormField>
+				<UFormField
+					name="confirm_password"
+					label="Confirm Password"
+					description="Re-enter your new password."
+					required
+					class="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0 max-sm:flex-col"
+					:ui="{ root: 'w-full sm:w-auto', container: 'w-full sm:w-auto' }"
+				>
+					<UInput
+						v-model="password.confirm_password"
+						type="password"
+						placeholder="Confirm password"
+						class="w-full sm:w-96"
+					/>
+				</UFormField>
 
-					<div class="pt-4">
-						<UButton
-							label="Update Password"
-							type="submit"
-							color="primary"
-							:loading="passwordLoading"
-							icon="i-lucide-lock"
-						/>
-					</div>
-				</UForm>
-			</div>
-		</div>
-
-		<!-- Danger zone -->
-		<div class="overflow-hidden rounded-xl border border-red-900/50 bg-red-950/20 backdrop-blur-sm">
-			<div class="border-b border-red-900/50 px-6 py-4">
-				<div class="flex items-center gap-3">
-					<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-						<UIcon name="i-lucide-alert-triangle" class="h-5 w-5 text-red-400" />
-					</div>
-					<div>
-						<h3 class="font-medium text-red-400">Danger Zone</h3>
-						<p class="text-sm text-slate-400">Irreversible and destructive actions</p>
-					</div>
-				</div>
-			</div>
-
-			<div class="p-6">
-				<div class="flex flex-col gap-4 md:flex-row md:items-center">
-					<div class="flex-1">
-						<h4 class="font-medium text-white">Delete Account</h4>
-						<p class="mt-1 text-sm text-slate-400">
-							Permanently delete your account and all associated data. This action cannot be
-							undone.
-						</p>
-					</div>
+				<div class="pt-4">
 					<UButton
-						label="Delete Account"
-						color="error"
-						variant="soft"
-						icon="i-lucide-trash-2"
-						@click="deleteConfirmOpen = true"
+						label="Update Password"
+						type="submit"
+						color="primary"
+						:loading="passwordLoading"
+						icon="i-lucide-lock"
 					/>
 				</div>
+			</UForm>
+		</DashboardSectionCard>
+
+		<DashboardSectionCard
+			title="Danger Zone"
+			description="Irreversible and destructive actions"
+			icon="i-lucide-alert-triangle"
+			tone="danger"
+		>
+			<div class="flex flex-col gap-4 md:flex-row md:items-center">
+				<div class="flex-1">
+					<h4 class="font-medium text-white">Delete Account</h4>
+					<p class="mt-1 text-sm text-slate-400">
+						Permanently delete your account and all associated data. This action cannot be undone.
+					</p>
+				</div>
+				<UButton
+					label="Delete Account"
+					color="error"
+					variant="soft"
+					icon="i-lucide-trash-2"
+					@click="deleteConfirmOpen = true"
+				/>
 			</div>
-		</div>
+		</DashboardSectionCard>
 
 		<DashboardDeleteModal
 			v-model:open="deleteConfirmOpen"

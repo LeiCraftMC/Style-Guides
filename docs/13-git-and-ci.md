@@ -47,6 +47,7 @@ dist/
 .drizzle
 *.tsbuildinfo
 coverage
+junit.xml
 logs
 *.log
 .DS_Store
@@ -137,8 +138,27 @@ test:typecheck:
 test:unit:
   stage: test
   script:
-    - bun test
+    - bun run test:ci
+  # The "All files" row of bun's coverage table; the capture group picks the % Lines column.
+  coverage: '/All files\s*\|\s*[\d.]+\s*\|\s*([\d.]+)/'
+  artifacts:
+    when: always
+    reports:
+      junit: junit.xml
 ```
+
+`test:unit` runs `bun run test:ci` (`bun test --coverage --reporter=junit
+--reporter-outfile=./junit.xml`, see [12](12-testing.md#ci)) and feeds two GitLab features:
+
+- **Unit test report:** `artifacts:reports:junit` uploads `junit.xml`. Every test then shows up in
+  the merge request's test summary and the pipeline's **Tests** tab, failing ones with their
+  assertion message. `when: always` uploads it when tests fail too — when it is needed most. The
+  report doesn't change the job status; a failing test still fails the job through bun's exit code.
+- **Coverage:** the `coverage:` regex reads the line coverage from the `All files` row of bun's
+  coverage table (`File | % Funcs | % Lines | …`); the capture group picks `% Lines`, since GitLab
+  would otherwise take the first number in the match (`% Funcs`). GitLab shows the value in merge
+  requests and the pipeline. Bun writes coverage only as text or lcov, and GitLab's line-by-line
+  coverage view needs Cobertura, so there is no coverage view in diffs.
 
 `.gitlab/ci/build.yml` comes in three flavours — copy the one that matches the shape:
 
@@ -176,8 +196,9 @@ What each build produces and how it is run: [14 — Deployment](14-deployment.md
 The templates ship GitLab CI only — the self-hosted GitLab is the primary home (see
 [17](17-decisions.md#18-gitlab-ci-ships-in-the-templates-github-actions-is-opt-in)). A repo hosted
 on GitHub copies its workflows from
-[`shared/config/github-actions/`](../shared/config/github-actions/) into `.github/workflows/`, and
-can delete `.gitlab-ci.yml` and `.gitlab/ci/` if it doesn't also run on GitLab.
+[`shared/config/github-actions/`](../shared/config/github-actions/) into `.github/workflows/`. If it
+doesn't also run on GitLab, it can delete `.gitlab-ci.yml` and `.gitlab/ci/{testing,build}.yml` —
+static sites keep `.gitlab/ci/deploy.sh`, which `ci.static.yml` runs.
 
 `.github/workflows/ci.yml`
 ([`shared/config/github-actions/ci.yml`](../shared/config/github-actions/ci.yml)) runs on pushes to
@@ -206,6 +227,8 @@ jobs:
       - run: bun test
 ```
 
+GitHub has no built-in JUnit view, so `ci.yml` runs plain `bun test` instead of `test:ci`.
+
 Static sites use [`ci.static.yml`](../shared/config/github-actions/ci.static.yml) as
 `.github/workflows/ci.yml` instead: the same `test` job plus a `deploy` job that runs only on
 pushes to `main` (`needs: test`), generates the site and rsyncs it with `bash .gitlab/ci/deploy.sh`
@@ -231,7 +254,8 @@ Which CI each shape uses:
 
 ## CI rules
 
-- Every pipeline runs `bun run check:ci` (`biome ci`), `bun run typecheck` and `bun test`. All
+- Every pipeline runs `bun run check:ci` (`biome ci`), `bun run typecheck` and the tests —
+  `bun run test:ci` on GitLab (JUnit report + coverage), `bun test` on GitHub. All
   templates pass `check:ci` as shipped; their `biome.json` excludes `**/api-client`, `**/*.gen.ts`
   and `**/drizzle/migrations` (generated code).
 - `bun install --frozen-lockfile` in CI; local development can use `bun install`.
@@ -255,6 +279,8 @@ reason in [17 — Decisions](17-decisions.md).
 - [ ] Only when hosted on GitHub: `.github/workflows/ci.yml` from
       `shared/config/github-actions/ci.yml` (static sites: `ci.static.yml`, with the
       `DEPLOY_REMOTE_*` secrets set); CLI tools also `release.yml`. The templates don't ship them.
-- [ ] CI runs `bun run check:ci`, `bun run typecheck`, `bun test` with `--frozen-lockfile`.
+- [ ] CI runs `bun run check:ci`, `bun run typecheck` and the tests with `--frozen-lockfile` —
+      on GitLab `bun run test:ci`, uploading `junit.xml` as `artifacts:reports:junit` with
+      `when: always`; on GitHub `bun test`.
 - [ ] GitLab CI uses `oven/bun`; GitHub uses `oven-sh/setup-bun`.
 - [ ] `LICENSE` is AGPL-3.0 unless otherwise decided.

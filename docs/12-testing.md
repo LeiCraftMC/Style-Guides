@@ -5,7 +5,8 @@
 All tests run with `bun:test`:
 
 ```bash
-bun run test   # = bun test
+bun run test      # = bun test
+bun run test:ci   # + coverage table and a JUnit report in ./junit.xml (what GitLab CI runs)
 ```
 
 Test files are named `*.test.ts` and live in the project's root **`tests/`** directory, with
@@ -15,7 +16,8 @@ type-check pass from day one.
 | Template | Tests | Preload |
 | --- | --- | --- |
 | `backend-service`, `fullstack-nuxt-app` | `tests/api-routes-v1.test.ts`, `tests/email.test.ts` + `tests/helpers/{api,preload,seed,memory-transport}.ts` | `bunfig.toml` → `tests/helpers/preload.ts` |
-| `nuxt-app`, `static-site`, `static-site-with-docs`, `cli-tool` | placeholder `tests/basic.test.ts` | none |
+| `nuxt-app`, `static-site`, `cli-tool` | placeholder `tests/basic.test.ts` | none |
+| `static-site-with-docs` | placeholder `tests/basic.test.ts` + `tests/code-icons.test.ts` (code-block labels in `content/` map to Lucide icons) | none |
 
 ## Service test harness (`bunfig.toml` preload)
 
@@ -25,6 +27,8 @@ Services register the preload in `bunfig.toml`
 ```toml
 [test]
 preload = ["./tests/helpers/preload.ts"]
+# Keep the test harness out of the coverage numbers (`bun run test:ci`).
+coveragePathIgnorePatterns = ["tests/**"]
 ```
 
 [`tests/helpers/preload.ts`](../shared/backend/tests/helpers/preload.ts) registers **module-level**
@@ -220,10 +224,11 @@ The preload never initialises `EmailService`, so other files run with email disa
 
 ## Frontend tests
 
-The Nuxt templates ship only the placeholder test and **no preload**; their
-`tsconfig/tsconfig.typecheck.json` type-checks `tests/`. Plain `bun test` has no Nuxt runtime (no
-auto-imports, `useState`, `useCookie`), so test framework-free code — `app/utils/*`, pure helpers —
-and import it explicitly:
+The Nuxt templates ship **no preload** and, apart from static-site-with-docs'
+`tests/code-icons.test.ts`, only the placeholder test; their `tsconfig/tsconfig.typecheck.json`
+type-checks `tests/`. Plain `bun test` has no Nuxt runtime (no auto-imports, `useState`,
+`useCookie`), so test framework-free code — `app/utils/*`, `app/data/*`, pure helpers — and import
+it explicitly (`code-icons.test.ts` imports `app/data/code-icons.ts` this way):
 
 ```ts
 import { describe, expect, test } from "bun:test";
@@ -264,11 +269,31 @@ test("UserDataPolicies.Password rejects a weak password", () => {
 
 ## CI
 
-CI runs `bun run test` (plus `check:ci` and `typecheck`). See [13 — Git & CI](13-git-and-ci.md).
+CI runs the tests next to `check:ci` and `typecheck`. GitLab's `test:unit` job runs
+`bun run test:ci`:
+
+```json
+"test:ci": "bun test --coverage --reporter=junit --reporter-outfile=./junit.xml"
+```
+
+- `--reporter=junit` writes `./junit.xml` (gitignored) and still prints the normal console output.
+  GitLab reads the file as a unit test report: the merge request's test summary and the
+  pipeline's **Tests** tab list every test, with the failure message of each failing one.
+- `--coverage` prints bun's coverage table, and GitLab reads the line coverage from its `All files`
+  row. The service templates' `bunfig.toml` excludes `tests/**`, so the harness doesn't count as
+  covered code. Placeholder tests that import no source print no table, so GitLab shows no
+  coverage for those projects.
+- Keep the report at `./junit.xml`. Bun doesn't create a missing parent directory for
+  `--reporter-outfile`; the report is then silently missing and the run still exits 0.
+
+GitHub Actions has no built-in JUnit view, so its `ci.yml` runs plain `bun test`. Locally, use
+`bun run test`. See [13 — Git & CI](13-git-and-ci.md#ci--gitlab) for the job.
 
 ## Checklist
 
 - [ ] Tests live in `tests/*.test.ts`; helpers in `tests/helpers/`.
+- [ ] `test:ci` (= `bun test --coverage --reporter=junit --reporter-outfile=./junit.xml`) exists;
+      services exclude `tests/**` from coverage in `bunfig.toml`.
 - [ ] Services preload `tests/helpers/preload.ts` via `bunfig.toml` (temp `tmp-data-*` dir, real
   migrations, `API.init`; backend-service also `API.start`).
 - [ ] Route tests use `makeAPIRequest(path, opts?, expectedCode?)` and assert failure codes

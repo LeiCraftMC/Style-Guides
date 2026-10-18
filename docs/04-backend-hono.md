@@ -18,9 +18,9 @@ Main.main()                                   // src/index.ts, self-invoked at t
   ├─ Logger.setLogLevel(LOG_LEVEL)
   ├─ DB.init(DB_PATH, DB_AUTO_MIGRATE, CONFIG_BASE_DIR, DB_MIGRATION_DIR)   // bun-sqlite, migrations, initial admin
   ├─ Utils.ensureDirectoryExists(LOG_DIR)
-  ├─ TaskScheduler.processQueue()             // resume pending/paused background tasks
   ├─ EmailService.init()                      // SMTP, or disabled when SMTP_HOST is unset
   ├─ CronJobHandler.init() + startAll()
+  ├─ TaskScheduler.processQueue()             // not awaited: resume pending/paused background tasks
   ├─ API.init([APP_URL], API_DISABLE_DOCS === true)
   │   ├─ prettyJSON, cors, onError
   │   ├─ /v1  → APIv1Router (authMiddlewareV1 → auth / account / admin routers)
@@ -56,12 +56,16 @@ export class Main {
 
 		await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 
-		await TaskScheduler.processQueue();
-
 		await EmailService.init();
 
 		await CronJobHandler.init();
 		await CronJobHandler.startAll();
+
+		// Not awaited: it runs the queued tasks to completion. Started before the API so that no
+		// request can enqueue first (TaskHandler then skips loading the stored pending/paused tasks).
+		TaskScheduler.processQueue().catch((err) => {
+			Logger.error("Task queue processing failed:", err);
+		});
 
 		await API.init([config.APP_URL], config.API_DISABLE_DOCS === true);
 
@@ -102,6 +106,12 @@ Rules:
 
 - Keep the order: config → log level → DB → everything that needs the DB → API last. Shutdown runs
   in reverse (cron, API, email, tasks, DB).
+- Start the task queue **after** email (tasks may send mail) and cron, **right before** the API,
+  without awaiting it: `processQueue()` runs every queued task to completion, which must not hold
+  back the API. It is started before the API because `TaskHandler` only loads the stored
+  pending/paused tasks when its in-memory queue is empty — a request that enqueues first would
+  leave them unloaded until the next restart. The `.catch` keeps a storage failure in the queue
+  from becoming an unhandled rejection (which `Main` treats as fatal).
 - Defaults live in the config schema, so `Main` passes `config.*` straight through (see
   [09 — Config & logging](09-config-and-logging.md)).
 - The `// biome-ignore format` comment keeps the one-step-per-paragraph layout; keep it.
@@ -509,18 +519,23 @@ documentation: {
 	"x-tagGroups": [
 		{
 			name: "Account & Authentication",
-			tags: ["Account", "Account / API Keys", "Account / Preferences", "Authentication"],
+			tags: [
+				DOCS_TAGS.ACCOUNT,
+				DOCS_TAGS.ACCOUNT_API_KEYS,
+				DOCS_TAGS.ACCOUNT_PREFERENCES,
+				DOCS_TAGS.AUTHENTICATION,
+			],
 		},
-		{ name: "Admin", tags: ["Admin / Users"] },
+		{ name: DOCS_TAGS.ADMIN_API.BASE, tags: [DOCS_TAGS.ADMIN_API.USERS] },
 	],
 	tags: [
-		{ name: "Account", description: "Endpoints for user account management" },
+		{ name: DOCS_TAGS.ACCOUNT, description: "Endpoints for user account management" },
 		{
-			name: "Account / API Keys",
+			name: DOCS_TAGS.ACCOUNT_API_KEYS,
 			// @ts-ignore
 			"x-displayName": "API Keys",
 			summary: "API Keys",
-			parent: "Account",
+			parent: DOCS_TAGS.ACCOUNT,
 			description: "Endpoints for managing account API keys",
 		},
 		// … one entry per tag
@@ -532,10 +547,9 @@ documentation: {
   [17 — Decisions](17-decisions.md#12-opaque-bearer-tokens-not-jwt).
 - Routes reference tags through the `DOCS_TAGS` constant
   ([`versions/v1/docs/index.ts`](../templates/backend-service/src/api/versions/v1/docs/index.ts)).
-  Keep `DOCS_TAGS`, `tags` and `x-tagGroups` in sync. *(The template currently doesn't:
-  `DOCS_TAGS.ADMIN_API.USERS` is `"Admin API / Users"` while `tags`/`x-tagGroups` declare
-  `"Admin / Users"`, so the admin endpoints land under an undeclared tag. Align them in your
-  project.)*
+  The `tags` and `x-tagGroups` entries reference the same constants instead of repeating the
+  strings, and a test in `tests/api-routes-v1.test.ts` fails when an operation uses an undeclared
+  tag or a declared tag has no operations.
 - `APIRouteSpec.authenticated(...)` adds `security: [{ bearerAuth: [] }]` to the operation;
   `APIRouteSpec.unauthenticated(...)` sets `security: []`.
 
@@ -546,7 +560,13 @@ For the full-stack Nuxt shape (see [01 — Project structure](01-project-structu
 Three things change:
 
 1. **No `Main`.** Nitro owns the process. `server/plugins/startup.ts` runs the same init sequence
-   once at boot — without `API.start()` — and registers the shutdown on Nitro's `close` hook.
+   once at boot — without `API.start()`. Nitro doesn't await async plugins, so the server already
+   listens while it runs (`/api/**` answers 503 until `API.init()`). The shutdown is registered on
+   Nitro's `close` hook **and**, in production builds, on `SIGINT`/`SIGTERM`/`uncaughtException`/
+   `unhandledRejection`: the Bun preset's server entry (`nuxt build --preset bun`) installs no signal
+   or error handlers and never calls the `close` hook, so without them `docker stop` would kill
+   running tasks mid-step and never close the DB. `import.meta.dev` keeps them out of `nuxt dev`,
+   whose Nitro worker is reloaded (and does call `close`).
 2. **A catch-all Nitro route** (`server/routes/api/[...].ts`) mounts `API.getApp()` at `/api` in a
    wrapper Hono app and forwards each request. Endpoints become `/api/v1/<resource>`,
    `/api/health`, `/api/docs/v1`.
@@ -560,6 +580,63 @@ import { defineNitroPlugin } from "nitropack/runtime";
 
 // Runs once at Nitro boot — replaces Main.main() from the standalone backend shape.
 export default defineNitroPlugin(async (nitroApp) => {
+	let shutdownPromise: Promise<boolean> | null = null;
+
+	// Idempotent: every caller awaits the same run. Resolves to false if a step failed.
+	function shutdown(reason: string) {
+		shutdownPromise ??= (async () => {
+			try {
+				Logger.log(`Received ${reason}, shutting down...`);
+
+				await CronJobHandler.stopAll();
+
+				await API.stop();
+
+				await EmailService.reset();
+				await TaskScheduler.stopProcessing();
+
+				await DB.close();
+
+				Logger.log("Shutdown complete, exiting.");
+				return true;
+			} catch {
+				Logger.critical("Error during shutdown, forcing exit");
+				return false;
+			}
+		})();
+		return shutdownPromise;
+	}
+
+	nitroApp.hooks.hook("close", async () => {
+		await shutdown("close");
+	});
+
+	// The Bun preset installs no signal or error handlers and never calls the `close` hook.
+	// Registered first: Nitro doesn't await this plugin, so the server already listens during startup.
+	if (!import.meta.dev) {
+		for (const signal of ["SIGINT", "SIGTERM"] as const) {
+			process.once(signal, async () => {
+				process.exit((await shutdown(signal)) ? 0 : 1);
+			});
+		}
+
+		process.once("uncaughtException", async (error) => {
+			Logger.critical(
+				`Uncaught Exception:\n${Error.isError(error) ? (error.stack ?? error.message) : error}`,
+			);
+			await shutdown("uncaughtException");
+			process.exit(1);
+		});
+
+		process.once("unhandledRejection", async (reason) => {
+			Logger.critical(
+				`Unhandled Rejection:\n${Error.isError(reason) ? (reason.stack ?? reason.message) : reason}`,
+			);
+			await shutdown("unhandledRejection");
+			process.exit(1);
+		});
+	}
+
 	const config = await ConfigHandler.loadConfig();
 
 	Logger.setLogLevel(config.LOG_LEVEL ?? "info");
@@ -574,33 +651,18 @@ export default defineNitroPlugin(async (nitroApp) => {
 
 	await Utils.ensureDirectoryExists(config.LOG_DIR ?? "./data/logs");
 
-	await TaskScheduler.processQueue();
-
 	await EmailService.init();
 
 	await CronJobHandler.init();
 	await CronJobHandler.startAll();
 
-	await API.init([config.APP_URL], config.API_DISABLE_DOCS === true);
-
-	nitroApp.hooks.hook("close", async () => {
-		try {
-			Logger.log(`Received SIGTERM, shutting down...`);
-
-			await CronJobHandler.stopAll();
-
-			await API.stop();
-
-			await EmailService.reset();
-			await TaskScheduler.stopProcessing();
-
-			await DB.close();
-
-			Logger.log("Shutdown complete, exiting.");
-		} catch {
-			Logger.critical("Error during shutdown, forcing exit");
-		}
+	// Not awaited: it runs the queued tasks to completion. Started before the API so that no
+	// request can enqueue first (TaskHandler then skips loading the stored pending/paused tasks).
+	TaskScheduler.processQueue().catch((err) => {
+		Logger.error("Task queue processing failed:", err);
 	});
+
+	await API.init([config.APP_URL], config.API_DISABLE_DOCS === true);
 });
 ```
 
@@ -721,6 +783,53 @@ Notes:
   `http://localhost:12520/api/v1` and your production `/api/v1`.
 - Tests drive `API.getApp()` directly — no Nitro, no `/api` prefix, no `API.start()`
   (`makeAPIRequest("/v1/...")`).
+- **`server/lib/**` stays Nitro-free** — no `nitropack/*`, `h3`, `#imports` or auto-imported
+  `useStorage`/`useRuntimeConfig`. `bun test`, `scripts/api-client-generate.ts` and the compile
+  script import it under plain Bun. Bridge Nitro-only capabilities in `server/plugins/startup.ts`
+  (see [Server assets](#server-assets-binary-files)).
+
+### Server assets (binary files)
+
+*Ecosystem pattern (LAVIAC), not part of the templates.* Binary files that server code needs at
+runtime (fonts, images, document templates) can't live in `public/` (served to everyone), can't be
+read relative to `import.meta.url` (Nitro bundles `server/` into `.output/server/chunks/`) and
+shouldn't live in the `data/` volume (not part of the image). Use Nitro's **server assets**:
+
+1. Put the file under `server/assets/<group>/<file>`. Nitro mounts that folder as `assets:server`
+   by default and bundles it into `.output/` — no `nuxt.config` change.
+2. Give the static service that needs it a loader slot, so `server/lib/**` stays Nitro-free:
+
+   ```ts
+   export class ReportTemplates {
+   	protected static loader: (() => Promise<Uint8Array<ArrayBuffer> | null>) | null = null;
+
+   	static setLoader(loader: () => Promise<Uint8Array<ArrayBuffer> | null>) {
+   		this.loader = loader;
+   	}
+
+   	static async loadLogo() {
+   		return this.loader ? this.loader() : null;
+   	}
+   }
+   ```
+
+3. Register the loader in `server/plugins/startup.ts`, before anything that uses it (tasks,
+   `API.init()`):
+
+   ```ts
+   import { defineNitroPlugin, useStorage } from "nitropack/runtime";
+
+   ReportTemplates.setLoader(async () => {
+   	const raw = await useStorage("assets:server").getItemRaw<Uint8Array>("reports/logo.png");
+   	return raw ? new Uint8Array(raw) : null;
+   });
+   ```
+
+`new Uint8Array(raw)` evens out dev (a `Buffer`) and production (a `Uint8Array`) and yields the
+`Uint8Array<ArrayBuffer>` that `Blob`/`fetch` bodies require. Outside Nitro (tests, scripts) no
+loader is set, so the service returns `null` and its callers must degrade gracefully. Keep it to
+small files: binary assets are inlined into the server bundle as base64; large or mutable data
+belongs in the data directory.
 
 ### Realtime (WebSocket)
 
@@ -784,9 +893,9 @@ full-stack template has the same files under `server/lib/`). Links go to the bac
 | Utility | File | What it does |
 | --- | --- | --- |
 | `EmailService` | [`src/api/utils/email.ts`](../templates/backend-service/src/api/utils/email.ts) | nodemailer wrapper. `init()` reads `SMTP_*`; without `SMTP_HOST` it logs a warning and stays disabled. `init(transporter)` injects a test transport. `isEnabled()`, `getFrom()`, `reset()`, `sendPasswordResetEmail(to, rawToken)` (fire-and-forget: logs, never throws). |
-| `TaskScheduler` | [`src/tasks/`](../templates/backend-service/src/tasks/) | `@cleverjs/utils` `TaskHandler` persisted in `scheduled_tasks` (+ `scheduled_tasks_paused_state`). Register task functions in the `Registry` (`sampleTask.ts` shows the shape); `processQueue()` at startup resumes pending/paused tasks; `TaskQueueUtils.createPendingTaskRecord(...)` / `activatePendingTask(id)` enqueue work. Per-task logs go to `<LOG_DIR>/tasks/task-<id>.log`. |
-| `CronJobHandler` | [`src/utils/cron.ts`](../templates/backend-service/src/utils/cron.ts) | Wraps `Bun.cron`. Declare jobs in `init()` (the template ships two empty every-minute placeholders — replace or delete them); `startAll()` / `stopAll()`. |
-| `RuntimeMetadata` | [`src/api/utils/metadata.ts`](../templates/backend-service/src/api/utils/metadata.ts) | Global key/value store in the `metadata` table, one Zod schema per key; protected `getMetadata(key, createIfNotFound)` / `setMetadata(key, data)` — subclass or extend with typed accessors. |
+| `TaskScheduler` | [`src/tasks/`](../templates/backend-service/src/tasks/) | `@cleverjs/utils` `TaskHandler` persisted in `scheduled_tasks` (+ `scheduled_tasks_paused_state`). Register task functions in the `Registry` (`sampleTask.ts` shows the shape); `processQueue()` at startup (not awaited) resumes pending/paused tasks; `TaskScheduler.enqueueTask(fn, args, { created_by_user_id }, { storeLogs?, autoDelete? })` queues work and returns the task ID (`TaskQueueUtils` and its two-step `createPendingTaskRecord` / `activatePendingTask` are deprecated). Per-task logs (`storeLogs`) go to `<LOG_DIR>/tasks/task-<id>.log`; a log file that can't be opened is reported via `Logger` and doesn't affect the task. |
+| `CronJobHandler` | [`src/utils/cron.ts`](../templates/backend-service/src/utils/cron.ts) | Wraps `Bun.cron`. Declare jobs in `init()` (the template ships two empty every-minute placeholders — replace or delete them); `startAll()` / `stopAll()`. A job that throws is logged and runs again at its next tick — a rejected `Bun.cron` callback would otherwise end the process. |
+| `RuntimeMetadata` | [`src/api/utils/metadata.ts`](../templates/backend-service/src/api/utils/metadata.ts) | Global key/value store in the `metadata` table, one Zod schema per key; protected `getMetadata(key)` (a key without a row reads as its schema default; nothing is written — the deprecated `getMetadata(key, createIfNotFound)` overload keeps the old behaviour: `true` writes the default, `false` throws) / `setMetadata(key, data)` (validates, then upserts) — subclass or extend with typed accessors. |
 | `UserPreferences` / `UserPreferencesHandler` | [`src/api/utils/preferences.ts`](../templates/backend-service/src/api/utils/preferences.ts) | Per-user key/value store in `user_preferences`, one Zod schema per key (per-field defaults). `get`, `getAll` (fills defaults, drops unknown keys), `set` (upsert), `deleteAllForUser`, typed `getOnboarding` / `setOnboarding`. Add a key to `UserPreferences.schemas`, then a typed getter/setter and a route. |
 | `LCrypt` & co. | [`src/utils/crypto/`](../templates/backend-service/src/utils/crypto/) | `LCrypt.sha256()` — **SHA3-256** despite the name — `randomBytes()`, secp256k1 keys/sign/recover/ECDH, AES-256-GCM `encryptData`/`decryptData`; `ObjectEncryption.encrypt/decrypt(obj, key)`; `PublicKey`/`PrivateKey`/`KeyPair`, `Signature`. |
 | `AppConstants` | [`shared/backend/src/utils/constants.ts`](../shared/backend/src/utils/constants.ts) | `APP_NAME`, `APP_ENV_PREFIX` (`APPPREFIX`), `APP_KEYS_PREFIX` (`appprefix`), `APP_API_DEFAULT_PORT`, `APP_API_DEFAULT_PROD_URL`, `DEFAULT_EMAIL_FROM_HOST`, `DEFAULT_SMTP_FROM`, `BINARY_NAME`. Core file (in `shared/`). |
@@ -839,9 +948,10 @@ builders from `drizzle-orm/sqlite-core`. Column helpers and the `DrizzleDB` type
 ## Checklist
 
 - [ ] `Main.main()` registers its signal/exception handlers first, then runs config → log level →
-  DB → tasks → email → cron → `API.init` → `API.start`, and shuts down inline in reverse.
-  *(Full-stack Nuxt shape: `server/plugins/startup.ts` + the Nitro `close` hook instead; see
-  [Mounting Hono in Nitro](#mounting-hono-in-nitro).)*
+  DB → email → cron → task queue (not awaited) → `API.init` → `API.start`, and shuts down inline
+  in reverse. *(Full-stack Nuxt shape: `server/plugins/startup.ts` registers the shutdown on the
+  Nitro `close` hook plus, in production, the signal/exception handlers — first, then the same
+  sequence; see [Mounting Hono in Nitro](#mounting-hono-in-nitro).)*
 - [ ] `API` is a static class: `init(frontendUrls, disableDocs)`, `start(port, hostname)`, `stop()`,
   `getApp()`; prettyJSON + CORS + `onError`; `/health` at the root.
 - [ ] Each version is an `APIVersionRouter` subclass with `openAPIConfig.documentation` and one
