@@ -20,7 +20,7 @@
 		"@nuxt/content": "^3.5.0",
 		"@nuxt/ui": "^4.9.0",
 		"@tailwindcss/typography": "^0.5.20",
-		"nuxt": "^4.4.8"
+		"nuxt": "^4.6.2"
 	},
 	"devDependencies": {
 		"@iconify-json/lucide": "^1.2.117",

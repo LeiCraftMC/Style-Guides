@@ -176,8 +176,9 @@ What each build produces and how it is run: [14 — Deployment](14-deployment.md
 The templates ship GitLab CI only — the self-hosted GitLab is the primary home (see
 [17](17-decisions.md#18-gitlab-ci-ships-in-the-templates-github-actions-is-opt-in)). A repo hosted
 on GitHub copies its workflows from
-[`shared/config/github-actions/`](../shared/config/github-actions/) into `.github/workflows/`, and
-can delete `.gitlab-ci.yml` and `.gitlab/ci/` if it doesn't also run on GitLab.
+[`shared/config/github-actions/`](../shared/config/github-actions/) into `.github/workflows/`. If it
+doesn't also run on GitLab, it can delete `.gitlab-ci.yml` and `.gitlab/ci/{testing,build}.yml` —
+static sites keep `.gitlab/ci/deploy.sh`, which `ci.static.yml` runs.
 
 `.github/workflows/ci.yml`
 ([`shared/config/github-actions/ci.yml`](../shared/config/github-actions/ci.yml)) runs on pushes to

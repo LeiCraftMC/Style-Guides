@@ -15,7 +15,8 @@ type-check pass from day one.
 | Template | Tests | Preload |
 | --- | --- | --- |
 | `backend-service`, `fullstack-nuxt-app` | `tests/api-routes-v1.test.ts`, `tests/email.test.ts` + `tests/helpers/{api,preload,seed,memory-transport}.ts` | `bunfig.toml` → `tests/helpers/preload.ts` |
-| `nuxt-app`, `static-site`, `static-site-with-docs`, `cli-tool` | placeholder `tests/basic.test.ts` | none |
+| `nuxt-app`, `static-site`, `cli-tool` | placeholder `tests/basic.test.ts` | none |
+| `static-site-with-docs` | placeholder `tests/basic.test.ts` + `tests/code-icons.test.ts` (code-block labels in `content/` map to Lucide icons) | none |
 
 ## Service test harness (`bunfig.toml` preload)
 
@@ -220,10 +221,11 @@ The preload never initialises `EmailService`, so other files run with email disa
 
 ## Frontend tests
 
-The Nuxt templates ship only the placeholder test and **no preload**; their
-`tsconfig/tsconfig.typecheck.json` type-checks `tests/`. Plain `bun test` has no Nuxt runtime (no
-auto-imports, `useState`, `useCookie`), so test framework-free code — `app/utils/*`, pure helpers —
-and import it explicitly:
+The Nuxt templates ship **no preload** and, apart from static-site-with-docs'
+`tests/code-icons.test.ts`, only the placeholder test; their `tsconfig/tsconfig.typecheck.json`
+type-checks `tests/`. Plain `bun test` has no Nuxt runtime (no auto-imports, `useState`,
+`useCookie`), so test framework-free code — `app/utils/*`, `app/data/*`, pure helpers — and import
+it explicitly (`code-icons.test.ts` imports `app/data/code-icons.ts` this way):
 
 ```ts
 import { describe, expect, test } from "bun:test";
