@@ -324,9 +324,10 @@ sshpass -p "$DEPLOY_REMOTE_PASSWORD" rsync -avz \
 e.g. no permission on the remote root dir) is tolerated; any other non-zero code fails the job.
 The job runs the script via `bash`, so it needs no executable bit.
 
-GitHub-hosted static sites deploy the same way: the templates' `.github/workflows/ci.yml`
-([`ci.static.yml`](../shared/config/github-actions/ci.static.yml)) runs the test job and, on
-pushes to `main`, a `deploy` job that installs `rsync` + `sshpass`, runs `bun run generate` and
+GitHub-hosted static sites deploy the same way with the opt-in
+[`ci.static.yml`](../shared/config/github-actions/ci.static.yml), copied to
+`.github/workflows/ci.yml` (the templates don't ship it). It runs the test job and, on pushes to
+`main`, a `deploy` job that installs `rsync` + `sshpass`, runs `bun run generate` and
 the same `bash .gitlab/ci/deploy.sh`. The four `DEPLOY_REMOTE_*` values are repository secrets
 (Settings → Secrets and variables → Actions). See [13](13-git-and-ci.md#ci--github).
 
@@ -344,11 +345,12 @@ clean-URL rules.
 
 ## CLI tools
 
-Distribute compiled binaries via GitHub Releases. The
-[`shared/config/github-actions/release.yml`](../shared/config/github-actions/release.yml) workflow
-runs on a `v*` tag, compiles every platform with `bun run compile all --no-version-tag` and
-attaches `build/bin/*` to the release. The binaries report `package.json`'s `"version"` (templates
-ship `0.1.0`), not the tag — bump it first:
+Distribute compiled binaries via GitHub Releases. The cli-tool template ships no release job;
+copy [`shared/config/github-actions/release.yml`](../shared/config/github-actions/release.yml) to
+`.github/workflows/release.yml` in the GitHub repo. It runs on a `v*` tag, compiles every
+platform with `bun run compile all --no-version-tag` and attaches `build/bin/*` to the release.
+The binaries report `package.json`'s `"version"` (templates ship `0.1.0`), not the tag — bump it
+first:
 
 ```bash
 # bump "version" in package.json to 1.2.3, commit, then:
@@ -417,7 +419,8 @@ probe liveness only — e.g. the login UI does.
 - [ ] Static site: `nitro.preset: "static"`, `bun run generate` → `.output/public/`, `deploy.sh`
       with the `DEPLOY_REMOTE_*` variables (GitLab CI variables or GitHub secrets),
       `public/.htaccess` for Apache.
-- [ ] CLI: `package.json` version bumped, then `v*` tag → GitHub Release.
+- [ ] CLI: `package.json` version bumped, then `v*` tag → GitHub Release (`release.yml` copied
+      from `shared/config/github-actions/`).
 - [ ] Config injected at runtime via env vars; booleans set to exactly `true`/`false` — empty
       values fail at startup; image ENV defaults only cover deployment-safe values.
 - [ ] Auto-migration off (and migrations run separately) if more than one process shares a DB.

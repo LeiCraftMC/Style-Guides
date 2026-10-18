@@ -657,8 +657,9 @@ apps: Nuxt 4 + NuxtUI v4 + Tailwind v4, the same `app/` srcDir, `app.config.ts`
   at `/static/utils/sitemap.xml` — point robots' `sitemap:` line there). Update the sitemap when you
   add pages. `@nuxtjs/sitemap` / `@nuxtjs/robots` are optional for larger sites; the templates don't
   use them.
-- **Deploy:** `bun run generate` → `.output/public/`, rsynced by GitLab CI or GitHub Actions
-  (`.gitlab/ci/deploy.sh` either way, see [13](13-git-and-ci.md#ci--github)); `public/.htaccess`
+- **Deploy:** `bun run generate` → `.output/public/`, rsynced by GitLab CI (GitHub-hosted sites use
+  the opt-in `ci.static.yml` with the same `.gitlab/ci/deploy.sh`, see
+  [13](13-git-and-ci.md#ci--github)); `public/.htaccess`
   configures Apache (clean URLs, trailing-slash redirect, `.well-known` bypass, `404.html`). See
   [14](14-deployment.md).
 

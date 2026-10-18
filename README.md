@@ -27,7 +27,7 @@ audited), then makes opinionated calls to close the gaps where practice diverged
 | CLI tooling | **`@cleverjs/cli`** + `bun build --compile` |
 | API contract | OpenAPI generated at runtime → `@hey-api/openapi-ts` typed client |
 | Response shape | `{ success, code, message, data }` envelope, end-to-end |
-| CI | GitLab CI (`oven/bun`) and GitHub Actions — the templates ship both; **Renovate** everywhere |
+| CI | GitLab CI (`oven/bun`) in the templates; GitHub Actions workflows are opt-in from `shared/config/github-actions/`; **Renovate** everywhere |
 | License | **AGPL-3.0** (every template ships a `LICENSE`) |
 | Commits | **Conventional Commits** |
 

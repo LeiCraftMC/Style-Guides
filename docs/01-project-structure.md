@@ -116,7 +116,6 @@ my-app/
 ├── tsconfig.json  tsconfig/tsconfig.typecheck.json
 ├── package.json  bun.lock  biome.json  example.env  .gitignore
 ├── .claude/settings.json  .vscode/mcp.json
-├── .github/workflows/ci.yml
 ├── .gitlab-ci.yml  .gitlab/{ci/{testing,build}.yml, renovate.json}
 └── LICENSE  README.md  AGENTS.md  CLAUDE.md
 ```
@@ -197,7 +196,6 @@ my-app/
 ├── tsconfig.json  tsconfig/tsconfig.typecheck.json
 ├── package.json  bun.lock  biome.json  example.env  .gitignore
 ├── .claude/settings.json  .vscode/mcp.json
-├── .github/workflows/ci.yml
 ├── .gitlab-ci.yml  .gitlab/{ci/{testing,build}.yml, renovate.json}
 └── LICENSE  README.md  AGENTS.md  CLAUDE.md
 ```
@@ -277,7 +275,6 @@ my-site/
 ├── tsconfig.json  tsconfig/tsconfig.typecheck.json
 ├── package.json  bun.lock  biome.json  .gitignore
 ├── .claude/settings.json  .vscode/mcp.json
-├── .github/workflows/ci.yml
 ├── .gitlab-ci.yml  .gitlab/{ci/{testing,build}.yml, ci/deploy.sh, renovate.json}   # generate → rsync
 └── LICENSE  README.md  AGENTS.md  CLAUDE.md
 ```
@@ -326,13 +323,13 @@ my-cli/
 ├── tsconfig.json  tsconfig/{tsconfig.base,tsconfig.typecheck}.json
 ├── package.json  bun.lock  biome.json  .gitignore
 ├── .claude/settings.json
-├── .github/workflows/{ci,release}.yml         # release: `v*` tag → binaries on a GitHub Release
 ├── .gitlab-ci.yml  .gitlab/{ci/testing.yml, renovate.json}   # GitLab build include is commented out
 └── LICENSE  README.md  AGENTS.md  CLAUDE.md
 ```
 
 CLI tools compile to a single binary (`bun build --compile`) and are distributed via GitHub
-Releases or baked into a Docker image. Add domain modules under `src/` as the tool grows. See
+Releases (with the opt-in `release.yml`, see [13](13-git-and-ci.md#ci--github)) or baked into a
+Docker image. Add domain modules under `src/` as the tool grows. See
 [11](11-cli-and-infra.md).
 
 ## Cross-cutting files
@@ -352,8 +349,8 @@ Every template carries:
     [`shared/tsconfig/tsconfig.typecheck.nuxt.json`](../shared/tsconfig/tsconfig.typecheck.nuxt.json)).
 - `biome.json` — the formatter/linter (from [`shared/config/biome.json`](../shared/config/biome.json)) —
   see [02](02-tooling.md#biome-formatter--linter).
-- CI — GitHub `.github/workflows/ci.yml` (all but backend-service) and GitLab `.gitlab-ci.yml` +
-  `.gitlab/ci/` (all). See [13](13-git-and-ci.md).
+- CI — GitLab `.gitlab-ci.yml` + `.gitlab/ci/`. The templates ship no GitHub workflows; a repo
+  hosted on GitHub copies them from `shared/config/github-actions/`. See [13](13-git-and-ci.md).
 - `.gitlab/renovate.json` — the minimal Renovate config (just `$schema`) — see
   [13](13-git-and-ci.md).
 - `LICENSE` (AGPL-3.0), `README.md`, `.gitignore`, `package.json` + `bun.lock`.

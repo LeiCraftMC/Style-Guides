@@ -214,18 +214,20 @@ Dev and prod use the same port; never `3000`. The split-repo defaults line up (t
 at 12500, the backend's `APP_URL` at 12510). A real project picks its own unused port and updates
 every place listed in [02 — Ports](02-tooling.md#ports--one-unique-port-per-app-dev--prod).
 
-## 18. Both CI providers ship in the templates
+## 18. GitLab CI ships in the templates; GitHub Actions is opt-in
 
-**Context:** Repos live on both `git.leicraftmc.de` (GitLab) and `github.com/LeiCraftMC`; the
-templates used to carry one provider or the other.
+**Context:** Repos live on both `git.leicraftmc.de` (GitLab) and `github.com/LeiCraftMC`, but the
+self-hosted GitLab instance is the primary home. The templates used to ship both providers, so
+every new GitLab project carried GitHub workflows it had to delete.
 
-**Decision:** Ship both, so the project works wherever it is pushed. GitHub:
-`.github/workflows/ci.yml` (`check:ci`, `typecheck`, `test`) in every template except
-backend-service, plus `release.yml` in the CLI. GitLab: `.gitlab-ci.yml` + `.gitlab/ci/testing.yml`
-in every template, with a shape-specific `.gitlab/ci/build.yml` (Docker image for the Nuxt apps,
+**Decision:** The templates ship GitLab CI only: `.gitlab-ci.yml` + `.gitlab/ci/testing.yml` in
+every template, with a shape-specific `.gitlab/ci/build.yml` (Docker image for the Nuxt apps,
 compiled-binary image for the backend, rsync deploy for the static sites; the CLI's build include is
-commented out). backend-service ships GitLab CI only. Delete the provider you don't use. See
-[13](13-git-and-ci.md).
+commented out). The GitHub Actions workflows live only in
+[`shared/config/github-actions/`](../shared/config/github-actions/) — `ci.yml` (`check:ci`,
+`typecheck`, `test`), `ci.static.yml` (static sites: test + deploy) and `release.yml` (CLI binaries
+on `v*` tags). A repo hosted on GitHub copies them to `.github/workflows/`. See
+[13](13-git-and-ci.md#ci--github).
 
 ## 19. Minimal Renovate config
 

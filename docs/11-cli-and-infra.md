@@ -284,7 +284,8 @@ Vault, not template defaults** — adopt them when a tool needs them:
       `linux-x64-baseline`, `linux-arm64`.
 - [ ] Services: `--asset ./drizzle/migrations`, migrations committed.
 - [ ] `package.json` `"version"` is set and bumped before tagging a release.
-- [ ] CLI tools: `.github/workflows/release.yml` from `shared/config/github-actions/release.yml`.
+- [ ] CLI tools hosted on GitHub: `.github/workflows/release.yml` from
+      `shared/config/github-actions/release.yml` (the template doesn't ship it).
 - [ ] CLI uses `shared/cli/src/utils/logger.ts` (`logHistory` for crash dumps).
 - [ ] Env-file loading (if any) uses non-overwriting `dotenv`.
 - [ ] (Infra tools) streaming AES-256-GCM, S3 + ntfy + retention; cosign signing if images are

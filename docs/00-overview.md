@@ -25,7 +25,7 @@ comes next.
 | CLI tooling | **`@cleverjs/cli`** + `bun build --compile` (single-binary output) |
 | API contract | OpenAPI generated at runtime → `@hey-api/openapi-ts` typed client with the `@hey-api/client-nuxt`, `@hey-api/typescript`, `@hey-api/sdk` and `zod` plugins (never hand-edit) |
 | Response shape | `{ success, code, message, data }` envelope, end-to-end |
-| CI | **GitHub Actions** (`.github/workflows/ci.yml`) **and** **GitLab CI** (`oven/bun`) ship in the templates — backend-service is GitLab-only; **Renovate** with a minimal per-repo config |
+| CI | **GitLab CI** (`oven/bun`) ships in the templates; **GitHub Actions** workflows are opt-in, copied from `shared/config/github-actions/` when a repo is hosted on GitHub; **Renovate** with a minimal per-repo config |
 | License | **AGPL-3.0** — every template ships a `LICENSE` |
 | Commits | **Conventional Commits** |
 
