@@ -178,8 +178,10 @@ means:
 
 ## Standard scripts
 
-Every project has the four Biome scripts above plus `typecheck` and `test` — those six are
-mandatory. The `echo 'Typecheck passed!'` suffix is a house tic — keep it.
+Every project has the four Biome scripts above plus `typecheck`, `test` and `test:ci` — those seven
+are mandatory. `test:ci` is the CI run of the tests: it adds a coverage table and writes a JUnit
+report to `./junit.xml` for GitLab (see [12](12-testing.md#ci)). The `echo 'Typecheck passed!'`
+suffix is a house tic — keep it.
 
 **Backend service** (the CLI template is the same without `db:*`):
 
@@ -187,6 +189,7 @@ mandatory. The `echo 'Typecheck passed!'` suffix is a house tic — keep it.
 {
 	"typecheck": "bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 	"test": "bun test",
+	"test:ci": "bun test --coverage --reporter=junit --reporter-outfile=./junit.xml",
 	"db:generate": "bun scripts/db-utils && bunx --bun drizzle-kit generate --config=drizzle/configs/drizzle.config.ts",
 	"db:migrate": "bun scripts/db-utils && bunx --bun drizzle-kit migrate --config=drizzle/configs/drizzle.config.ts",
 	"dev": "bun run --watch src/index.ts",
@@ -212,7 +215,8 @@ reads it for `--no-version-tag` builds, so release binaries report it.
 	"postinstall": "bunx --bun nuxt prepare",
 	"api-client:generate": "bun scripts/api-client-generate.ts",
 	"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
-	"test": "bun test"
+	"test": "bun test",
+	"test:ci": "bun test --coverage --reporter=junit --reporter-outfile=./junit.xml"
 }
 ```
 
@@ -221,8 +225,8 @@ scripts/api-client-generate.ts"` plus the backend's `db:generate` / `db:migrate`
 `drizzle/configs/drizzle.config.ts`). It has no `compile` script — it deploys as `.output/` (see
 [14](14-deployment.md)).
 
-**Static sites** (ports 12530 / 12531): `dev`, `generate`, `preview`, `postinstall`, `typecheck` and
-`test` as above, `"build": "nuxt build --preset static"`, and no `start` or `api-client:generate`.
+**Static sites** (ports 12530 / 12531): `dev`, `generate`, `preview`, `postinstall`, `typecheck`,
+`test` and `test:ci` as above, `"build": "nuxt build --preset static"`, and no `start` or `api-client:generate`.
 
 ## Renovate
 

@@ -18,9 +18,10 @@ dist/
 # TypeScript
 *.tsbuildinfo
 
-# Coverage
+# Coverage and test reports
 coverage
 *.lcov
+junit.xml
 
 # Logs
 logs

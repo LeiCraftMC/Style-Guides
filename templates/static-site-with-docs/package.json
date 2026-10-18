@@ -10,6 +10,7 @@
 		"lint": "bunx --bun biome lint",
 		"typecheck": "bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json && echo 'Typecheck passed!'",
 		"test": "bun test",
+		"test:ci": "bun test --coverage --reporter=junit --reporter-outfile=./junit.xml",
 		"dev": "bunx --bun nuxt dev --port 12531",
 		"generate": "bunx --bun nuxt generate",
 		"preview": "bunx --bun nuxt preview",

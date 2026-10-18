@@ -47,6 +47,7 @@ dist/
 .drizzle
 *.tsbuildinfo
 coverage
+junit.xml
 logs
 *.log
 .DS_Store
@@ -137,8 +138,27 @@ test:typecheck:
 test:unit:
   stage: test
   script:
-    - bun test
+    - bun run test:ci
+  # The "All files" row of bun's coverage table; the capture group picks the % Lines column.
+  coverage: '/All files\s*\|\s*[\d.]+\s*\|\s*([\d.]+)/'
+  artifacts:
+    when: always
+    reports:
+      junit: junit.xml
 ```
+
+`test:unit` runs `bun run test:ci` (`bun test --coverage --reporter=junit
+--reporter-outfile=./junit.xml`, see [12](12-testing.md#ci)) and feeds two GitLab features:
+
+- **Unit test report:** `artifacts:reports:junit` uploads `junit.xml`. Every test then shows up in
+  the merge request's test summary and the pipeline's **Tests** tab, failing ones with their
+  assertion message. `when: always` uploads it when tests fail too — when it is needed most. The
+  report doesn't change the job status; a failing test still fails the job through bun's exit code.
+- **Coverage:** the `coverage:` regex reads the line coverage from the `All files` row of bun's
+  coverage table (`File | % Funcs | % Lines | …`); the capture group picks `% Lines`, since GitLab
+  would otherwise take the first number in the match (`% Funcs`). GitLab shows the value in merge
+  requests and the pipeline. Bun writes coverage only as text or lcov, and GitLab's line-by-line
+  coverage view needs Cobertura, so there is no coverage view in diffs.
 
 `.gitlab/ci/build.yml` comes in three flavours — copy the one that matches the shape:
 
@@ -200,6 +220,8 @@ jobs:
       - run: bun test
 ```
 
+GitHub has no built-in JUnit view, so `ci.yml` runs plain `bun test` instead of `test:ci`.
+
 CLI tools add `.github/workflows/release.yml`
 ([`shared/config/github-actions/release.yml`](../shared/config/github-actions/release.yml)): on a
 `v*` tag it runs `bun run compile all --no-version-tag` and attaches `build/bin/*` to a GitHub
@@ -218,7 +240,8 @@ Which template ships what:
 
 ## CI rules
 
-- Every pipeline runs `bun run check:ci` (`biome ci`), `bun run typecheck` and `bun test`. All
+- Every pipeline runs `bun run check:ci` (`biome ci`), `bun run typecheck` and the tests —
+  `bun run test:ci` on GitLab (JUnit report + coverage), `bun test` on GitHub. All
   templates pass `check:ci` as shipped; their `biome.json` excludes `**/api-client`, `**/*.gen.ts`
   and `**/drizzle/migrations` (generated code).
 - `bun install --frozen-lockfile` in CI; local development can use `bun install`.
@@ -241,6 +264,8 @@ reason in [17 — Decisions](17-decisions.md).
       `build.{docker,service,static}.yml` (+ `deploy.sh` for static sites).
 - [ ] GitHub: `.github/workflows/ci.yml` from `shared/config/github-actions/ci.yml`; CLI tools also
       `release.yml`.
-- [ ] CI runs `bun run check:ci`, `bun run typecheck`, `bun test` with `--frozen-lockfile`.
+- [ ] CI runs `bun run check:ci`, `bun run typecheck` and the tests with `--frozen-lockfile` —
+      on GitLab `bun run test:ci`, uploading `junit.xml` as `artifacts:reports:junit` with
+      `when: always`; on GitHub `bun test`.
 - [ ] GitLab CI uses `oven/bun`; GitHub uses `oven-sh/setup-bun`.
 - [ ] `LICENSE` is AGPL-3.0 unless otherwise decided.

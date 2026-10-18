@@ -119,7 +119,7 @@ auto-imports and is checked inside the Nuxt templates.
 | `claude-settings.{backend,cli,nuxt,fullstack,static}.json` | `.claude/settings.json` (see [docs/16](../docs/16-ai-tooling.md)) |
 | `mcp.json` | `.vscode/mcp.json` |
 | `biome.json` | `biome.json` — the template Biome config (not the guide repo's root one) |
-| `bunfig.toml` | `bunfig.toml` (services: test preload) |
+| `bunfig.toml` | `bunfig.toml` (services: test preload, `tests/**` kept out of coverage) |
 | `gitignore` | `.gitignore` |
 | `renovate.json` | `.gitlab/renovate.json` (minimal on purpose; the org-level Renovate config applies) |
 
