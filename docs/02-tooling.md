@@ -165,6 +165,10 @@ What the config sets:
 | `bun run check:ci` | `biome ci` | the CI gate (GitLab `test:lint` job / GitHub step) |
 | `bun run lint` | `biome lint` | lint only |
 
+`bun check` without `run` also runs this `check` script — not Bun's built-in type checker, which a
+script of the same name shadows. Type-check with `bun run typecheck` (why the scripts don't use
+`bun check` yet: [17 › Known future work](17-decisions.md#known-future-work-not-yet-decided)).
+
 ### Biome in `.vue` files
 
 Biome lints the `<script>` block but cannot see `<template>` usage. In the Nuxt templates this

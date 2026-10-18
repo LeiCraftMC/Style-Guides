@@ -395,6 +395,31 @@ templates stay on 6 because vue-tsc doesn't support 7 yet, and on Bun they don't
 `.vue` files at all (see [06 › Type checking](06-frontend-nuxt.md#type-checking)). Upgrade them
 once vue-tsc supports TypeScript 7, and update the guide with it.
 
+**`bun check` instead of `tsc`.** Bun 1.4.3 added `bun check`, a built-in TypeScript 7 type checker
+that never writes files and exits 1 on errors. Tested on 2026-10-18 against the `typecheck` configs
+of this repo (TypeScript 5.9), backend-service (7) and the four Nuxt templates (6): it reported the
+same errors as each project's own `tsc` for planted mistakes — type mismatches,
+`noUncheckedIndexedAccess`, `verbatimModuleSyntax`, an unused `@ts-expect-error`, Bun globals,
+template imports — and ran 2.5× (backend-service, already on the native TypeScript 7) to about 10×
+faster. Two problems block it today:
+
+- Every project has the Biome `check` script ([02](02-tooling.md#biome-formatter--linter)), and a
+  `package.json` script wins over the built-in, so `bun check` runs Biome. The documented escape,
+  `bun check --no-script`, only works from Bun 1.4.4 (verified on 1.4.4-canary.1); 1.4.3 passes the
+  flag on to Biome.
+- The only workaround on 1.4.3, `bun --check --tsconfig-override=<config>`, is unsafe: Bun 1.4.2
+  prints its help and exits 0 (a silent pass), and the flag form ignores `--project`.
+
+Once Bun 1.4.4 is released, replace `tsc -p <config>` with `bun check --no-script -p <config>` in
+every `typecheck` script (the Nuxt templates keep `nuxt typecheck` in front), keep the `typescript`
+devDependency for editors and vue-tsc, and require Bun ≥ 1.4.4 — an older Bun then fails loudly,
+because Biome rejects `--no-script`. The gain is largest where `tsc` is the whole check
+(backend-service, cli-tool, this repo). In the Nuxt templates the `tsc` step takes 1–5 s, while
+`nuxt typecheck` (vue-tsc) took ~40 s in nuxt-app. `bun check -b` checks the same Nuxt projects
+(app, server, shared, node) in under a second and, like today's Bun-run vue-tsc, skips `.vue`
+files — but replacing vue-tsc would give up the route to `.vue` checking (the item above), so
+decide that separately.
+
 If a project needs to diverge from this guide (different license, a new library, a genuine reason for
 ESLint, etc.):
 

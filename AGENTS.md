@@ -64,7 +64,8 @@ authoritative detail lives in [`docs/`](docs/); this is the short version.
 ## Tooling & finishing
 
 - Bun runtime; `bun test`; `bun run format`; `bun run typecheck` (backend/CLI: `tsc` against
-  `tsconfig/tsconfig.typecheck.json`; Nuxt: `nuxt typecheck` + `tsc`).
+  `tsconfig/tsconfig.typecheck.json`; Nuxt: `nuxt typecheck` + `tsc`). `bun check` runs the Biome
+  `check` script — it does not type-check.
 - Before declaring done: `bun run check:ci` clean, `bun run typecheck` passes, `bun test` passes.
 - If you created a new project from a template, replace `<ProjectName>`, the `APPPREFIX` /
   `appprefix` prefixes, the `<PREFIX>` cookie name and the default port.
