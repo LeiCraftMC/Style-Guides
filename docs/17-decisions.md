@@ -331,6 +331,30 @@ prefixed variables become canonical and `NUXT_PUBLIC_*` remains a pure override.
 `runtimeConfig.public` defaults likewise read the prefixed variables. See
 [06](06-frontend-nuxt.md) and [14](14-deployment.md#full-stack-nuxt-hono-in-server).
 
+## 26. Breaking template changes go through deprecation
+
+**Context:** Projects copy files from the templates and `shared/` and re-sync them later. A change
+that removes or renames an export, changes a signature or changes what an existing call does breaks
+every project on its next sync — without a compile error when only the behaviour changed.
+
+**Decision:** A change to the templates or `shared/` that would break code written against the
+previous version keeps the old form working and marks it `@deprecated`, with JSDoc that names the
+replacement:
+
+- **Changed signature:** keep the old signature as a `@deprecated` overload whose calls keep the old
+  behaviour (`RuntimeMetadata.getMetadata(key, createIfNotFound)` next to `getMetadata(key)`).
+- **Removed or renamed export:** keep the old export as `@deprecated Use …` (`TaskQueueUtils` →
+  `TaskScheduler.enqueueTask`; the raw table consts → `DB.Tables.*`, see
+  [08](08-database.md)).
+- **New behaviour behind an unchanged signature:** give it a new name and deprecate the old one,
+  instead of changing what existing calls do.
+- Mention the deprecated form in the relevant `docs/` page, next to its replacement.
+
+**Exception:** break directly only when keeping the old form would keep the problem alive — a
+security fix, or a bug serious enough that every project using the template has to update anyway.
+Then mark the commit as breaking (`fix!: …` or a `BREAKING CHANGE:` footer) and describe the
+migration in the relevant `docs/` page.
+
 ## Known future work (not yet decided)
 
 These gaps surfaced during the audit but are out of scope for this pass; record a decision here when

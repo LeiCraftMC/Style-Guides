@@ -26,6 +26,10 @@ templates.
 - The root Biome config excludes `templates/` and `shared/config/`. After changing a template, run
   its own `bun run check:ci`, `bun run typecheck` and `bun test` inside the template, then update the
   matching `shared/` copy.
+- Don't break code that projects copied from an earlier template version: keep a changed signature
+  as a `@deprecated` overload and a removed or renamed export as a working `@deprecated` export
+  that names the replacement. Only security fixes and bugs every project must fix anyway may break
+  directly. See [`docs/17-decisions.md` #26](docs/17-decisions.md#26-breaking-template-changes-go-through-deprecation).
 - Do **not** add `permissions.allow` rules to `.claude/settings.json` on your own initiative; the
   user manages permission grants. Ship only `commands`, `mcpServers`, and `fileScan`.
 
