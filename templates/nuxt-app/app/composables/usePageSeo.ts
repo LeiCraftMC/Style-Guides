@@ -12,7 +12,10 @@ type JsonLd = Record<string, unknown> & { "@type"?: string };
 interface PageSeoOptions {
 	title: string;
 	description?: string;
-	/** Canonical URL path or absolute URL; defaults to the current route. */
+	/**
+	 * Canonical URL path or absolute URL; defaults to the current route. Paths resolve against
+	 * `runtimeConfig.public.appUrl`.
+	 */
 	canonical?: string;
 	ogTitle?: string;
 	ogImage?: string;
@@ -23,7 +26,10 @@ interface PageSeoOptions {
 
 export function usePageSeo(options: PageSeoOptions) {
 	const route = useRoute();
-	const canonical = options.canonical ?? route.path;
+	const appUrl = useRuntimeConfig().public.appUrl as string | undefined;
+	// Canonical and og:url must be absolute; an absolute `options.canonical` passes through as is.
+	const path = options.canonical ?? route.path;
+	const canonical = appUrl ? new URL(path, appUrl).href : path;
 
 	useSeoMeta({
 		title: options.title,
@@ -31,6 +37,7 @@ export function usePageSeo(options: PageSeoOptions) {
 		ogTitle: options.ogTitle ?? options.title,
 		ogDescription: options.description,
 		ogImage: options.ogImage,
+		ogUrl: canonical,
 		robots: options.noindex ? "noindex, nofollow" : "index, follow",
 	});
 

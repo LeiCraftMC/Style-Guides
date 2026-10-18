@@ -1,9 +1,22 @@
 <script setup lang="ts">
-import { type DocsPage, docsPagesFlat, docsSections } from "~/data/docs";
+import type { ContentTocLink } from "@nuxt/ui";
+import { type DocsPage, docsEditBaseUrl, docsPagesFlat, docsSections } from "~/data/docs";
+
+const { toc = [], sourcePath } = defineProps<{
+	/** The page's headings (`page.body.toc.links`). */
+	toc?: ContentTocLink[];
+	/** The page's content path without extension (`page.stem`), for the edit link. */
+	sourcePath?: string;
+}>();
 
 const route = useRoute();
 
-const currentPath = computed(() => route.path);
+// Trailing slashes still reach the app in dev, preview and from external links.
+const currentPath = computed(() => route.path.replace(/\/$/, "") || "/");
+
+const currentSection = computed(() =>
+	docsSections.find((section) => section.pages.some((page) => page.to === currentPath.value)),
+);
 
 const currentIndex = computed(() =>
 	docsPagesFlat.findIndex((page) => page.to === currentPath.value),
@@ -18,64 +31,101 @@ const nextPage = computed<DocsPage | null>(() =>
 		? (docsPagesFlat[currentIndex.value + 1] ?? null)
 		: null,
 );
+
+const editUrl = computed(() =>
+	docsEditBaseUrl && sourcePath ? `${docsEditBaseUrl}/${sourcePath}.md` : null,
+);
+
+const mobileNavOpen = ref(false);
+
+watch(currentPath, () => {
+	mobileNavOpen.value = false;
+});
 </script>
 
 <template>
 	<div class="mx-auto flex w-full max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:px-8">
 		<!-- Sidebar -->
-		<aside class="sticky top-20 hidden h-fit w-56 shrink-0 lg:block">
-			<nav class="space-y-6" aria-label="Documentation">
-				<div v-for="section in docsSections" :key="section.label" class="space-y-1">
-					<p class="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-						{{ section.label }}
-					</p>
-					<NuxtLink
-						v-for="page in section.pages"
-						:key="page.to"
-						:to="page.to"
-						class="block rounded-md px-3 py-1.5 text-sm transition-colors"
-						:class="
-							page.to === currentPath
-								? 'bg-sky-500/10 text-sky-400'
-								: 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-						"
-					>
-						{{ page.title }}
-					</NuxtLink>
-				</div>
-			</nav>
+		<aside
+			class="sticky top-20 hidden h-fit max-h-[calc(100vh-6rem)] w-56 shrink-0 overflow-y-auto pb-8 lg:block"
+		>
+			<DocsNavigation :current-path="currentPath" />
 		</aside>
 
 		<!-- Content -->
 		<div class="min-w-0 flex-1">
+			<!-- Mobile navigation -->
+			<div class="mb-6 flex items-center gap-3 lg:hidden">
+				<USlideover v-model:open="mobileNavOpen" side="left" title="Documentation">
+					<UButton color="neutral" variant="outline" icon="i-lucide-menu" size="sm">
+						Docs menu
+					</UButton>
+					<template #body>
+						<DocsNavigation :current-path="currentPath" />
+					</template>
+				</USlideover>
+				<span v-if="currentSection" class="truncate text-sm text-slate-500">
+					{{ currentSection.label }}
+				</span>
+			</div>
+
+			<p v-if="currentSection" class="mb-2 hidden text-sm font-semibold text-primary-400 lg:block">
+				{{ currentSection.label }}
+			</p>
+
+			<UContentToc v-if="toc.length" :links="toc" title="On this page" class="mb-6 xl:hidden" />
+
 			<slot />
+
+			<div v-if="editUrl" class="not-prose mt-12 flex justify-end">
+				<UButton
+					:to="editUrl"
+					target="_blank"
+					color="neutral"
+					variant="link"
+					icon="i-lucide-square-pen"
+					size="sm"
+				>
+					Edit this page
+				</UButton>
+			</div>
 
 			<!-- Prev / Next -->
 			<div class="not-prose mt-12 flex flex-col gap-4 border-t border-slate-800 pt-8 sm:flex-row sm:justify-between">
 				<NuxtLink
 					v-if="prevPage"
 					:to="prevPage.to"
-					class="group flex flex-1 flex-col gap-1 rounded-lg border border-slate-800 bg-slate-900/50 p-4 transition hover:border-sky-400/50 sm:max-w-xs"
+					class="group flex flex-1 flex-col gap-1 rounded-lg border border-slate-800 bg-slate-900/50 p-4 transition hover:border-primary-400/50 sm:max-w-xs"
 				>
 					<span class="flex items-center gap-1 text-xs text-slate-500">
 						<UIcon name="i-lucide-arrow-left" class="text-sm" />
 						Previous
 					</span>
-					<span class="font-medium text-slate-200 group-hover:text-sky-400">{{ prevPage.title }}</span>
+					<span class="font-medium text-slate-200 group-hover:text-primary-400">{{ prevPage.title }}</span>
 				</NuxtLink>
 				<span v-else class="hidden sm:block sm:flex-1 sm:max-w-xs" aria-hidden="true" />
 				<NuxtLink
 					v-if="nextPage"
 					:to="nextPage.to"
-					class="group flex flex-1 flex-col gap-1 rounded-lg border border-slate-800 bg-slate-900/50 p-4 text-right transition hover:border-sky-400/50 sm:max-w-xs"
+					class="group flex flex-1 flex-col gap-1 rounded-lg border border-slate-800 bg-slate-900/50 p-4 text-right transition hover:border-primary-400/50 sm:max-w-xs"
 				>
 					<span class="flex items-center justify-end gap-1 text-xs text-slate-500">
 						Next
 						<UIcon name="i-lucide-arrow-right" class="text-sm" />
 					</span>
-					<span class="font-medium text-slate-200 group-hover:text-sky-400">{{ nextPage.title }}</span>
+					<span class="font-medium text-slate-200 group-hover:text-primary-400">{{ nextPage.title }}</span>
 				</NuxtLink>
 			</div>
 		</div>
+
+		<!-- On this page -->
+		<aside v-if="toc.length" class="hidden w-56 shrink-0 xl:block">
+			<UContentToc
+				:links="toc"
+				title="On this page"
+				highlight
+				class="top-20 max-h-[calc(100vh-6rem)] bg-transparent"
+			/>
+		</aside>
 	</div>
 </template>

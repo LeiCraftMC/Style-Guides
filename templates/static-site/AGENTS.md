@@ -20,4 +20,6 @@ https://github.com/LeiCraftMC/Style-Guides.
 - Format with Biome before finishing.
 - Conventional Commits.
 
-Replace `<ProjectName>` with the real project name.
+Replace `<ProjectName>` with the real project name, `runtimeConfig.public.appUrl` in
+`nuxt.config.ts` with the public site URL, and the domain in `public/robots.txt` /
+`public/static/utils/sitemap.xml`.

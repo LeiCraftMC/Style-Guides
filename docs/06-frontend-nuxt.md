@@ -547,7 +547,9 @@ per-request state — they leak across requests on the server.
 - **Landing page and static sites** use
   [`usePageSeo`](../shared/frontend/app/composables/usePageSeo.ts), which wraps `useSeoMeta`
   (title, description, OpenGraph, `robots`) + a canonical `<link>` + optional JSON-LD
-  (`SoftwareApplication`, `Person`, `BreadcrumbList`, …):
+  (`SoftwareApplication`, `Person`, `BreadcrumbList`, …). The canonical URL and `og:url` are
+  absolute: a path (default: the current route) resolves against `runtimeConfig.public.appUrl`,
+  an absolute `canonical` passes through. Don't hard-code full URLs per page.
 
   ```ts
   usePageSeo({
@@ -594,9 +596,24 @@ apps: Nuxt 4 + NuxtUI v4 + Tailwind v4, the same `app/` srcDir, `app.config.ts`
   			meta: [
   				{ name: "author", content: "LeiCraft_MC" },
   				{ name: "robots", content: "index, follow, max-image-preview:large" },
-  				{ name: "theme-color", content: "#0b0c1b" },
+  				{ name: "theme-color", content: "#020617" },
   			],
   			link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
+  		},
+  	},
+
+  	runtimeConfig: {
+  		public: {
+  			appUrl: "https://www.example.com", // fixed at generate time
+  		},
+  	},
+
+  	icon: {
+  		provider: "none",
+  		clientBundle: {
+  			scan: {
+  				globInclude: ["app/**/*.{vue,ts}"], // static-site-with-docs adds "content/**/*.md"
+  			},
   		},
   	},
 
@@ -610,6 +627,15 @@ apps: Nuxt 4 + NuxtUI v4 + Tailwind v4, the same `app/` srcDir, `app.config.ts`
 
   List every dynamic route (e.g. one `/projects/<id>` per `app/data` entry) in `prerender.routes`
   if the crawler can't reach it through links. Match `theme-color` to your background.
+
+  Replace `appUrl` with the site's public origin — `usePageSeo` builds the canonical URL and
+  `og:url` from it. The `icon` block bundles every icon at build time: for `nuxt generate`,
+  `@nuxt/icon` otherwise loads icons from `api.iconify.design` on every page view, which sends each
+  visitor's IP to a third party (fonts are self-hosted for the same reason), shows icons late and
+  breaks them when the API is unreachable. `provider: "none"` turns runtime fetching off; the
+  `globInclude` adds `.ts` files (`app/data/`) the default scan skips. Nuxt UI adds its own icons
+  (menu, close, chevrons) to the bundle itself. An icon that isn't bundled renders blank, so a name
+  built at runtime (`` `i-lucide-${name}` ``) goes into `icon.clientBundle.icons` by hand.
 - **Prose:** `@tailwindcss/typography` is a dependency, enabled in `main.css`. Biome requires
   `@import`s first, so the plugin goes **after** both imports:
 
@@ -619,7 +645,10 @@ apps: Nuxt 4 + NuxtUI v4 + Tailwind v4, the same `app/` srcDir, `app.config.ts`
   @plugin "@tailwindcss/typography";
   ```
 
-  Render legal/blog/docs text with `prose prose-invert max-w-none`.
+  Render legal/blog/docs text with `prose prose-invert max-w-none`. Docs sites render Markdown
+  through Nuxt UI's prose components, which style themselves, so static-site-with-docs' `main.css`
+  adds three overrides under "Docs prose": no underline on heading anchor links, no typography
+  backticks around inline code, and `overflow-wrap: anywhere` for long inline code.
 - **SEO:** `usePageSeo` on **every** page, never inline `useSeoMeta`:
 
   ```ts
@@ -646,7 +675,8 @@ apps: Nuxt 4 + NuxtUI v4 + Tailwind v4, the same `app/` srcDir, `app.config.ts`
   ```
 
 - **Layout:** `layouts/default.vue` = `Header` + `UMain` (+ `UContainer` in static-site) + `Footer`.
-  `UHeader` has the logo `NuxtLink` in `#title`, `UNavigationMenu :items` in the default slot, a
+  `UHeader` has the logo in `#title` — `UHeader` already links it to `/`, so never put a
+  `NuxtLink` there. `UNavigationMenu :items` goes in the default slot, a
   vertical menu (links + socials) in `#body`, and social `UButton`s in `#right`. The footer is a
   simple `UFooter` with the copyright line and Impressum / Datenschutz links (legal.leicraftmc.de).
   See [15](15-design-system.md#static-site-styling). The static templates still `import` `Header`,
@@ -656,7 +686,9 @@ apps: Nuxt 4 + NuxtUI v4 + Tailwind v4, the same `app/` srcDir, `app.config.ts`
   at `/static/utils/sitemap.xml` — point robots' `sitemap:` line there). Update the sitemap when you
   add pages. `@nuxtjs/sitemap` / `@nuxtjs/robots` are optional for larger sites; the templates don't
   use them.
-- **Deploy:** `bun run generate` → `.output/public/`, rsynced by GitLab CI; `public/.htaccess`
+- **Deploy:** `bun run generate` → `.output/public/`, rsynced by GitLab CI (GitHub-hosted sites use
+  the opt-in `ci.static.yml` with the same `.gitlab/ci/deploy.sh`, see
+  [13](13-git-and-ci.md#ci--github)); `public/.htaccess`
   configures Apache (clean URLs, trailing-slash redirect, `.well-known` bypass, `404.html`). See
   [14](14-deployment.md).
 
@@ -691,9 +723,16 @@ It is `static-site` plus:
   ```vue
   <script setup lang="ts">
   const route = useRoute();
+
+  // The catch-all param is an array for nested pages (`["guides", "getting-started"]`).
+  const slug = computed(() => {
+  	const param = route.params.slug;
+  	return Array.isArray(param) ? param.join("/") : (param ?? "");
+  });
+
   const { data: page } = await useAsyncData(route.path, () =>
   	queryCollection("docs")
-  		.path(`/docs/${route.params.slug?.toString() || ""}`)
+  		.path(slug.value ? `/docs/${slug.value}` : "/docs")
   		.first(),
   );
 
@@ -708,21 +747,40 @@ It is `static-site` plus:
   </script>
 
   <template>
-  	<DocsPage>
+  	<DocsPage :toc="page?.body?.toc?.links ?? []" :source-path="page?.stem">
   		<ContentRenderer v-if="page" :value="page" class="prose prose-invert max-w-none" />
   	</DocsPage>
   </template>
   ```
 
-- **`components/docs/DocsPage.vue`** — the docs shell: sticky sidebar (sections + active link) and
-  prev/next cards, both driven by [`app/data/docs.ts`](../templates/static-site-with-docs/app/data/docs.ts).
+  `route.params.slug` is an array for pages in sub-folders — join it with `/`, never
+  `.toString()` (that joins with commas and 404s every nested page). The template keeps one nested
+  page (`content/docs/guides/getting-started.md`) so this path stays exercised.
+
+- **`components/docs/DocsPage.vue`** — the docs shell, driven by
+  [`app/data/docs.ts`](../templates/static-site-with-docs/app/data/docs.ts): a sticky sidebar
+  (`components/docs/DocsNavigation.vue` — sections, page icons, active link with
+  `aria-current="page"`), the same navigation in a "Docs menu" `USlideover` below `lg`, an "On
+  this page" `UContentToc` from `page.body.toc.links` (right column from `xl`, collapsed above the
+  content below it), and prev/next cards. It compares paths without a trailing slash — `.htaccess`
+  strips them in production, but they still reach the app in `nuxt dev`, `nuxt preview` and from
+  external links.
+- **"Edit this page"** is opt-in: set `docsEditBaseUrl` in `app/data/docs.ts` to the repo's edit URL
+  ending in the content folder (`https://github.com/<org>/<repo>/edit/main/content`); each page
+  links to `<base>/<page.stem>.md`. `null` (the default) hides the link.
 - **Register every page in `app/data/docs.ts`** (`docsSections` → `{ to, title, description, icon }`).
   The sidebar and prev/next read only this file, not the content collection — a Markdown file that
   isn't registered is unreachable from the navigation and, since prerendering crawls links, is not
   generated unless another page links to it.
 - **MDC components** go in `components/content/` and are usable from Markdown. The template ships
   `IconCardGrid.vue`, used as `::icon-card-grid` with YAML props (`cards:`); it wraps itself in
-  `not-prose` so typography styles don't leak in.
+  `not-prose` so typography styles don't leak in. Each card with a `to` is one link (no links
+  inside it); `target: _blank` cards show an external-link hint whose text is `linkLabel`
+  (default "Open").
+- **Code-block icons:** `app.config.ts` sets `ui.prose.codeIcon` to the Lucide map in
+  [`app/data/code-icons.ts`](../templates/static-site-with-docs/app/data/code-icons.ts) — Nuxt UI
+  defaults to vscode-icons. Label code blocks with a name or extension from the map, or a plain
+  label without a dot; see [15 — Icons](15-design-system.md#icons).
 - **Prerender:** `crawlLinks: true` from `routes: ["/"]`, with `/__nuxt_content/**` ignored and
   `routeRules: { "/__nuxt_content/**": { prerender: false } }` so Nitro doesn't try to prerender
   `@nuxt/content`'s internal query endpoints.
@@ -749,5 +807,8 @@ It is `static-site` plus:
 - [ ] Global state uses `AbstractStore` over `useState`.
 - [ ] Every page sets SEO meta (`useSeoMeta` in app pages, `usePageSeo` on landing/static pages).
 - [ ] Generated client in `app/api-client/` is committed but never hand-edited.
-- [ ] Static sites: `usePageSeo` everywhere, typography `@plugin` after the imports, data in
-      `app/data/`, robots/sitemap maintained; docs pages registered in `app/data/docs.ts`.
+- [ ] Static sites: `usePageSeo` everywhere, `runtimeConfig.public.appUrl` set, typography
+      `@plugin` after the imports, data in `app/data/`, robots/sitemap maintained (robots points
+      at `/static/utils/sitemap.xml`); docs pages registered in `app/data/docs.ts` and the sitemap.
+- [ ] Static sites: icons bundled locally (`icon.provider: "none"`), no requests to
+      `api.iconify.design`.

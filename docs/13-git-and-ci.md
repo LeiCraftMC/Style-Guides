@@ -186,15 +186,22 @@ All three run on the default branch only, via `rules:` (no `only:`):
 - The static flavour installs `rsync sshpass openssh-client` and needs the CI variables
   `DEPLOY_REMOTE_USER`, `DEPLOY_REMOTE_PASSWORD`, `DEPLOY_REMOTE_HOST`, `DEPLOY_REMOTE_DIR`.
   The job runs it via `bash`, so the script needs no executable bit.
-- The cli-tool template ships no GitLab build job (its `build.yml` include is commented out); CLI
-  binaries are released via GitHub.
+- The cli-tool template ships no GitLab build or release job (its `build.yml` include is commented
+  out). A CLI hosted on GitHub releases its binaries with the opt-in `release.yml` (below).
 
 What each build produces and how it is run: [14 — Deployment](14-deployment.md).
 
 ## CI / GitHub
 
-GitHub projects use `.github/workflows/ci.yml`
-([`shared/config/github-actions/ci.yml`](../shared/config/github-actions/ci.yml)) — pushes to
+The templates ship GitLab CI only — the self-hosted GitLab is the primary home (see
+[17](17-decisions.md#18-gitlab-ci-ships-in-the-templates-github-actions-is-opt-in)). A repo hosted
+on GitHub copies its workflows from
+[`shared/config/github-actions/`](../shared/config/github-actions/) into `.github/workflows/`. If it
+doesn't also run on GitLab, it can delete `.gitlab-ci.yml` and `.gitlab/ci/{testing,build}.yml` —
+static sites keep `.gitlab/ci/deploy.sh`, which `ci.static.yml` runs.
+
+`.github/workflows/ci.yml`
+([`shared/config/github-actions/ci.yml`](../shared/config/github-actions/ci.yml)) runs on pushes to
 `main`, every pull request, and manual runs:
 
 ```yaml
@@ -222,20 +229,27 @@ jobs:
 
 GitHub has no built-in JUnit view, so `ci.yml` runs plain `bun test` instead of `test:ci`.
 
-CLI tools add `.github/workflows/release.yml`
+Static sites use [`ci.static.yml`](../shared/config/github-actions/ci.static.yml) as
+`.github/workflows/ci.yml` instead: the same `test` job plus a `deploy` job that runs only on
+pushes to `main` (`needs: test`), generates the site and rsyncs it with `bash .gitlab/ci/deploy.sh`
+— the script GitLab uses, so both CI systems deploy identically. The `DEPLOY_REMOTE_*` values are
+repository secrets, and `concurrency: { group: deploy, cancel-in-progress: false }` keeps two
+deploys from writing to the host at once. See [14](14-deployment.md#static-sites).
+
+GitHub-hosted CLI tools add `.github/workflows/release.yml`
 ([`shared/config/github-actions/release.yml`](../shared/config/github-actions/release.yml)): on a
 `v*` tag it runs `bun run compile all --no-version-tag` and attaches `build/bin/*` to a GitHub
 Release via `softprops/action-gh-release@v2` (`permissions: contents: write`,
 `generate_release_notes: true`). The binaries report `package.json`'s version, not the tag — see
 [14](14-deployment.md#cli-tools) and [11 — CLI & infra](11-cli-and-infra.md).
 
-Which template ships what:
+Which CI each shape uses:
 
-| Template | GitLab `build.yml` | GitHub workflows |
+| Template | GitLab `build.yml` (shipped) | GitHub workflows (opt-in, from `shared/config/github-actions/`) |
 | --- | --- | --- |
-| backend-service | service | — (GitLab only; copy `ci.yml` if hosted on GitHub) |
+| backend-service | service | `ci.yml` |
 | nuxt-app, fullstack-nuxt-app | docker | `ci.yml` |
-| static-site, static-site-with-docs | static | `ci.yml` (older variant: PRs to `main` only, no `workflow_dispatch`) |
+| static-site, static-site-with-docs | static | `ci.static.yml` → `ci.yml` (test + deploy) |
 | cli-tool | — | `ci.yml`, `release.yml` |
 
 ## CI rules
@@ -262,8 +276,9 @@ reason in [17 — Decisions](17-decisions.md).
 - [ ] GitLab: `.gitlab-ci.yml` from `shared/config/gitlab-ci/gitlab-ci.yml`,
       `.gitlab/ci/testing.yml` from `testing.yml`, `.gitlab/ci/build.yml` from the matching
       `build.{docker,service,static}.yml` (+ `deploy.sh` for static sites).
-- [ ] GitHub: `.github/workflows/ci.yml` from `shared/config/github-actions/ci.yml`; CLI tools also
-      `release.yml`.
+- [ ] Only when hosted on GitHub: `.github/workflows/ci.yml` from
+      `shared/config/github-actions/ci.yml` (static sites: `ci.static.yml`, with the
+      `DEPLOY_REMOTE_*` secrets set); CLI tools also `release.yml`. The templates don't ship them.
 - [ ] CI runs `bun run check:ci`, `bun run typecheck` and the tests with `--frozen-lockfile` —
       on GitLab `bun run test:ci`, uploading `junit.xml` as `artifacts:reports:junit` with
       `when: always`; on GitHub `bun test`.

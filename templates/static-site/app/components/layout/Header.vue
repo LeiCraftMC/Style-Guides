@@ -37,39 +37,36 @@ const mobileLinks = computed<NavigationMenuItem[][]>(() => [
 </script>
 
 <template>
+	<UHeader class="backdrop-blur-xl">
+		<template #title>
+			<!-- UHeader already links the title to "/"; don't nest another link here. -->
+			<span class="flex items-center gap-1.5">
+				<LCMCIcon class="h-10 w-10" />
+				<span class="text-3xl font-extrabold">App Name</span>
+			</span>
+		</template>
 
-    <UHeader class="backdrop-blur-xl">
-        <template #title>
-            <NuxtLink to="/" class="flex items-center gap-1.5">
-                <LCMCIcon class="w-10 h-10" />
-                <span class="text-3xl font-extrabold">
-                    App Name
-                </span>
-            </NuxtLink>
-        </template>
+		<UNavigationMenu :items="[links]" />
 
-        <UNavigationMenu :items="[links]" />
+		<template #body>
+			<UNavigationMenu :items="mobileLinks" orientation="vertical" class="w-full" />
+		</template>
 
-        <template #body>
-            <UNavigationMenu :items="mobileLinks" orientation="vertical" class="w-full" />
-        </template>
-
-        <template #right>
-            <div class="hidden lg:flex items-center gap-2">
-                <UButton
-                    v-for="social in socialLinks"
-                    :key="social.label"
-                    :to="social.to"
-                    target="_blank"
-                    :icon="social.icon"
-                    color="neutral"
-                    variant="ghost"
-                    size="lg"
-                    :aria-label="social.label"
-                    class="hover:scale-110 transition-transform duration-200"
-                />
-            </div>
-        </template>
-    </UHeader>
-
+		<template #right>
+			<div class="hidden items-center gap-2 lg:flex">
+				<UButton
+					v-for="social in socialLinks"
+					:key="social.label"
+					:to="social.to"
+					target="_blank"
+					:icon="social.icon"
+					color="neutral"
+					variant="ghost"
+					size="lg"
+					:aria-label="social.label"
+					class="transition-transform duration-200 hover:scale-110"
+				/>
+			</div>
+		</template>
+	</UHeader>
 </template>

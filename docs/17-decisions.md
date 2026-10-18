@@ -214,18 +214,20 @@ Dev and prod use the same port; never `3000`. The split-repo defaults line up (t
 at 12500, the backend's `APP_URL` at 12510). A real project picks its own unused port and updates
 every place listed in [02 — Ports](02-tooling.md#ports--one-unique-port-per-app-dev--prod).
 
-## 18. Both CI providers ship in the templates
+## 18. GitLab CI ships in the templates; GitHub Actions is opt-in
 
-**Context:** Repos live on both `git.leicraftmc.de` (GitLab) and `github.com/LeiCraftMC`; the
-templates used to carry one provider or the other.
+**Context:** Repos live on both `git.leicraftmc.de` (GitLab) and `github.com/LeiCraftMC`, but the
+self-hosted GitLab instance is the primary home. The templates used to ship both providers, so
+every new GitLab project carried GitHub workflows it had to delete.
 
-**Decision:** Ship both, so the project works wherever it is pushed. GitHub:
-`.github/workflows/ci.yml` (`check:ci`, `typecheck`, `test`) in every template except
-backend-service, plus `release.yml` in the CLI. GitLab: `.gitlab-ci.yml` + `.gitlab/ci/testing.yml`
-in every template, with a shape-specific `.gitlab/ci/build.yml` (Docker image for the Nuxt apps,
+**Decision:** The templates ship GitLab CI only: `.gitlab-ci.yml` + `.gitlab/ci/testing.yml` in
+every template, with a shape-specific `.gitlab/ci/build.yml` (Docker image for the Nuxt apps,
 compiled-binary image for the backend, rsync deploy for the static sites; the CLI's build include is
-commented out). backend-service ships GitLab CI only. Delete the provider you don't use. See
-[13](13-git-and-ci.md).
+commented out). The GitHub Actions workflows live only in
+[`shared/config/github-actions/`](../shared/config/github-actions/) — `ci.yml` (`check:ci`,
+`typecheck`, `test`), `ci.static.yml` (static sites: test + deploy) and `release.yml` (CLI binaries
+on `v*` tags). A repo hosted on GitHub copies them to `.github/workflows/`. See
+[13](13-git-and-ci.md#ci--github).
 
 ## 19. Minimal Renovate config
 
@@ -354,6 +356,32 @@ replacement:
 security fix, or a bug serious enough that every project using the template has to update anyway.
 Then mark the commit as breaking (`fix!: …` or a `BREAKING CHANGE:` footer) and describe the
 migration in the relevant `docs/` page.
+
+## 27. Static sites bundle their icons
+
+**Context:** For `nuxt generate` builds, `@nuxt/icon` defaults to the `iconify` provider, so every
+page view fetched the site's icons from `api.iconify.design` — sending each visitor's IP to a third
+party (the reason fonts are self-hosted), showing icons late, and losing them when the API is
+blocked. Its default scan also skips `.ts` files, where `app/data/` keeps its icon names. Nuxt
+UI's code-block filename icons come from vscode-icons, not Lucide.
+
+**Decision:** Both static templates set `icon: { provider: "none", clientBundle: { scan: {
+globInclude: ["app/**/*.{vue,ts}", …] } } }`. `"none"` turns runtime fetching off; an icon that
+isn't bundled renders blank, so runtime-built names go into `clientBundle.icons`. Nuxt UI adds its
+own icons to the bundle through the `icon:clientBundleIcons` hook, so scanning
+`node_modules/@nuxt/ui/dist` is unnecessary. static-site-with-docs maps every key of Nuxt UI's
+default `prose.codeIcon` map to Lucide (`app/data/code-icons.ts`) and tests that every code-block
+label in `content/` resolves to it. See [06](06-frontend-nuxt.md#static-content-sites) and
+[15](15-design-system.md#icons).
+
+## 28. Sitemap stays at `/static/utils/sitemap.xml`
+
+**Context:** All four Nuxt templates ship `public/static/utils/sitemap.xml` (and doc 06 said to
+point robots there), but their `robots.txt` pointed at `/utils/sitemap.xml`, which 404s.
+
+**Decision:** Keep the file where it is and fix `robots.txt` (`sitemap:
+https://<domain>/static/utils/sitemap.xml`) — four one-line edits, and the docs were already
+right. Moving the file to `public/utils/` instead would have meant changing every doc reference.
 
 ## Known future work (not yet decided)
 

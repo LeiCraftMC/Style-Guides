@@ -38,7 +38,7 @@ export const docsSections: DocsSection[] = [
 		label: "Guides",
 		pages: [
 			{
-				to: "/docs/getting-started",
+				to: "/docs/guides/getting-started",
 				title: "Getting Started",
 				description: "Install dependencies, run the dev server, and generate the static site.",
 				icon: "i-lucide-rocket",
@@ -46,6 +46,13 @@ export const docsSections: DocsSection[] = [
 		],
 	},
 ];
+
+/**
+ * Base URL for "Edit this page" links, ending in the content folder, e.g.
+ * "https://github.com/<org>/<repo>/edit/main/content" or
+ * "https://git.leicraftmc.de/<group>/<repo>/-/edit/main/content". `null` hides the link.
+ */
+export const docsEditBaseUrl: string | null = null;
 
 /** Flat list of pages in reading order, for prev/next navigation. */
 export const docsPagesFlat: DocsPage[] = docsSections.flatMap((section) => section.pages);

@@ -13,8 +13,10 @@ Defined in `.claude/settings.json`:
 
 ## Releases
 
-Push a `v*` tag to trigger `.github/workflows/release.yml`, which builds all platforms and attaches
-the binaries to a GitHub Release.
+The template ships no release job. On GitHub, copy the Style Guide's
+`shared/config/github-actions/release.yml` to `.github/workflows/release.yml`; pushing a `v*` tag
+then builds all platforms and attaches the binaries to a GitHub Release. Bump `"version"` in
+`package.json` first — the binaries report it, not the tag.
 
 ```bash
 git tag v1.2.3

@@ -110,6 +110,13 @@ app). `app/**` is left to `nuxt typecheck` (vue-tsc), which provides the Nuxt au
 declarations (`ref`, `computed`, `useState`, …) that plain `tsc` cannot resolve. The `typecheck`
 script runs `bunx --bun nuxt typecheck && bunx --bun tsc -p ./tsconfig/tsconfig.typecheck.json`.
 
+Since Nuxt 4.6, `nuxt typecheck` also type-checks the `server/` code it reaches, through Nuxt's
+generated tsconfigs. Those leave `types` unset, which loads every `@types/*` package but not
+`bun-types`, so the full-stack template lists **`@types/bun`** in `devDependencies` next to
+`bun-types` — without it, Bun globals in `server/lib` (`Bun.password`, `Bun.cron`, …) fail with
+"Cannot find name 'Bun'". The other Nuxt templates have no Bun code in those projects and don't
+need it.
+
 ## Biome (formatter + linter)
 
 Biome is the org formatter and linter — one tool, Bun-native, fast. The ecosystem had **no**

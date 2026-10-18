@@ -64,7 +64,7 @@ const allLinks = computed(() => {
             <h1 class="text-4xl font-bold mb-2">{{ project.title }}</h1>
 
             <div v-if="project.status" class="mb-4">
-                <span class="inline-block px-3 py-1 text-sm font-medium rounded-full bg-sky-500/20 text-sky-300">
+                <span class="inline-block px-3 py-1 text-sm font-medium rounded-full bg-primary-500/20 text-primary-300">
                     {{ project.status }}
                 </span>
             </div>

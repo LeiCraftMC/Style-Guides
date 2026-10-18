@@ -29,6 +29,8 @@ bun run generate   # → .output/public/
 On the default branch, GitLab CI (`.gitlab/ci/build.yml`) generates the site and rsyncs
 `.output/public/` to your web host via `.gitlab/ci/deploy.sh`. Set the CI variables
 `DEPLOY_REMOTE_USER`, `DEPLOY_REMOTE_PASSWORD`, `DEPLOY_REMOTE_HOST` and `DEPLOY_REMOTE_DIR`.
+Hosted on GitHub instead? Copy the Style Guide's `shared/config/github-actions/ci.static.yml` to
+`.github/workflows/ci.yml` and set the same four values as repository secrets.
 `public/.htaccess` configures Apache (clean URLs, trailing slashes, 404 page).
 
 ## Scripts
