@@ -9,5 +9,5 @@ services:
     ports:
       - "12510:12510"
     environment:
-      APPPREFIX_API_URL: http://localhost:12500
+      APPPREFIX_API_URL: http://localhost:12500/v1
       APPPREFIX_APP_URL: http://localhost:12510

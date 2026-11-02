@@ -138,7 +138,7 @@ my-org/
 │   └── … serves /docs/v1/openapi (docs enabled)
 └── my-service-web/        # the nuxt-app shape (port 12510)
     ├── openapi-ts.config.ts   # input: "http://localhost:12500/docs/v1/openapi"
-    └── example.env            # APPPREFIX_API_URL=http://localhost:12500
+    └── example.env            # APPPREFIX_API_URL=http://localhost:12500/v1
                                # APPPREFIX_APP_URL=http://localhost:12510
 ```
 
@@ -149,9 +149,10 @@ Rules:
   (`APPPREFIX_API_DISABLE_DOCS` unset or `false`) when you run `bun run api-client:generate`
   (`scripts/api-client-generate.ts` → `openapi-ts` + patch). See
   [05 — API contract](05-api-contract.md).
-- `APPPREFIX_API_URL` configures the backend origin (the Nitro banner maps it to
-  `NUXT_PUBLIC_API_URL` at runtime, so the `NUXT_PUBLIC_*` spelling is only an override);
-  `updateAPIClient` sets the SDK `baseURL` to `<apiUrl>/v1`.
+- `APPPREFIX_API_URL` configures the full API base URL **including the version prefix** (the
+  Nitro banner maps it to `NUXT_PUBLIC_API_URL` at runtime, so the `NUXT_PUBLIC_*` spelling is
+  only an override); `updateAPIClient` uses it verbatim as the SDK `baseURL` — the API is
+  deployed separately, so its path prefix can't be assumed (`…/v1` for a bare backend-service).
 - The backend's `APPPREFIX_APP_URL` is the frontend origin (`http://localhost:12510` in
   `example.env`). It is the CORS allowlist (`credentials: true`, preflight `maxAge: 600`) and the
   base of the password-reset links.

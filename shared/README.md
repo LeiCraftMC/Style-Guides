@@ -78,7 +78,7 @@ auto-imports and is checked inside the Nuxt templates.
 | File | What it is |
 | --- | --- |
 | `app/composables/useAPI.ts` | The single gateway to the generated SDK — applies the session token, redirects to login on a missing cookie or any 401, never throws. |
-| `app/composables/updateAPIClient.ts` | Standalone frontend (talks to backend-service): `baseURL = <apiUrl>/v1`. |
+| `app/composables/updateAPIClient.ts` | Standalone frontend (talks to a separately deployed backend): `baseURL = apiUrl` verbatim — the full base URL including the version prefix (e.g. `http://localhost:12500/v1`). |
 | `app/composables/updateAPIClient.fullstack.ts` | Full-stack variant: `baseURL = <appUrl>/api/v1` — copy it as `updateAPIClient.ts`. |
 | `app/composables/{useRuntimeAppConfigs,useAppCookies,useAwaitedComputed,usePageSeo}.ts` | Runtime config, session cookie, async `computed`, per-page SEO (+ JSON-LD). |
 | `app/composables/{useSubrouterInjectedData,useSubrouterPathDynamics}.ts` | Parent→child data + breadcrumbs/SEO/tabs for nested dashboard routes. |

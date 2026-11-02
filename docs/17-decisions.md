@@ -383,6 +383,24 @@ point robots there), but their `robots.txt` pointed at `/utils/sitemap.xml`, whi
 https://<domain>/static/utils/sitemap.xml`) — four one-line edits, and the docs were already
 right. Moving the file to `public/utils/` instead would have meant changing every doc reference.
 
+## 29. Standalone nuxt-app uses `apiUrl` verbatim; full-stack keeps `/api/v1`
+
+**Context:** `updateAPIClient` used to append `/v1` to `apiUrl` in both shapes, assuming a bare
+backend-service mounted at `/v1`. In the full-stack shape the assumption is free — the API lives
+in the same application, so the template controls both halves of the path. In the split shape it
+isn't: the frontend calls an independently deployed API that a proxy may serve under any prefix
+(`/api/v1`, `/backend/v1`, …) and whose major version the frontend cannot know ahead of time.
+
+**Decision:** The standalone `updateAPIClient` uses `apiUrl` verbatim as the SDK `baseURL`
+(trailing slash stripped); `APPPREFIX_API_URL` carries the full base URL including the version
+prefix — template default `http://localhost:12500/v1`, matching the `servers` entry of the spec
+the client is generated from. The full-stack variant stays `<appUrl>/api/v1` — same application,
+known path. Migration for existing standalone projects: append the version prefix to
+`APPPREFIX_API_URL` when adopting the updated composable — a config change, not a code change,
+so no deprecation shim (#26). See
+[05 — API contract](05-api-contract.md#updateapiclient-and-useapi) and
+[06 — Frontend](06-frontend-nuxt.md#public-runtime-config).
+
 ## Known future work (not yet decided)
 
 These gaps surfaced during the audit but are out of scope for this pass; record a decision here when

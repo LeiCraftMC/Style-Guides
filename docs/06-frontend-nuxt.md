@@ -70,7 +70,7 @@ export default defineNuxtConfig({
 
 	runtimeConfig: {
 		public: {
-			apiUrl: process.env.APPPREFIX_API_URL || "http://localhost:12500",
+			apiUrl: process.env.APPPREFIX_API_URL || "http://localhost:12500/v1",
 			appUrl: process.env.APPPREFIX_APP_URL || "http://localhost:12510",
 		},
 	},
@@ -257,7 +257,7 @@ const { apiUrl, appUrl } = useRuntimeAppConfigs(); // "" when unset
 
 | Shape | Source | `baseURL` |
 | --- | --- | --- |
-| Standalone | [`updateAPIClient.ts`](../shared/frontend/app/composables/updateAPIClient.ts) | `<apiUrl>/v1` (backend-service has no `/api` prefix) |
+| Standalone | [`updateAPIClient.ts`](../shared/frontend/app/composables/updateAPIClient.ts) | `apiUrl` verbatim — the full base URL including the version prefix (the API is deployed separately) |
 | Full-stack | [`updateAPIClient.fullstack.ts`](../shared/frontend/app/composables/updateAPIClient.fullstack.ts) | `<appUrl>/api/v1` (Hono mounted at `/api`) |
 
 `process.env` in `nuxt.config.ts` is read when Nuxt builds (or starts `dev`). At runtime the
@@ -798,7 +798,7 @@ It is `static-site` plus:
 - [ ] Lucide icons only (`i-lucide-*`).
 - [ ] Server preset from the build script (`--preset bun`); static sites `nitro.preset: "static"`.
 - [ ] Public URLs via `runtimeConfig.public` + `useRuntimeAppConfigs`; the right `updateAPIClient`
-      variant for the shape (`<apiUrl>/v1` or `<appUrl>/api/v1`).
+      variant for the shape (`apiUrl` verbatim with the version prefix, or `<appUrl>/api/v1`).
 - [ ] `auth.global.ts` constants tuned; `rewrites.global.ts` in `app/middleware/`.
 - [ ] Unused template routes, layouts and components deleted; placeholders replaced.
 - [ ] Components used by auto-import names; stores imported explicitly from `composables/stores/`.

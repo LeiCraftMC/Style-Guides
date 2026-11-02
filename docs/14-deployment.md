@@ -186,9 +186,11 @@ CMD ["bun", "run", "/opt/leicraftmc/my-project/app/.output/server/index.mjs"]
 This shape is stateless — no volumes, and the `HEALTHCHECK` probes `/` because there is no health
 route. Run `bun run build` before `docker build` (GitLab's `build.docker.yml` does both and pushes
 `:latest` from the default branch). Point the app at its API at runtime with
-`APPPREFIX_API_URL` / `APPPREFIX_APP_URL` — the Nitro banner in `nuxt.config.ts` maps them to the
-`NUXT_PUBLIC_*` overrides at server start (set `NUXT_PUBLIC_*` directly only to override the
-prefixed values). The compose file
+`APPPREFIX_API_URL` / `APPPREFIX_APP_URL` — `APPPREFIX_API_URL` is the full API base URL including
+the version prefix (e.g. `https://api.example.com/v1`; the client uses it verbatim, so a proxy
+serving the API under a different path only changes this value). The Nitro banner in
+`nuxt.config.ts` maps them to the `NUXT_PUBLIC_*` overrides at server start (set `NUXT_PUBLIC_*`
+directly only to override the prefixed values). The compose file
 ([`docker/docker-compose.yml`](../templates/nuxt-app/docker/docker-compose.yml)) pulls the
 registry image CI pushed, with the port and the two URLs — `restart: unless-stopped`.
 

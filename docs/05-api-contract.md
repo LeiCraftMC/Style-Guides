@@ -230,7 +230,7 @@ Consequences:
 
 | Template | File | `baseURL` |
 | --- | --- | --- |
-| `nuxt-app` | [`updateAPIClient.ts`](../shared/frontend/app/composables/updateAPIClient.ts) | `<apiUrl>/v1` — `runtimeConfig.public.apiUrl` (from `APPPREFIX_API_URL`; default `http://localhost:12500`) |
+| `nuxt-app` | [`updateAPIClient.ts`](../shared/frontend/app/composables/updateAPIClient.ts) | `apiUrl` verbatim — `runtimeConfig.public.apiUrl` (from `APPPREFIX_API_URL`; the full base URL including the version prefix, default `http://localhost:12500/v1`) |
 | `fullstack-nuxt-app` | [`updateAPIClient.fullstack.ts`](../shared/frontend/app/composables/updateAPIClient.fullstack.ts) (copy as `updateAPIClient.ts`) | `<appUrl>/api/v1` — `runtimeConfig.public.appUrl` (from `APPPREFIX_APP_URL`; the Nitro banner maps it to `NUXT_PUBLIC_APP_URL` at server start) |
 
 [`useAPI(handler, disableAuthRedirect = false)`](../shared/frontend/app/composables/useAPI.ts) is

@@ -37,7 +37,9 @@ The full-stack template has the same keys **without `API_HOST` / `API_PORT`** (N
 `APPPREFIX_APP_URL`: the Nitro banner in `nuxt.config.ts` copies it to `NUXT_PUBLIC_APP_URL` at
 server start. The standalone `nuxt-app` has no `ConfigHandler`; it reads
 `APPPREFIX_API_URL` / `APPPREFIX_APP_URL` the same way (the banner maps them to the
-`NUXT_PUBLIC_*` names that override Nuxt's `runtimeConfig`).
+`NUXT_PUBLIC_*` names that override Nuxt's `runtimeConfig`). `APPPREFIX_API_URL` is the full API
+base URL including the version prefix (default `http://localhost:12500/v1`) — the API client uses
+it verbatim.
 
 The backend template's [`example.env`](../templates/backend-service/example.env):
 

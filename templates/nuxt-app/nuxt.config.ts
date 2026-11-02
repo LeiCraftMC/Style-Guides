@@ -46,7 +46,7 @@ export default defineNuxtConfig({
 
 	runtimeConfig: {
 		public: {
-			apiUrl: process.env.APPPREFIX_API_URL || "http://localhost:12500",
+			apiUrl: process.env.APPPREFIX_API_URL || "http://localhost:12500/v1",
 			appUrl: process.env.APPPREFIX_APP_URL || "http://localhost:12510",
 		},
 	},

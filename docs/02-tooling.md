@@ -38,7 +38,8 @@ isn't already used by another app in the ecosystem. The templates' defaults:
 
 Cross-references to keep in sync when you change a port:
 
-- The nuxt-app reaches the backend through `APPPREFIX_API_URL` (`http://localhost:12500`) and
+- The nuxt-app reaches the backend through `APPPREFIX_API_URL` (`http://localhost:12500/v1` —
+  the full base URL including the version prefix) and
   generates its client from the `openapi-ts.config.ts` input
   `http://localhost:12500/docs/v1/openapi` (the `/api-client` prompt names 12500 too).
 - The backend's `APPPREFIX_APP_URL` is the frontend origin (`http://localhost:12510` in its
