@@ -236,6 +236,14 @@ export type DeleteAccountErrors = {
         code: 401;
         message: 'Your Auth Context is not a session';
     };
+    /**
+     * You are the last administrator
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'You are the last administrator';
+    };
 };
 
 export type DeleteAccountError = DeleteAccountErrors[keyof DeleteAccountErrors];
@@ -312,12 +320,12 @@ export type PutAccountData = {
 
 export type PutAccountErrors = {
     /**
-     * Bad Request: Syntax or validation error in request
+     * Current password is incorrect / Syntax or validation error in request
      */
     400: {
         success: false;
         code: 400;
-        message: 'Bad Request: Syntax or validation error in request';
+        message: 'Current password is incorrect / Syntax or validation error in request';
     };
     /**
      * Your Auth Context is not a session
@@ -699,6 +707,9 @@ export type PostAdminUsersData = {
         display_name: string;
         email: string;
         role?: 'admin' | 'user';
+        /**
+         * New password for the account
+         */
         password: string;
     };
     path?: never;
@@ -773,6 +784,14 @@ export type DeleteAdminUsersByUserIdErrors = {
         success: false;
         code: 404;
         message: 'User not found';
+    };
+    /**
+     * Cannot delete the last administrator
+     */
+    409: {
+        success: false;
+        code: 409;
+        message: 'Cannot delete the last administrator';
     };
 };
 
@@ -875,12 +894,12 @@ export type PutAdminUsersByUserIdErrors = {
         message: 'User not found';
     };
     /**
-     * Conflict: Username or email already exists
+     * Conflict: Username or email already exists / Would remove the last administrator
      */
     409: {
         success: false;
         code: 409;
-        message: 'Conflict: Username or email already exists';
+        message: 'Conflict: Username or email already exists / Would remove the last administrator';
     };
 };
 

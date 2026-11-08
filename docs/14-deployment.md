@@ -39,6 +39,11 @@ it. For non-compiled runs `DB.init` reads `APPPREFIX_DB_MIGRATION_DIR` instead
 (see [08 — Migrations](08-database.md#migrations)); the Docker image below also copies the
 migrations next to the binary as a fallback.
 
+Behind a reverse proxy on the same host, set `APPPREFIX_API_HOST=127.0.0.1` so the proxy is the
+only client, and `APPPREFIX_API_TRUST_PROXY=true` so the login rate limiter reads the client IP
+from `X-Forwarded-For` ([10](10-auth.md#client-address)). Left off, every request arrives from
+loopback, counts as an unknown client, and only the per-username login limits apply.
+
 ### Docker image
 
 All templates use the same container layout: `WORKDIR /opt/leicraftmc/<project>` with the app

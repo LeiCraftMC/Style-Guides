@@ -66,7 +66,7 @@ auto-imports and is checked inside the Nuxt templates.
 | `src/api/utils/specHelpers.ts` | `APIRouteSpec` (`authenticated`/`unauthenticated`/…) + `APIResponseSpec` — hono-openapi `describeRoute` wrappers. |
 | `src/api/utils/apiVersionRouter.ts` | `APIVersionRouter` base for mounting `/v{n}` routers with their OpenAPI config. |
 | `src/api/utils/authHandler.ts` | Opaque bearer-token auth: `AuthUtils`, `SessionHandler`, `APIKeyHandler`, `AuthHandler` (+ `AuthContext` helpers). Needs the template's DB schema, `LCrypt` and `shared-models/accountData.ts`. |
-| `src/api/utils/clientIP.ts` | `getClientIP(c)`: the client IP from a trusted proxy's `X-Forwarded-For` (`API_TRUST_PROXY`), a `clientIP` env binding (full-stack bridge) or the Bun socket — `null` when unknown. Used by the login rate limiter. |
+| `src/api/utils/clientIP.ts` | `getClientIP(c)`: the client IP from a trusted proxy's `X-Forwarded-For` (`API_TRUST_PROXY`), a `clientIP` env binding (full-stack bridge) or the Bun socket — `null` when unknown or loopback. `getClientRateLimitKey(ip)`: IPv4 as is, IPv6 by /64. Used by the login rate limiter. |
 | `src/api/versions/v1/middleware/auth.ts` | `authMiddlewareV1` — resolves the `AuthContext`; public auth paths stay reachable with a stale token. |
 | `src/utils/config.ts` | `ConfigHandler` + the Zod `CS` builder (`CS.string()/number()/boolean()/enum()/array()`). Booleans: exactly `"true"`/`"false"` (case-sensitive) — anything else fails at startup. |
 | `src/utils/constants.ts` | `AppConstants` — app name, `APPPREFIX`/`appprefix`, default port, `BINARY_NAME`. |

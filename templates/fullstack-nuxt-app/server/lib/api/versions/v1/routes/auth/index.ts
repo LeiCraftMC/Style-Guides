@@ -2,11 +2,11 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
-import { type DrizzleDB } from "../../../../../db/utils";
+import type { DrizzleDB } from "../../../../../db/utils";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
-import { getClientIP } from "../../../../utils/clientIP";
+import { getClientIP, getClientRateLimitKey } from "../../../../utils/clientIP";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 import { AuthModel } from "./model";
@@ -17,41 +17,49 @@ const DUMMY_PASSWORD_HASH = await Bun.password.hash("dummy-timing-constant");
 
 // In-memory login rate limiter. An attempt is registered before the password check, so concurrent
 // requests cannot all slip under a limit, and taken back when the login succeeds — the counters
-// effectively count failures.
+// effectively count failures. Clients are counted by `getClientRateLimitKey`: IPv4 addresses as
+// is, IPv6 addresses by /64.
 const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const LOGIN_MAX_ATTEMPTS = 5; // per client + username
 const LOGIN_MAX_CLIENT_ATTEMPTS = 20; // per client, across usernames
 // Per username across clients. Past this, only clients without a failure for that username may
-// try: a distributed attack gets one guess per new address, while the owner can still log in.
+// try: a distributed attack gets one guess per new client, and the owner can still log in from a
+// client where they have not mistyped in this window.
 const LOGIN_USERNAME_ALERT_ATTEMPTS = 15;
 
+type LoginAttemptEntry = { key: string; count: number; resetAt: number };
+
 class LoginAttemptCounter {
-	private readonly entries = new Map<string, { count: number; resetAt: number }>();
+	private readonly entries = new Map<string, LoginAttemptEntry>();
 
 	count(key: string) {
 		const entry = this.entries.get(key);
 		return entry && entry.resetAt > Date.now() ? entry.count : 0;
 	}
 
-	increment(key: string) {
+	/** Count an attempt; returns the window entry it was counted in, for `release`/`clear`. */
+	increment(key: string): LoginAttemptEntry {
 		const now = Date.now();
-		const entry = this.entries.get(key);
+		let entry = this.entries.get(key);
 		if (!entry || entry.resetAt <= now) {
-			this.entries.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+			entry = { key, count: 1, resetAt: now + LOGIN_WINDOW_MS };
+			this.entries.set(key, entry);
 		} else {
 			entry.count += 1;
 		}
+		return entry;
 	}
 
-	decrement(key: string) {
-		const entry = this.entries.get(key);
-		if (!entry) return;
+	// Both act only while `entry` is still the current window: a login whose window expired during
+	// the password check must not take back failures counted in the next one.
+	release(entry: LoginAttemptEntry) {
+		if (this.entries.get(entry.key) !== entry) return;
 		entry.count -= 1;
-		if (entry.count <= 0) this.entries.delete(key);
+		if (entry.count <= 0) this.entries.delete(entry.key);
 	}
 
-	clear(key: string) {
-		this.entries.delete(key);
+	clear(entry: LoginAttemptEntry) {
+		if (this.entries.get(entry.key) === entry) this.entries.delete(entry.key);
 	}
 
 	purgeExpired(now: number) {
@@ -79,36 +87,38 @@ let warnedAboutMissingClientIP = false;
 
 /**
  * Check the limits and register the attempt in one synchronous step (no await in between).
- * Returns false when the attempt is rate limited.
+ * Returns `null` when the attempt is rate limited, otherwise a function that takes the attempt
+ * back — call it once the login has succeeded.
  */
-function tryRegisterLoginAttempt(clientIP: string | null, username: string): boolean {
+function tryRegisterLoginAttempt(clientIP: string | null, username: string): (() => void) | null {
 	if (clientIP === null && !warnedAboutMissingClientIP) {
 		warnedAboutMissingClientIP = true;
 		Logger.warn(
-			"Client IP unavailable: login limits fall back to one shared client. Behind a reverse proxy, set API_TRUST_PROXY.",
+			"Client IP unknown (no address, or a loopback peer such as a same-host reverse proxy): these logins share one rate-limit client. Behind a reverse proxy, set APPPREFIX_API_TRUST_PROXY=true and have the proxy append X-Forwarded-For.",
 		);
 	}
 
-	const clientUserKey = `${clientIP ?? "unknown"}:${username}`;
+	const clientKey = clientIP === null ? null : getClientRateLimitKey(clientIP);
+	// JSON keeps the pair unambiguous: IPv6 keys contain ':' and a login username can be any string.
+	const clientUserKey = JSON.stringify([clientKey, username]);
 	const clientUserAttempts = attemptsByClientAndUser.count(clientUserKey);
 
 	const limited =
 		clientUserAttempts >= LOGIN_MAX_ATTEMPTS ||
 		// Without an address every visitor shares one client, so a per-client limit would block everyone.
-		(clientIP !== null && attemptsByClient.count(clientIP) >= LOGIN_MAX_CLIENT_ATTEMPTS) ||
+		(clientKey !== null && attemptsByClient.count(clientKey) >= LOGIN_MAX_CLIENT_ATTEMPTS) ||
 		(clientUserAttempts > 0 && attemptsByUsername.count(username) >= LOGIN_USERNAME_ALERT_ATTEMPTS);
-	if (limited) return false;
+	if (limited) return null;
 
-	attemptsByClientAndUser.increment(clientUserKey);
-	if (clientIP !== null) attemptsByClient.increment(clientIP);
-	attemptsByUsername.increment(username);
-	return true;
-}
+	const clientUserEntry = attemptsByClientAndUser.increment(clientUserKey);
+	const clientEntry = clientKey === null ? null : attemptsByClient.increment(clientKey);
+	const usernameEntry = attemptsByUsername.increment(username);
 
-function releaseSuccessfulLoginAttempt(clientIP: string | null, username: string) {
-	attemptsByClientAndUser.clear(`${clientIP ?? "unknown"}:${username}`);
-	if (clientIP !== null) attemptsByClient.decrement(clientIP);
-	attemptsByUsername.decrement(username);
+	return () => {
+		attemptsByClientAndUser.clear(clientUserEntry);
+		if (clientEntry) attemptsByClient.release(clientEntry);
+		attemptsByUsername.release(usernameEntry);
+	};
 }
 
 export const router = new Hono().basePath("/auth");
@@ -142,7 +152,8 @@ router.post(
 			const clientIP = getClientIP(c);
 			const usernameKey = username.toLowerCase();
 
-			if (!tryRegisterLoginAttempt(clientIP, usernameKey)) {
+			const releaseLoginAttempt = tryRegisterLoginAttempt(clientIP, usernameKey);
+			if (!releaseLoginAttempt) {
 				const retrySeconds = Math.max(1, Math.ceil(LOGIN_WINDOW_MS / 1000));
 				c.header("Retry-After", retrySeconds.toString());
 				return APIResponse.tooManyRequests(c, `Too many login attempts. Try again in ${retrySeconds}s`);
@@ -164,7 +175,7 @@ router.post(
 				return APIResponse.unauthorized(c, "Invalid username or password");
 			}
 
-			releaseSuccessfulLoginAttempt(clientIP, usernameKey);
+			releaseLoginAttempt();
 
 			const session = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				return await SessionHandler.createSession(user.id, tx);

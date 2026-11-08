@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { API } from "../server/lib/api";
 import { AuthHandler, AuthUtils, SessionHandler } from "../server/lib/api/utils/authHandler";
-import { getClientIP } from "../server/lib/api/utils/clientIP";
+import { getClientIP, getClientRateLimitKey } from "../server/lib/api/utils/clientIP";
 import { AccountModel } from "../server/lib/api/versions/v1/routes/account/model";
 import { AccountPreferencesModel } from "../server/lib/api/versions/v1/routes/account/preferences/model";
 import { AuthModel } from "../server/lib/api/versions/v1/routes/auth/model";
@@ -328,20 +328,59 @@ describe("Login rate limiting per client", async () => {
 		LIMITER_TEST_TIMEOUT_MS,
 	);
 
+	test(
+		"IPv6 clients are limited per /64",
+		async () => {
+			const user = await seedUser("user", {}, "PerPrefixP@ss1");
+
+			for (let host = 1; host <= 5; host++) {
+				expect(await loginFrom(`2001:db8:0:1::${host}`, user.username, "WrongPassword")).toBe(401);
+			}
+			// Another address in the same /64 is the same client …
+			expect(await loginFrom("2001:db8:0:1:ffff::9", user.username, user.password)).toBe(429);
+			// … the next /64 is not.
+			expect(await loginFrom("2001:db8:0:2::1", user.username, user.password)).toBe(200);
+		},
+		LIMITER_TEST_TIMEOUT_MS,
+	);
+
+	const ipApp = new Hono().get("/", (c) => c.text(getClientIP(c) ?? "none"));
+	const ipOf = async (init: RequestInit, env?: { clientIP: string }) =>
+		(await ipApp.request("/", init, env)).text();
+
 	test("X-Forwarded-For is only trusted with API_TRUST_PROXY", async () => {
-		const app = new Hono().get("/", (c) => c.text(getClientIP(c) ?? "none"));
 		const headers = { "X-Forwarded-For": "198.51.100.7, 203.0.113.50" };
 
-		expect(await (await app.request("/", { headers })).text()).toBe("none");
+		expect(await ipOf({ headers })).toBe("none");
 
 		const config = ConfigHandler.getConfig() as { API_TRUST_PROXY: boolean };
 		config.API_TRUST_PROXY = true;
 		try {
 			// The last entry is the address the proxy saw; the first one is client-supplied.
-			expect(await (await app.request("/", { headers })).text()).toBe("203.0.113.50");
+			expect(await ipOf({ headers })).toBe("203.0.113.50");
+			// Without the header the direct peer is the proxy itself — never the client.
+			expect(await ipOf({}, { clientIP: "172.17.0.1" })).toBe("none");
 		} finally {
 			config.API_TRUST_PROXY = false;
 		}
+	});
+
+	test("loopback peers are not clients; IPv4-mapped addresses are plain IPv4", async () => {
+		expect(await ipOf({}, { clientIP: "127.0.0.1" })).toBe("none");
+		expect(await ipOf({}, { clientIP: "::1" })).toBe("none");
+		expect(await ipOf({}, { clientIP: "::ffff:127.0.0.1" })).toBe("none");
+		expect(await ipOf({}, { clientIP: "::ffff:203.0.113.5" })).toBe("203.0.113.5");
+		expect(await ipOf({}, { clientIP: "not-an-ip" })).toBe("none");
+	});
+
+	test("rate-limit keys group IPv6 by /64", () => {
+		expect(getClientRateLimitKey("203.0.113.5")).toBe("203.0.113.5");
+		expect(getClientRateLimitKey("2001:db8:0:1:2:3:4:5")).toBe("2001:db8:0:1::/64");
+		expect(getClientRateLimitKey("2001:DB8::1")).toBe("2001:db8:0:0::/64");
+		expect(getClientRateLimitKey("1::2:3:4:5:6")).toBe("1:0:0:2::/64");
+		expect(getClientRateLimitKey("fe80::1%eth0")).toBe("fe80:0:0:0::/64");
+		// ::/64 is not one network: those addresses stay whole.
+		expect(getClientRateLimitKey("::5")).toBe("::5");
 	});
 });
 

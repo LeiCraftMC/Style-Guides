@@ -154,19 +154,25 @@ There are no `requireSession` / `requireAdmin` helpers — write a guard on the 
 takes `{ username, password }` and does four things:
 
 1. **Rejects authenticated callers** with 403.
-2. **In-memory rate limiting** in a 5-minute window, keyed by the client's IP (see below):
+2. **In-memory rate limiting** in a 5-minute window, keyed by the client's IP (see below) — an
+   IPv4 address as is, an IPv6 address by its **/64** (`getClientRateLimitKey`), since one IPv6
+   host usually controls a whole /64:
    - at most **5 attempts per client + username** (`LOGIN_MAX_ATTEMPTS`);
    - at most **20 per client** across usernames (`LOGIN_MAX_CLIENT_ATTEMPTS`), against password
      spraying;
    - **no hard per-username lock.** Once a username collects 15 attempts from all clients
      (`LOGIN_USERNAME_ALERT_ATTEMPTS`), only clients without a failure for it may still try. A
-     distributed attack gets one guess per new address, but nobody can lock the owner out by
-     knowing the username.
+     distributed attack gets one guess per new client, and knowing the username is not enough to
+     lock the owner out: they can still log in from any client where they have not mistyped in
+     this window (one typo while it is under attack blocks that client until the window ends).
 
    An attempt is registered *before* the password check (check and register run synchronously,
    so concurrent requests cannot all slip under a limit) and taken back on a successful login, so
-   the counters effectively count failures. Over a limit → 429 with `Retry-After: 300` (the
-   window, in seconds). An `unref`'d interval purges expired entries.
+   the counters effectively count failures. The take-back only touches the window the attempt was
+   counted in, so a login that outlives its window cannot cancel newer failures. The client +
+   username key is `JSON.stringify([client, username])` — a `:`-joined key would be ambiguous with
+   IPv6. Over a limit → 429 with `Retry-After: 300` (the window, in seconds). An `unref`'d interval
+   purges expired entries.
 3. **Timing-safe failure.** For an unknown username it verifies against `DUMMY_PASSWORD_HASH`
    (a real `Bun.password` hash computed at module load), so a missing user costs the same time as a
    wrong password; both return 401 `"Invalid username or password"`.
@@ -185,21 +191,33 @@ takes `{ username, password }` and does four things:
 ### Client address
 
 `getClientIP(c)` ([`api/utils/clientIP.ts`](../shared/backend/src/api/utils/clientIP.ts)) returns
-the client's IP or `null`, trying in order:
+the client's IP or `null`:
 
-1. With `API_TRUST_PROXY` on, the **last** `X-Forwarded-For` entry — the address the trusted
-   proxy saw. Earlier entries are sent by the client and can be forged. Only turn it on when every
-   request goes through a proxy that appends the header (the compose files bind the port to
-   loopback for exactly this reason, see [14](14-deployment.md)). Behind two proxies (a CDN in
-   front of nginx) the last entry is the CDN's; adapt the helper there.
-2. A `clientIP` env binding — the full-stack bridge passes `app.fetch(request, { clientIP })`.
-3. The Bun server's socket address via `getConnInfo(c)` from `hono/bun`. It works in the backend
-   shape (`Bun.serve({ fetch: app.fetch })` passes the server as `env`) and throws without one,
-   e.g. under `app.request()` in tests; the helper then returns `null`.
+- With `API_TRUST_PROXY` on, **only** the last `X-Forwarded-For` entry — the address the trusted
+  proxy saw. Earlier entries are sent by the client and can be forged. Without the header the
+  result is `null`, never the socket address: that is the proxy's, and counting it would make every
+  visitor one client. Only turn the setting on when every request goes through a proxy that
+  appends the header (nginx needs `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`;
+  the compose files bind the port to loopback for exactly this reason, see
+  [14](14-deployment.md)). Behind two proxies (a CDN in front of nginx) the last entry is the
+  CDN's; adapt the helper there.
+- With it off, a `clientIP` env binding (the full-stack bridge passes
+  `app.fetch(request, { clientIP })`), else the Bun server's socket address via `getConnInfo(c)`
+  from `hono/bun`. That works in the backend shape (`Bun.serve({ fetch: app.fetch })` passes the
+  server as `env`) and throws without one, e.g. under `app.request()` in tests; the helper then
+  returns `null`.
+
+A **loopback** address (`127.0.0.0/8`, `::1`) is `null` as well: it is a reverse proxy on the same
+host (or a local tool), never a remote client. Without that rule a backend behind nginx with the
+setting left off would count every visitor as `127.0.0.1`, and 20 failed logins would lock out the
+whole site. A proxy that reaches the service from a private address (Docker's bridge gateway,
+another container) cannot be told apart from a LAN client — there the setting is the only
+protection. IPv4-mapped IPv6 addresses (`::ffff:203.0.113.5`) come back as plain IPv4.
 
 In the **full-stack** shape there is no socket address in production: Nitro's Bun preset hands
-requests to h3 through a mock Node request with an empty `remoteAddress`, so step 2 only helps under
-`nuxt dev`. Full-stack deployments therefore need `API_TRUST_PROXY` behind their reverse proxy.
+requests to h3 through a mock Node request with an empty `remoteAddress`, so the binding only
+carries a value under `nuxt dev`. Full-stack deployments therefore need `API_TRUST_PROXY` behind
+their reverse proxy.
 
 Without an address every visitor shares one `"unknown"` client: the per-client limit is skipped (it
 would block everyone), the per-client + username limit becomes a per-username limit again, and the
@@ -486,9 +504,11 @@ const REQUIRE_ONBOARDING = true;
 - [ ] `authMiddlewareV1` resolves the context; bad tokens get 401 except on the public auth paths.
 - [ ] Access enforced by router guards (account: session-only; admin: `user_role === "admin"`).
 - [ ] Login: authenticated callers 403, rate limit (5 per client + user, 20 per client, no hard
-  per-user lock, 5 min, `Retry-After`), dummy-hash verify, session created in a transaction.
-- [ ] Client IP via `getClientIP(c)`; `API_TRUST_PROXY` only behind a proxy that appends
-  `X-Forwarded-For` (always for full-stack deployments).
+  per-user lock, IPv6 per /64, 5 min, `Retry-After`), dummy-hash verify, session created in a
+  transaction.
+- [ ] Client IP via `getClientIP(c)` (loopback → `null`); `API_TRUST_PROXY` only behind a proxy
+  that appends `X-Forwarded-For` (always for full-stack deployments, and for a backend behind a
+  proxy on another address).
 - [ ] A wrong `current_password` answers 400, not 401.
 - [ ] Sessions expire after 7 days (deleted on access); expired API keys rejected.
 - [ ] Role changes update the cached `user_role` (`changeUserRoleInAuthContexts`).
