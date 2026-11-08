@@ -25,7 +25,9 @@ shared/
 
 **Full-stack Nuxt projects** keep the backend in `server/lib/` instead of `src/`: copy
 `shared/backend/src/**` to `server/lib/**` (same relative layout, so imports between the copied
-files keep working). In `utils/config.ts`, drop `API_HOST`/`API_PORT` — Nitro owns the port. Take
+files keep working). In `utils/config.ts`, drop `API_HOST`/`API_PORT` — Nitro owns the port. In
+`utils/constants.ts`, set `APP_API_DEFAULT_PORT` to the Nitro port and `APP_API_DEFAULT_PROD_URL` to
+the app's URL — the OpenAPI servers append `/api/v1`. Take
 `tests/helpers/` from [`templates/fullstack-nuxt-app/tests/helpers/`](../templates/fullstack-nuxt-app/tests/helpers/)
 instead: its imports point at `../../server/lib/`, its preload sets no `API_HOST`/`API_PORT`, uses
 `APP_URL` port 12520 and doesn't call `API.start()` (see [docs/12](../docs/12-testing.md)).
@@ -64,6 +66,7 @@ auto-imports and is checked inside the Nuxt templates.
 | `src/api/utils/specHelpers.ts` | `APIRouteSpec` (`authenticated`/`unauthenticated`/…) + `APIResponseSpec` — hono-openapi `describeRoute` wrappers. |
 | `src/api/utils/apiVersionRouter.ts` | `APIVersionRouter` base for mounting `/v{n}` routers with their OpenAPI config. |
 | `src/api/utils/authHandler.ts` | Opaque bearer-token auth: `AuthUtils`, `SessionHandler`, `APIKeyHandler`, `AuthHandler` (+ `AuthContext` helpers). Needs the template's DB schema, `LCrypt` and `shared-models/accountData.ts`. |
+| `src/api/utils/clientIP.ts` | `getClientIP(c)`: the client IP from a trusted proxy's `X-Forwarded-For` (`API_TRUST_PROXY`), a `clientIP` env binding (full-stack bridge) or the Bun socket — `null` when unknown. Used by the login rate limiter. |
 | `src/api/versions/v1/middleware/auth.ts` | `authMiddlewareV1` — resolves the `AuthContext`; public auth paths stay reachable with a stale token. |
 | `src/utils/config.ts` | `ConfigHandler` + the Zod `CS` builder (`CS.string()/number()/boolean()/enum()/array()`). Booleans: exactly `"true"`/`"false"` (case-sensitive) — anything else fails at startup. |
 | `src/utils/constants.ts` | `AppConstants` — app name, `APPPREFIX`/`appprefix`, default port, `BINARY_NAME`. |

@@ -13,6 +13,7 @@ function setTestEnv(rootDir: string) {
 		APPPREFIX_LOG_LEVEL: "debug",
 
 		APPPREFIX_API_DISABLE_DOCS: false,
+		APPPREFIX_API_TRUST_PROXY: false,
 
 		APPPREFIX_DB_PATH: path.join(rootDir, "db.sqlite"),
 		APPPREFIX_DB_AUTO_MIGRATE: true,

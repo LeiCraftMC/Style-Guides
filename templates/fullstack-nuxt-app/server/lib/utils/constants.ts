@@ -5,9 +5,9 @@ export namespace AppConstants {
 
 	export const APP_KEYS_PREFIX = "appprefix";
 
-	export const APP_API_DEFAULT_PORT = 12500;
+	export const APP_API_DEFAULT_PORT = 12520;
 
-	export const APP_API_DEFAULT_PROD_URL = `https://api.${AppConstants.APP_NAME.toLowerCase()}.is-on.net`;
+	export const APP_API_DEFAULT_PROD_URL = `https://${AppConstants.APP_NAME.toLowerCase()}.is-on.net`;
 
 	export const DEFAULT_EMAIL_FROM_HOST = "appname.local";
 

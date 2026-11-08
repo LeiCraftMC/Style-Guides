@@ -5,7 +5,7 @@ import { DB } from "../../../../../db";
 import { type DrizzleDB } from "../../../../../db/utils";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
-import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
+import { AuthHandler, AuthUtils, SessionHandler } from "../../../../utils/authHandler";
 import { UserPreferencesHandler } from "../../../../utils/preferences";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
@@ -68,9 +68,12 @@ router.put(
 		description: "Update information about the authenticated user's account.",
 		tags: [DOCS_TAGS.ACCOUNT],
 
-		responses: APIResponseSpec.describeWithWrongInputs(
+		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.successNoData("Account information updated successfully"),
 			APIResponseSpec.unauthorized("Your Auth Context is not a session"),
+			APIResponseSpec.badRequest(
+				"Current password is incorrect / Syntax or validation error in request",
+			),
 			APIResponseSpec.conflict("Username or email already in use"),
 		),
 	}),
@@ -94,8 +97,9 @@ router.put(
 			throw new Error("User not found but session exists");
 		}
 
+		// 400, not 401: the frontend treats every 401 as an expired session and logs the user out.
 		if (!(await Bun.password.verify(current_password, user.password_hash))) {
-			return APIResponse.unauthorized(c, "Current password is incorrect");
+			return APIResponse.badRequest(c, "Current password is incorrect");
 		}
 
 		// Check for conflicts if changing username or email
@@ -167,7 +171,7 @@ router.put(
 			}
 
 			if ((await Bun.password.verify(body.current_password, user.password_hash)) === false) {
-				return APIResponse.unauthorized(c, "Current password is incorrect");
+				return APIResponse.badRequest(c, "Current password is incorrect");
 			}
 
 			const newPasswordHash = await Bun.password.hash(body.new_password);
@@ -203,11 +207,19 @@ router.delete(
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.successNoData("Account deleted successfully"),
 			APIResponseSpec.unauthorized("Your Auth Context is not a session"),
+			APIResponseSpec.conflict("You are the last administrator"),
 		),
 	}),
 
 	async (c) => {
 		const authContext = AuthHandler.AuthContext.getAsSession(c);
+
+		if (AuthUtils.isLastAdmin(authContext.user_id)) {
+			return APIResponse.conflict(
+				c,
+				"You are the last administrator. Make another user an admin before deleting your account.",
+			);
+		}
 
 		try {
 			await DB.instance().transaction(async (tx: DrizzleDB) => {

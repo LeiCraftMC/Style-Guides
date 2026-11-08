@@ -1,0 +1,4 @@
+# Allowlist: the build context holds only what docker/Dockerfile copies — the .output/ bundle.
+# Everything else (node_modules/, .env files, .nuxt/) stays out.
+*
+!.output/

@@ -4,7 +4,6 @@ stages:
 
 variables:
   GIT_DEPTH: "20"
-  BUN_INSTALL_CACHE: "$CI_PROJECT_DIR/.bun"
 
 include:
   - local: ".gitlab/ci/testing.yml"

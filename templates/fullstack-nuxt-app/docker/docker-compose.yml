@@ -7,12 +7,16 @@ services:
     image: gcr.leicraftmc.de/leicraftmc/my-project:latest
     container_name: my-project
     restart: unless-stopped
+    # Loopback only: the reverse proxy on this host is the sole client, which is what makes
+    # APPPREFIX_API_TRUST_PROXY safe. Without a proxy, publish "12520:12520" and set it to false —
+    # login rate limiting then has no client address (the Nitro Bun preset exposes none).
     ports:
-      - "12520:12520"
+      - "127.0.0.1:12520:12520"
     environment:
       APPPREFIX_LOG_LEVEL: info
 
       APPPREFIX_API_DISABLE_DOCS: false
+      APPPREFIX_API_TRUST_PROXY: true
 
       APPPREFIX_APP_URL: http://localhost:12520
 
@@ -24,5 +28,5 @@ services:
       APPPREFIX_SMTP_SECURE: true
 
     volumes:
-      - ./data:/opt/leicraftmc/my-project/data
-      - ./config:/opt/leicraftmc/my-project/config
+      - /opt/leicraftmc/my-project/data:/opt/leicraftmc/my-project/data
+      - /opt/leicraftmc/my-project/config:/opt/leicraftmc/my-project/config

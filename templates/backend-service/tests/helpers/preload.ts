@@ -13,6 +13,7 @@ function setTestEnv(rootDir: string) {
 		APPPREFIX_API_HOST: "::",
 		APPPREFIX_API_PORT: 12500,
 		APPPREFIX_API_DISABLE_DOCS: false,
+		APPPREFIX_API_TRUST_PROXY: false,
 
 		APPPREFIX_DB_PATH: path.join(rootDir, "db.sqlite"),
 		APPPREFIX_DB_AUTO_MIGRATE: true,

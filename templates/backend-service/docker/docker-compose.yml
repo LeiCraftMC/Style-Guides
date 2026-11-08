@@ -7,14 +7,17 @@ services:
     image: gcr.leicraftmc.de/leicraftmc/my-project:latest
     container_name: my-project-api
     restart: unless-stopped
+    # Loopback only: the reverse proxy on this host is the sole client, which is what makes
+    # APPPREFIX_API_TRUST_PROXY safe. Without a proxy, publish "12500:12500" and set it to false.
     ports:
-      - "12500:12500"
+      - "127.0.0.1:12500:12500"
     environment:
       APPPREFIX_LOG_LEVEL: info
 
       APPPREFIX_APP_URL: http://localhost:12510
 
       APPPREFIX_API_DISABLE_DOCS: false
+      APPPREFIX_API_TRUST_PROXY: true
 
       APPPREFIX_SMTP_HOST: "mail.example.com"
       APPPREFIX_SMTP_PORT: 465

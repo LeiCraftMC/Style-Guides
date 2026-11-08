@@ -1,5 +1,4 @@
 import { eq } from "drizzle-orm";
-import type { Context } from "hono";
 import { Hono } from "hono";
 import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../db";
@@ -7,6 +6,7 @@ import { type DrizzleDB } from "../../../../../db/utils";
 import { Logger } from "../../../../../utils/logger";
 import { APIResponse } from "../../../../utils/api-res";
 import { AuthHandler, SessionHandler } from "../../../../utils/authHandler";
+import { getClientIP } from "../../../../utils/clientIP";
 import { APIResponseSpec, APIRouteSpec } from "../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../docs";
 import { AuthModel } from "./model";
@@ -15,74 +15,100 @@ import { AuthModel } from "./model";
 // Generated once at module load so it's a valid, cost-equivalent hash
 const DUMMY_PASSWORD_HASH = await Bun.password.hash("dummy-timing-constant");
 
-// Simple in-memory rate limiter for login to reduce brute-force risk
+// In-memory login rate limiter. An attempt is registered before the password check, so concurrent
+// requests cannot all slip under a limit, and taken back when the login succeeds — the counters
+// effectively count failures.
 const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const LOGIN_MAX_ATTEMPTS = 5;
-const LOGIN_MAX_GLOBAL_ATTEMPTS = 15; // Per-username limit across all IPs
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
-const globalLoginAttempts = new Map<string, { count: number; resetAt: number }>();
+const LOGIN_MAX_ATTEMPTS = 5; // per client + username
+const LOGIN_MAX_CLIENT_ATTEMPTS = 20; // per client, across usernames
+// Per username across clients. Past this, only clients without a failure for that username may
+// try: a distributed attack gets one guess per new address, while the owner can still log in.
+const LOGIN_USERNAME_ALERT_ATTEMPTS = 15;
+
+class LoginAttemptCounter {
+	private readonly entries = new Map<string, { count: number; resetAt: number }>();
+
+	count(key: string) {
+		const entry = this.entries.get(key);
+		return entry && entry.resetAt > Date.now() ? entry.count : 0;
+	}
+
+	increment(key: string) {
+		const now = Date.now();
+		const entry = this.entries.get(key);
+		if (!entry || entry.resetAt <= now) {
+			this.entries.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+		} else {
+			entry.count += 1;
+		}
+	}
+
+	decrement(key: string) {
+		const entry = this.entries.get(key);
+		if (!entry) return;
+		entry.count -= 1;
+		if (entry.count <= 0) this.entries.delete(key);
+	}
+
+	clear(key: string) {
+		this.entries.delete(key);
+	}
+
+	purgeExpired(now: number) {
+		for (const [key, entry] of this.entries) {
+			if (entry.resetAt <= now) this.entries.delete(key);
+		}
+	}
+}
+
+const attemptsByClientAndUser = new LoginAttemptCounter();
+const attemptsByClient = new LoginAttemptCounter();
+const attemptsByUsername = new LoginAttemptCounter();
 
 // Periodic cleanup to prevent unbounded memory growth — runs every 5 minutes
 const LOGIN_CLEANUP_INTERVAL = setInterval(() => {
 	const now = Date.now();
-	for (const [key, entry] of loginAttempts) {
-		if (entry.resetAt <= now) loginAttempts.delete(key);
-	}
-	for (const [key, entry] of globalLoginAttempts) {
-		if (entry.resetAt <= now) globalLoginAttempts.delete(key);
-	}
+	attemptsByClientAndUser.purgeExpired(now);
+	attemptsByClient.purgeExpired(now);
+	attemptsByUsername.purgeExpired(now);
 }, LOGIN_WINDOW_MS);
 // Allow the process to exit without waiting for this interval
 LOGIN_CLEANUP_INTERVAL.unref();
 
-function getClientId(c: Context) {
-	// @ts-ignore bun/hono provides a native request with connection info
-	const remote = (c.req.raw as any)?.remoteAddr?.hostname;
-	return remote || "unknown";
-}
-
-function getLoginAttemptKey(clientId: string, username: string) {
-	return `${clientId}:${username.toLowerCase()}`;
-}
-
-function getGlobalLoginAttemptKey(username: string) {
-	return username.toLowerCase();
-}
+let warnedAboutMissingClientIP = false;
 
 /**
- * Register a failed attempt, incrementing the counter atomically.
- * Returns the new count after increment — no await between read and write.
+ * Check the limits and register the attempt in one synchronous step (no await in between).
+ * Returns false when the attempt is rate limited.
  */
-function registerFailedLoginAttempt(
-	loginAttemptKey: string,
-	globalKey: string,
-): { perIpCount: number; globalCount: number } {
-	const now = Date.now();
-
-	// Per-IP-per-username counter
-	let entry = loginAttempts.get(loginAttemptKey);
-	if (!entry || entry.resetAt <= now) {
-		entry = { count: 1, resetAt: now + LOGIN_WINDOW_MS };
-		loginAttempts.set(loginAttemptKey, entry);
-	} else {
-		entry.count += 1;
+function tryRegisterLoginAttempt(clientIP: string | null, username: string): boolean {
+	if (clientIP === null && !warnedAboutMissingClientIP) {
+		warnedAboutMissingClientIP = true;
+		Logger.warn(
+			"Client IP unavailable: login limits fall back to one shared client. Behind a reverse proxy, set API_TRUST_PROXY.",
+		);
 	}
 
-	// Global per-username counter
-	let globalEntry = globalLoginAttempts.get(globalKey);
-	if (!globalEntry || globalEntry.resetAt <= now) {
-		globalEntry = { count: 1, resetAt: now + LOGIN_WINDOW_MS };
-		globalLoginAttempts.set(globalKey, globalEntry);
-	} else {
-		globalEntry.count += 1;
-	}
+	const clientUserKey = `${clientIP ?? "unknown"}:${username}`;
+	const clientUserAttempts = attemptsByClientAndUser.count(clientUserKey);
 
-	return { perIpCount: entry.count, globalCount: globalEntry.count };
+	const limited =
+		clientUserAttempts >= LOGIN_MAX_ATTEMPTS ||
+		// Without an address every visitor shares one client, so a per-client limit would block everyone.
+		(clientIP !== null && attemptsByClient.count(clientIP) >= LOGIN_MAX_CLIENT_ATTEMPTS) ||
+		(clientUserAttempts > 0 && attemptsByUsername.count(username) >= LOGIN_USERNAME_ALERT_ATTEMPTS);
+	if (limited) return false;
+
+	attemptsByClientAndUser.increment(clientUserKey);
+	if (clientIP !== null) attemptsByClient.increment(clientIP);
+	attemptsByUsername.increment(username);
+	return true;
 }
 
-function clearFailedLoginAttempts(loginAttemptKey: string, globalKey: string) {
-	loginAttempts.delete(loginAttemptKey);
-	globalLoginAttempts.delete(globalKey);
+function releaseSuccessfulLoginAttempt(clientIP: string | null, username: string) {
+	attemptsByClientAndUser.clear(`${clientIP ?? "unknown"}:${username}`);
+	if (clientIP !== null) attemptsByClient.decrement(clientIP);
+	attemptsByUsername.decrement(username);
 }
 
 export const router = new Hono().basePath("/auth");
@@ -113,14 +139,10 @@ router.post(
 		const { username, password } = c.req.valid("json");
 
 		try {
-			const clientId = getClientId(c);
-			const loginAttemptKey = getLoginAttemptKey(clientId, username);
-			const globalKey = getGlobalLoginAttemptKey(username);
+			const clientIP = getClientIP(c);
+			const usernameKey = username.toLowerCase();
 
-			// Increment counters FIRST, then check limits — eliminates TOCTOU race
-			const { perIpCount, globalCount } = registerFailedLoginAttempt(loginAttemptKey, globalKey);
-
-			if (perIpCount > LOGIN_MAX_ATTEMPTS || globalCount > LOGIN_MAX_GLOBAL_ATTEMPTS) {
+			if (!tryRegisterLoginAttempt(clientIP, usernameKey)) {
 				const retrySeconds = Math.max(1, Math.ceil(LOGIN_WINDOW_MS / 1000));
 				c.header("Retry-After", retrySeconds.toString());
 				return APIResponse.tooManyRequests(c, `Too many login attempts. Try again in ${retrySeconds}s`);
@@ -142,8 +164,7 @@ router.post(
 				return APIResponse.unauthorized(c, "Invalid username or password");
 			}
 
-			// Successful login — clear all counters for this user
-			clearFailedLoginAttempts(loginAttemptKey, globalKey);
+			releaseSuccessfulLoginAttempt(clientIP, usernameKey);
 
 			const session = await DB.instance().transaction(async (tx: DrizzleDB) => {
 				return await SessionHandler.createSession(user.id, tx);

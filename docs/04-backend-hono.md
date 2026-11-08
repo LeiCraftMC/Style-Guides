@@ -670,7 +670,7 @@ export default defineNitroPlugin(async (nitroApp) => {
 bridge from Nitro to Hono:
 
 ```ts
-import { defineEventHandler, getMethod, getRequestURL, readRawBody, setResponseStatus } from "h3";
+import { defineEventHandler, getRequestIP, setResponseStatus, toWebRequest } from "h3";
 import { Hono } from "hono";
 import { API } from "../../lib/api";
 
@@ -701,18 +701,19 @@ export default defineEventHandler(async (event) => {
 		};
 	}
 
-	const url = getRequestURL(event);
-	const method = getMethod(event);
-
-	const request = new Request(url, {
-		method,
-		headers: event.headers,
-		body: method !== "GET" && method !== "HEAD" ? await readRawBody(event) : undefined,
-	});
-
-	return app.fetch(request);
+	return app.fetch(toWebRequest(event), { clientIP: getRequestIP(event) });
 });
 ```
+
+- **Use `toWebRequest(event)`, not a hand-built `Request` with `readRawBody(event)`.**
+  `readRawBody` decodes the body as UTF-8 unless called with `false`, which corrupts every binary
+  upload (files, `multipart/form-data`). It also throws 405 for methods without a body, so CORS
+  preflights (`OPTIONS`) never reach Hono's `cors()`. `toWebRequest` passes the bytes through and
+  gives bodiless methods no body.
+- The `{ clientIP }` env binding feeds `getClientIP(c)`
+  ([10](10-auth.md#client-address)). Under the Bun preset `getRequestIP(event)` is always
+  `undefined` — Nitro passes h3 a mock request without a socket address — so production relies on
+  `API_TRUST_PROXY`; the binding only carries a value under `nuxt dev`.
 
 The relevant [`nuxt.config.ts`](../templates/fullstack-nuxt-app/nuxt.config.ts) bits:
 
@@ -778,9 +779,9 @@ Notes:
 - Bare `/api` is not routed (Nitro's `[...]` catch-all needs `/api/…`); open the docs at
   `/api/docs/v1`. The client is generated in-process, not over HTTP (see
   [05 — API contract](05-api-contract.md#generating-the-frontend-client)).
-- The template's `openAPIConfig.servers` and `AppConstants.APP_API_DEFAULT_PORT` still carry the
-  backend values (`http://localhost:12500/v1`); in a full-stack project point them at
-  `http://localhost:12520/api/v1` and your production `/api/v1`.
+- In the full-stack template `AppConstants.APP_API_DEFAULT_PORT` is the Nitro port (12520) and
+  `APP_API_DEFAULT_PROD_URL` the app's own URL (no `api.` subdomain); `openAPIConfig.servers`
+  appends `/api/v1` to both. Set `APP_API_DEFAULT_PROD_URL` to your production origin.
 - Tests drive `API.getApp()` directly — no Nitro, no `/api` prefix, no `API.start()`
   (`makeAPIRequest("/v1/...")`).
 - **`server/lib/**` stays Nitro-free** — no `nitropack/*`, `h3`, `#imports` or auto-imported

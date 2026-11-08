@@ -93,8 +93,11 @@ The migrations sit in `app/drizzle/migrations` next to the binary as a fallback 
 runs; `APPPREFIX_DB_MIGRATION_DIR` points at them explicitly. In the compiled binary the embedded
 `--asset` copy wins (see [08](08-database.md#migrations)).
 
-A `.dockerignore` keeps the build context free of `node_modules/`, local `data/`/`config/`, test
-temp dirs and `.env` files.
+A `.dockerignore` in the project root is an **allowlist**: `*`, then `!` lines for exactly what the
+Dockerfile copies (`build/bin/` and `drizzle/migrations/` here; `.output/` for Nuxt, plus
+`drizzle/migrations/` for full-stack). `node_modules/`, `.env` files, local `data/`/`config/` and
+test temp dirs never reach the build context, and new folders stay out without anyone remembering
+to list them. A Dockerfile that starts copying something new needs a matching `!` line.
 
 [`docker/docker-compose.yml`](../templates/backend-service/docker/docker-compose.yml) pulls the
 registry image — CI builds and pushes `$CI_REGISTRY_IMAGE:latest` from the default branch
@@ -107,14 +110,17 @@ services:
     image: gcr.leicraftmc.de/leicraftmc/my-project:latest
     container_name: my-project-api
     restart: unless-stopped
+    # Loopback only: the reverse proxy on this host is the sole client, which is what makes
+    # APPPREFIX_API_TRUST_PROXY safe. Without a proxy, publish "12500:12500" and set it to false.
     ports:
-      - "12500:12500"
+      - "127.0.0.1:12500:12500"
     environment:
       APPPREFIX_LOG_LEVEL: info
 
       APPPREFIX_APP_URL: http://localhost:12510
 
       APPPREFIX_API_DISABLE_DOCS: false
+      APPPREFIX_API_TRUST_PROXY: true
 
       APPPREFIX_SMTP_HOST: "mail.example.com"
       APPPREFIX_SMTP_PORT: 465
@@ -133,8 +139,13 @@ services:
 - Everything stateful lives under the two volumes: the SQLite DB and logs in `data/`,
   `CONFIG_BASE_DIR` in `config/` (the first start writes the initial admin's reset link to
   `config/initial_admin_password_reset_token.txt` and logs it).
-- The compose file publishes the port on all interfaces. On a server with a reverse proxy on the
-  same host, bind loopback instead: `"127.0.0.1:12500:12500"`.
+- The port is bound to **loopback**, for a reverse proxy on the same host. That makes the proxy the
+  only client, so `APPPREFIX_API_TRUST_PROXY: true` is safe: the login rate limiter reads the
+  client IP from the last `X-Forwarded-For` entry ([10](10-auth.md#client-address)). Published on
+  all interfaces, anyone could send that header and pick their own address — and Docker's
+  published ports bypass host firewalls such as ufw. Without a reverse proxy, publish
+  `"12500:12500"` and set `APPPREFIX_API_TRUST_PROXY: false`. A proxy in another container
+  reaches the service over a shared Docker network instead; drop `ports:` there.
 
 ### CI
 
@@ -243,6 +254,7 @@ above. Running it:
 ```bash
 docker run -d -p 127.0.0.1:12520:12520 \
   -e APPPREFIX_APP_URL=https://app.example.com \
+  -e APPPREFIX_API_TRUST_PROXY=true \
   -v "$PWD/data:/opt/leicraftmc/my-project/data" \
   -v "$PWD/config:/opt/leicraftmc/my-project/config" \
   registry.example.com/group/project:latest
@@ -257,7 +269,13 @@ docker run -d -p 127.0.0.1:12520:12520 \
   locations.
 - The compose file
   ([`docker/docker-compose.yml`](../templates/fullstack-nuxt-app/docker/docker-compose.yml)) is
-  the same shape as the backend's — it pulls the registry image with the volumes attached.
+  the same shape as the backend's — it pulls the registry image with the volumes attached at
+  absolute host paths. (Relative `./data`/`./config` would resolve next to the compose file, i.e.
+  inside the repo's `docker/` folder, where the initial admin's reset link could be committed.)
+- Behind a reverse proxy, `APPPREFIX_API_TRUST_PROXY` is **required** for a working login rate
+  limiter: Nitro's Bun preset gives the app no socket address, so `X-Forwarded-For` is the only
+  source of the client IP ([10](10-auth.md#client-address)). The compose file binds loopback and
+  turns it on, like the backend's.
 
 ### Dual-target (Bun + Cloudflare Pages)
 
@@ -417,7 +435,10 @@ probe liveness only — e.g. the login UI does.
       `NITRO_PORT`.
 - [ ] Full-stack: one image with `.output/` + `drizzle/migrations`; `bun:sqlite` external;
       `APPPREFIX_APP_URL` drives both the API side and the browser config (Nitro banner).
-- [ ] `.dockerignore` keeps local state, `.env` files and `node_modules/` out of the build context.
+- [ ] `.dockerignore` is an allowlist (`*` + `!` for what the Dockerfile copies), so local state,
+  `.env` files and `node_modules/` stay out of the build context.
+- [ ] Compose binds the port to loopback for a same-host reverse proxy and sets
+  `APPPREFIX_API_TRUST_PROXY: true`; volumes use absolute host paths.
 - [ ] Static site: `nitro.preset: "static"`, `bun run generate` → `.output/public/`, `deploy.sh`
       with the `DEPLOY_REMOTE_*` variables (GitLab CI variables or GitHub secrets),
       `public/.htaccess` for Apache.

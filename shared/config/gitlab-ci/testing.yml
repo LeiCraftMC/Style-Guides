@@ -1,5 +1,5 @@
 default:
-  image: oven/bun
+  image: oven/bun:1
   interruptible: true
   cache:
     key:

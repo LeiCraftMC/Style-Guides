@@ -255,7 +255,7 @@ async function onDeleteUser() {
 			<UFormField label="Email" name="email" required>
 				<UInput v-model="createForm.email" type="email" placeholder="john@example.com" class="w-full" />
 			</UFormField>
-			<UFormField label="Password" name="password" required>
+			<UFormField label="Password" name="password" description="8–50 characters with upper- and lowercase letters, a number and a symbol." required>
 				<UInput v-model="createForm.password" type="password" placeholder="••••••••" class="w-full" />
 			</UFormField>
 			<UFormField label="Role" name="role" required>
@@ -297,7 +297,7 @@ async function onDeleteUser() {
 		icon-color="amber"
 	>
 		<div class="space-y-4">
-			<UFormField label="New Password" description="At least 8 characters.">
+			<UFormField label="New Password" description="8–50 characters with upper- and lowercase letters, a number and a symbol.">
 				<UInput v-model="passwordForm.password" type="password" placeholder="••••••••" class="w-full" />
 			</UFormField>
 

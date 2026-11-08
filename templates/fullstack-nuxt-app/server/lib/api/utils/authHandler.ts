@@ -22,6 +22,20 @@ export class AuthUtils {
 		return user.role;
 	}
 
+	/**
+	 * Whether `userID` is the only admin, so removing their role or account would leave none.
+	 * Synchronous on purpose: call it right before the write, with no `await` in between.
+	 */
+	static isLastAdmin(userID: number): boolean {
+		const admins = DB.instance()
+			.select({ id: DB.Tables.users.id })
+			.from(DB.Tables.users)
+			.where(eq(DB.Tables.users.role, "admin"))
+			.limit(2)
+			.all();
+		return admins.length === 1 && admins[0]?.id === userID;
+	}
+
 	/** 32 random bytes as a 64-char hex string — used as the token id (DB row key). */
 	static createRandomTokenID() {
 		return LCrypt.randomBytes(32).toString("hex");

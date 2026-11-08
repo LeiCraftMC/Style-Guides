@@ -6,8 +6,9 @@ services:
     image: gcr.leicraftmc.de/leicraftmc/my-project:latest
     container_name: my-project-web
     restart: unless-stopped
+    # Loopback only: the reverse proxy on this host forwards to it. Without a proxy, publish "12510:12510".
     ports:
-      - "12510:12510"
+      - "127.0.0.1:12510:12510"
     environment:
       APPPREFIX_API_URL: http://localhost:12500/v1
       APPPREFIX_APP_URL: http://localhost:12510

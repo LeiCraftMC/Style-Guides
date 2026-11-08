@@ -31,7 +31,7 @@ isn't already used by another app in the ecosystem. The templates' defaults:
 | --- | --- | --- |
 | backend-service | 12500 | `APPPREFIX_API_PORT` (config default `API_PORT: CS.number().default(12500)`, `AppConstants.APP_API_DEFAULT_PORT`), `example.env`, `docker/Dockerfile` `EXPOSE`, `docker/docker-compose.yml` |
 | nuxt-app | 12510 | `package.json` `dev`/`start`, `APPPREFIX_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `NITRO_PORT`/`EXPOSE`, the `/dev` prompt in `.claude/settings.json` |
-| fullstack-nuxt-app | 12520 | `package.json` `dev`/`start`, `APPPREFIX_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `NITRO_PORT`/`EXPOSE`, the `/dev` prompt |
+| fullstack-nuxt-app | 12520 | `package.json` `dev`/`start`, `APPPREFIX_APP_URL` (`example.env` + `nuxt.config.ts` fallback), `docker/Dockerfile` `NITRO_PORT`/`EXPOSE`, `AppConstants.APP_API_DEFAULT_PORT` (OpenAPI servers), the `/dev` prompt |
 | static-site | 12530 | `package.json` `dev` only |
 | static-site-with-docs | 12531 | `package.json` `dev` only |
 | cli-tool | — | — |
@@ -147,6 +147,10 @@ What the config sets:
   real code:
   - `suspicious/noExplicitAny: "off"` — the codebase uses `as any` for type-juggling (the
     `CS` config builder, DB inserts, generated-client workarounds). Tighten per-project if you want.
+  - `suspicious/noTsIgnore: { "level": "warn", "fix": "none" }` — still warns, but its safe fix is
+    off. That fix rewrites `@ts-ignore` to `@ts-expect-error` on every `biome check --write` (and
+    editor fix-on-save). Where an ignore suppresses nothing, or where the Nuxt and `tsc` checks
+    disagree, `@ts-expect-error` then fails `bun run typecheck` as an unused directive.
   - `correctness/noUndeclaredVariables: "off"` — Nuxt auto-imports (`useCookie`, `useState`,
     `navigateTo`, `defineAppConfig`, …) and Bun/Node globals (`process`, `Bun`) aren't visible to
     Biome. (Backend files have proper imports and are unaffected.)

@@ -1,0 +1,5 @@
+# Allowlist: the build context holds only what docker/Dockerfile copies — the .output/ bundle and
+# the Drizzle migrations. Everything else (node_modules/, .env files, local data/ and config/) stays out.
+*
+!.output/
+!drizzle/migrations/

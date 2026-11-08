@@ -1,0 +1,5 @@
+# Allowlist: only the compiled binary and the Drizzle migrations (for a fallback copy next to it)
+# enter the build context. Everything else (node_modules/, .env files, local data/ and config/) stays out.
+*
+!build/bin/
+!drizzle/migrations/

@@ -231,8 +231,9 @@ template's [`docker/Dockerfile`](../templates/backend-service/docker/Dockerfile)
 `APPPREFIX_*` env overrides and `data/` + `config/` volumes. Build the binary first (CI does);
 details in [14 — Deployment](14-deployment.md#backend-services).
 
-The compose file publishes `12500:12500` on all interfaces, which is fine for local runs. On a
-server behind a reverse proxy on the same host, bind loopback instead: `"127.0.0.1:12500:12500"`.
+The compose file binds the port to loopback (`"127.0.0.1:12500:12500"`) for a reverse proxy on the
+same host; without one, publish `"12500:12500"` and turn `APPPREFIX_API_TRUST_PROXY` off
+([14](14-deployment.md#backend-services)).
 
 The CLI template has no Dockerfile. A CLI that must run in a container reuses the same
 binary-in-slim-image pattern.

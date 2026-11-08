@@ -4,7 +4,7 @@ import { validator as zValidator } from "hono-openapi";
 import { DB } from "../../../../../../db";
 import { type DrizzleDB } from "../../../../../../db/utils";
 import { APIResponse } from "../../../../../utils/api-res";
-import { AuthHandler, SessionHandler } from "../../../../../utils/authHandler";
+import { AuthHandler, AuthUtils, SessionHandler } from "../../../../../utils/authHandler";
 import { UserPreferencesHandler } from "../../../../../utils/preferences";
 import { APIResponseSpec, APIRouteSpec } from "../../../../../utils/specHelpers";
 import { DOCS_TAGS } from "../../../docs";
@@ -173,7 +173,9 @@ router.put(
 		responses: APIResponseSpec.describeWithWrongInputs(
 			APIResponseSpec.success("User updated successfully", AdminUsersModel.Create.Response),
 			APIResponseSpec.notFound("User not found"),
-			APIResponseSpec.conflict("Conflict: Username or email already exists"),
+			APIResponseSpec.conflict(
+				"Conflict: Username or email already exists / Would remove the last administrator",
+			),
 		),
 	}),
 
@@ -217,6 +219,10 @@ router.put(
 		}
 
 		const roleChanged = updates.role && updates.role !== user.role;
+
+		if (updates.role && updates.role !== "admin" && AuthUtils.isLastAdmin(user.id)) {
+			return APIResponse.conflict(c, "Cannot remove the admin role from the last administrator");
+		}
 
 		await DB.instance()
 			.update(DB.Tables.users)
@@ -290,12 +296,17 @@ router.delete(
 		responses: APIResponseSpec.describeBasic(
 			APIResponseSpec.successNoData("User deleted successfully"),
 			APIResponseSpec.notFound("User not found"),
+			APIResponseSpec.conflict("Cannot delete the last administrator"),
 		),
 	}),
 
 	async (c) => {
 		// @ts-ignore
 		const user = c.get(TARGET_USER_KEY) as DB.Models.User;
+
+		if (AuthUtils.isLastAdmin(user.id)) {
+			return APIResponse.conflict(c, "Cannot delete the last administrator");
+		}
 
 		await DB.instance().transaction(async (tx: DrizzleDB) => {
 			await AuthHandler.invalidateAllAuthContextsForUser(user.id, tx);

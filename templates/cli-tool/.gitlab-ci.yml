@@ -2,6 +2,9 @@ stages:
   - test
   - build
 
+variables:
+  GIT_DEPTH: "20"
+
 include:
   - local: ".gitlab/ci/testing.yml"
   # - local: ".gitlab/ci/build.yml"

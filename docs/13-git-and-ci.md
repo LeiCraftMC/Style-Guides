@@ -96,7 +96,6 @@ stages:
 
 variables:
   GIT_DEPTH: "20"
-  BUN_INSTALL_CACHE: "$CI_PROJECT_DIR/.bun"
 
 include:
   - local: ".gitlab/ci/testing.yml"
@@ -109,7 +108,7 @@ block for every job — image, bun.lock-keyed cache, `bun install` — and runs 
 
 ```yaml
 default:
-  image: oven/bun
+  image: oven/bun:1
   interruptible: true
   cache:
     key:
@@ -146,6 +145,12 @@ test:unit:
     reports:
       junit: junit.xml
 ```
+
+The image is pinned to the Bun major the production images run (`oven/bun:1-slim`), so a new
+major can't reach CI before the deployment uses it. The `build.yml` jobs inherit it from
+`default:`; for backend services that also pins the runtime compiled into the binary. Bun reads
+its install cache location from `BUN_INSTALL_CACHE_DIR`; there is no `BUN_INSTALL_CACHE`
+variable.
 
 `test:unit` runs `bun run test:ci` (`bun test --coverage --reporter=junit
 --reporter-outfile=./junit.xml`, see [12](12-testing.md#ci)) and feeds two GitLab features:
@@ -282,5 +287,5 @@ reason in [17 — Decisions](17-decisions.md).
 - [ ] CI runs `bun run check:ci`, `bun run typecheck` and the tests with `--frozen-lockfile` —
       on GitLab `bun run test:ci`, uploading `junit.xml` as `artifacts:reports:junit` with
       `when: always`; on GitHub `bun test`.
-- [ ] GitLab CI uses `oven/bun`; GitHub uses `oven-sh/setup-bun`.
+- [ ] GitLab CI uses `oven/bun:1`; GitHub uses `oven-sh/setup-bun`.
 - [ ] `LICENSE` is AGPL-3.0 unless otherwise decided.

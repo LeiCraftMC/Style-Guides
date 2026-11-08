@@ -65,7 +65,7 @@ run inside a caller's transaction.
 
 | Class | Methods |
 | --- | --- |
-| `AuthUtils` | `getUserRole(userID)`, `createRandomTokenID()`, `createBaseToken()`, `getFullToken(prefix, id, base)`, `getTokenParts(fullToken)` (→ `{ prefix, id, base }` or `null`), `hashTokenBase(base)`, `verifyHashedTokenBase(base, hash)` |
+| `AuthUtils` | `getUserRole(userID)`, `isLastAdmin(userID)`, `createRandomTokenID()`, `createBaseToken()`, `getFullToken(prefix, id, base)`, `getTokenParts(fullToken)` (→ `{ prefix, id, base }` or `null`), `hashTokenBase(base)`, `verifyHashedTokenBase(base, hash)` |
 | `SessionHandler` | `SESSION_TOKEN_PREFIX`, `createSession(userID)` (→ `{ token, user_id, user_role, created_at, expires_at }`), `getSession(tokenParts)`, `isValidSession(session)` (deletes it if expired), `inValidateSession(tokenID)`, `inValidateAllSessionsForUser(userID)`, `changeUserRoleInSessions(userID, role)` |
 | `APIKeyHandler` | `API_KEY_PREFIX`, `createApiKey(userID, description, expiresInDays?)`, `getApiKey(tokenParts)`, `isValidApiKey(key)`, `deleteApiKey(id)`, `deleteAllApiKeysForUser(userID)`, `changeUserRoleInApiKeys(userID, role)` |
 | `AuthHandler` | `getTokenType(token)`, `getAuthContext(fullToken)`, `isValidAuthContext(ctx)`, `invalidateAuthContext(ctx)`, `invalidateAllAuthContextsForUser(userID)` (sessions **and** API keys), `changeUserRoleInAuthContexts(userID, role)` |
@@ -154,11 +154,19 @@ There are no `requireSession` / `requireAdmin` helpers — write a guard on the 
 takes `{ username, password }` and does four things:
 
 1. **Rejects authenticated callers** with 403.
-2. **In-memory rate limiting.** Two `Map`s count attempts in a 5-minute window: at most **5 per
-   client + username** (`LOGIN_MAX_ATTEMPTS`) and **15 per username** across clients
-   (`LOGIN_MAX_GLOBAL_ATTEMPTS`). Counters are incremented *before* checking (no TOCTOU race) and
-   cleared on a successful login. Over the limit → 429 with `Retry-After: 300` (the window, in
-   seconds). An `unref`'d interval purges expired entries.
+2. **In-memory rate limiting** in a 5-minute window, keyed by the client's IP (see below):
+   - at most **5 attempts per client + username** (`LOGIN_MAX_ATTEMPTS`);
+   - at most **20 per client** across usernames (`LOGIN_MAX_CLIENT_ATTEMPTS`), against password
+     spraying;
+   - **no hard per-username lock.** Once a username collects 15 attempts from all clients
+     (`LOGIN_USERNAME_ALERT_ATTEMPTS`), only clients without a failure for it may still try. A
+     distributed attack gets one guess per new address, but nobody can lock the owner out by
+     knowing the username.
+
+   An attempt is registered *before* the password check (check and register run synchronously,
+   so concurrent requests cannot all slip under a limit) and taken back on a successful login, so
+   the counters effectively count failures. Over a limit → 429 with `Retry-After: 300` (the
+   window, in seconds). An `unref`'d interval purges expired entries.
 3. **Timing-safe failure.** For an unknown username it verifies against `DUMMY_PASSWORD_HASH`
    (a real `Bun.password` hash computed at module load), so a missing user costs the same time as a
    wrong password; both return 401 `"Invalid username or password"`.
@@ -174,11 +182,29 @@ takes `{ username, password }` and does four things:
 
    `data` is `{ token, user_id, user_role, created_at, expires_at }` (the token is shown only here).
 
-> **Known limitation:** the client id comes from `c.req.raw.remoteAddr?.hostname`, which Bun's
-> `Request` does not provide, so every client falls into one `"unknown"` bucket — in practice the
-> limit is 5 failed attempts per username per window, from anywhere. Use `getConnInfo(c)` from
-> `hono/bun` (or a header set by your trusted proxy) if you need a real per-client bucket. The
-> counters live in process memory; multi-instance deployments need a shared store.
+### Client address
+
+`getClientIP(c)` ([`api/utils/clientIP.ts`](../shared/backend/src/api/utils/clientIP.ts)) returns
+the client's IP or `null`, trying in order:
+
+1. With `API_TRUST_PROXY` on, the **last** `X-Forwarded-For` entry — the address the trusted
+   proxy saw. Earlier entries are sent by the client and can be forged. Only turn it on when every
+   request goes through a proxy that appends the header (the compose files bind the port to
+   loopback for exactly this reason, see [14](14-deployment.md)). Behind two proxies (a CDN in
+   front of nginx) the last entry is the CDN's; adapt the helper there.
+2. A `clientIP` env binding — the full-stack bridge passes `app.fetch(request, { clientIP })`.
+3. The Bun server's socket address via `getConnInfo(c)` from `hono/bun`. It works in the backend
+   shape (`Bun.serve({ fetch: app.fetch })` passes the server as `env`) and throws without one,
+   e.g. under `app.request()` in tests; the helper then returns `null`.
+
+In the **full-stack** shape there is no socket address in production: Nitro's Bun preset hands
+requests to h3 through a mock Node request with an empty `remoteAddress`, so step 2 only helps under
+`nuxt dev`. Full-stack deployments therefore need `API_TRUST_PROXY` behind their reverse proxy.
+
+Without an address every visitor shares one `"unknown"` client: the per-client limit is skipped (it
+would block everyone), the per-client + username limit becomes a per-username limit again, and the
+first such login logs a warning. The counters live in process memory; multi-instance deployments
+need a shared store.
 
 ## Authorization
 
@@ -199,6 +225,13 @@ if (authContext.user_role !== "admin") {
 When an admin changes a user's role (`PUT /v1/admin/users/:userId`), the route calls
 `AuthHandler.changeUserRoleInAuthContexts(userId, role)` to update the cached copies. Do the same
 anywhere you change `users.role`.
+
+**At least one admin must remain.** `AuthUtils.isLastAdmin(userID)` guards every way to lose the
+last one — removing its `admin` role (`PUT /v1/admin/users/:userId`), deleting it
+(`DELETE /v1/admin/users/:userId`) and deleting one's own account (`DELETE /v1/account`); each
+answers 409. The seed admin is only created on an empty `users` table, so without this guard
+recovery means editing the database. The check is synchronous; call it right before the write,
+with no `await` in between.
 
 Services that need more than two roles use **full RBAC** (API-Server's pattern, not in the
 templates): a `PermissionHelper` static class with an `OrgRoles` enum
@@ -253,7 +286,11 @@ Account endpoints (all session-only):
 | `GET /v1/account` | Profile without `password_hash`. |
 | `PUT /v1/account` | Partial profile update (`username`, `display_name`, `email`); requires `current_password`; 409 on a taken username/email. `role` is not part of the body — only admins change roles. |
 | `PUT /v1/account/password` | `{ current_password, new_password }`; invalidates **all sessions** of the user (API keys survive). |
-| `DELETE /v1/account` | In one transaction: all sessions **and** API keys, reset tokens, preferences, then the user. |
+| `DELETE /v1/account` | In one transaction: all sessions **and** API keys, reset tokens, preferences, then the user. 409 for the last admin. |
+
+A wrong `current_password` answers **400** `"Current password is incorrect"`, never 401: `useAPI`
+treats every 401 as an expired session, clears the token and redirects to the login page, so a typo
+would sign the user out.
 
 ## API keys
 
@@ -448,10 +485,14 @@ const REQUIRE_ONBOARDING = true;
   `AuthHandler.AuthContext.*`.
 - [ ] `authMiddlewareV1` resolves the context; bad tokens get 401 except on the public auth paths.
 - [ ] Access enforced by router guards (account: session-only; admin: `user_role === "admin"`).
-- [ ] Login: authenticated callers 403, rate limit (5 per client + user, 15 per user, 5 min,
-  `Retry-After`), dummy-hash verify, session created in a transaction.
+- [ ] Login: authenticated callers 403, rate limit (5 per client + user, 20 per client, no hard
+  per-user lock, 5 min, `Retry-After`), dummy-hash verify, session created in a transaction.
+- [ ] Client IP via `getClientIP(c)`; `API_TRUST_PROXY` only behind a proxy that appends
+  `X-Forwarded-For` (always for full-stack deployments).
+- [ ] A wrong `current_password` answers 400, not 401.
 - [ ] Sessions expire after 7 days (deleted on access); expired API keys rejected.
 - [ ] Role changes update the cached `user_role` (`changeUserRoleInAuthContexts`).
+- [ ] The last admin cannot be demoted or deleted (`AuthUtils.isLastAdmin`, 409).
 - [ ] API keys: no scopes, token returned once, managed from a session.
 - [ ] Password reset: enumeration-safe, rate-limited, 64 random bytes, SHA3-256 hash, 1-hour
   expiry, consuming it invalidates sessions **and** API keys; email only when SMTP is configured.

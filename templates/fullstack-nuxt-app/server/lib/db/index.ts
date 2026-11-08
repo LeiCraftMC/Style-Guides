@@ -37,9 +37,32 @@ export class DB {
 			Logger.info("Database migrations completed.");
 		}
 
+		this.enableForeignKeys();
+
 		await this.createInitialAdminUserIfNeeded(configBaseDir);
 
 		Logger.info(`Database initialized at ${path}`);
+	}
+
+	/**
+	 * SQLite ignores FOREIGN KEY clauses (and every `onDelete`) unless this pragma is set on the
+	 * connection. It must run after `migrate()`: the migrator wraps all migrations in one
+	 * transaction, where the `PRAGMA foreign_keys=OFF` of drizzle-kit's table rebuilds is a no-op —
+	 * with enforcement already on, rebuilding a parent table would cascade-delete its children.
+	 */
+	private static enableForeignKeys() {
+		this.db.$client.run("PRAGMA foreign_keys = ON;");
+
+		const violations = this.db.$client.query("PRAGMA foreign_key_check;").all() as {
+			table: string;
+			parent: string;
+		}[];
+		if (violations.length > 0) {
+			const tables = [...new Set(violations.map((v) => `${v.table} → ${v.parent}`))].join(", ");
+			Logger.warn(
+				`Found ${violations.length} rows whose foreign key points at a missing parent (${tables}). Writes that touch them will fail until they are cleaned up.`,
+			);
+		}
 	}
 
 	private static async createInitialAdminUserIfNeeded(configBaseDir: string) {
@@ -48,7 +71,7 @@ export class DB {
 
 		const username = "admin";
 		const passwordResetToken = LCrypt.randomBytes(64).toString("hex");
-		
+
 		let admin_user_id: number;
 
 		try {

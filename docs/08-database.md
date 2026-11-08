@@ -79,11 +79,14 @@ export class DB {
 			Logger.info("Database migrations completed.");
 		}
 
+		this.enableForeignKeys();
+
 		await this.createInitialAdminUserIfNeeded(configBaseDir);
 
 		Logger.info(`Database initialized at ${path}`);
 	}
 
+	// enableForeignKeys() — see "Foreign keys" below
 	// createInitialAdminUserIfNeeded() — see "Initial admin user" below
 
 	static instance() {
@@ -235,8 +238,9 @@ export const metadata = sqliteTable("metadata", {
 
 - Timestamps are Unix-epoch **milliseconds** in `integer` columns (`created_at` defaulted by
   `SQLUtils.getCreatedAtColumn()`, `expires_at` set in code with `Date.now() + …`).
-- User-owned rows reference `users.id` with `onDelete: "cascade"`; the delete-account and
-  delete-user routes still clean up explicitly inside a transaction.
+- User-owned rows reference `users.id` with `onDelete: "cascade"`, enforced because `DB.init`
+  enables foreign keys (see below); the delete-account and delete-user routes still clean up
+  explicitly.
 - The task tables follow the `TaskHandler` field names (`function`, `autoDelete`, `storeLogs`, a
   plain `created_at` integer) — leave them as they are.
 
@@ -261,6 +265,28 @@ Shared column helpers from [`shared/backend/src/db/utils.ts`](../shared/backend/
 - `SQLUtils.getCreatedAtColumn(name = "created_at")` —
   `integer(name, { mode: "number" }).notNull().default(sql\`(unixepoch() * 1000)\`)`
 - `SQLUtils.primaryKeyIntAutoIncrement(name = "id")` — `integer(name).primaryKey({ autoIncrement: true })`
+
+> **`created_at` has second precision.** `unixepoch()` returns whole seconds, so the default looks
+> like milliseconds but only changes once per second. Where ordering within a second matters
+> (messages newer than a read marker, event streams), set `created_at: Date.now()` explicitly on
+> insert. Adding `.$defaultFn(() => Date.now())` does not help: Drizzle uses the SQL default first.
+> A new table that needs it everywhere can use
+> `.default(sql\`(CAST(unixepoch('subsec') * 1000 AS INTEGER))\`)` (SQLite ≥ 3.42). Don't change the
+> default of existing tables: SQLite cannot alter a column default, so drizzle-kit rebuilds the
+> table.
+
+## Foreign keys
+
+SQLite ignores `FOREIGN KEY` clauses — and every `onDelete: "cascade"` / `"set null"` — unless
+`PRAGMA foreign_keys = ON` is set **on each connection**; `bun:sqlite` leaves it off. `DB.init`
+turns it on in `enableForeignKeys()` and runs `PRAGMA foreign_key_check`, logging a warning for
+rows that already point at a missing parent (writes touching them fail until they are cleaned up).
+
+The pragma must come **after** `migrate()`. Drizzle's migrator runs all pending migrations in one
+transaction, and inside a transaction `PRAGMA foreign_keys` is a no-op. drizzle-kit rebuilds a table
+(for most column changes) with `PRAGMA foreign_keys=OFF` → copy → `DROP TABLE` → rename; with
+enforcement already on, that `DROP TABLE` cascade-deletes every child row — rebuilding `users`
+would wipe all sessions, API keys and preferences.
 
 ## Relations
 
@@ -545,4 +571,6 @@ See [12 — Testing](12-testing.md).
   Docker images copy them as a fallback.
 - [ ] `APPPREFIX_DB_AUTO_MIGRATE` + `APPPREFIX_DB_MIGRATION_DIR` control migration at startup;
   Docker images set the migration dir to the absolute in-image path.
+- [ ] `PRAGMA foreign_keys = ON` is set in `DB.init` **after** `migrate()`, followed by
+  `PRAGMA foreign_key_check`.
 - [ ] Multi-dialect projects keep dialect files isolated; the Bun + D1 `Runtime` is opt-in.

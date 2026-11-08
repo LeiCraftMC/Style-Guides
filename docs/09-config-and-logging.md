@@ -24,6 +24,7 @@ The backend-service template's keys (the schema in `src/utils/config.ts` is the 
 | `API_HOST` | string | `::` | backend-service only |
 | `API_PORT` | number | `12500` | backend-service only |
 | `API_DISABLE_DOCS` | boolean | `false` | disables `/docs/v1` + `/docs/v1/openapi` |
+| `API_TRUST_PROXY` | boolean | `false` | client IP from the last `X-Forwarded-For` entry; only behind a proxy that appends it ([10](10-auth.md#client-address)) |
 | `DB_PATH` | string | `./data/db.sqlite` | |
 | `DB_AUTO_MIGRATE` | boolean | `true` | run migrations in `DB.init` |
 | `DB_MIGRATION_DIR` | string | `./drizzle/migrations` | where `DB.init` reads them; the Docker images set the absolute in-image path |
@@ -51,6 +52,7 @@ APPPREFIX_API_PORT=12500
 # Booleans: exactly "true" or "false" (case-sensitive); anything else — including an empty value — fails at startup.
 # An unset variable falls back to the schema default.
 APPPREFIX_API_DISABLE_DOCS=false
+APPPREFIX_API_TRUST_PROXY=false
 
 APPPREFIX_DB_PATH=./data/db.sqlite
 APPPREFIX_DB_AUTO_MIGRATE=true

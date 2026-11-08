@@ -39,11 +39,11 @@ const openAPIConfig: Partial<GenerateSpecOptions> = {
 
 		servers: [
 			{
-				url: `http://localhost:${AppConstants.APP_API_DEFAULT_PORT}/v1`,
+				url: `http://localhost:${AppConstants.APP_API_DEFAULT_PORT}/api/v1`,
 				description: "Local development server",
 			},
 			{
-				url: `${AppConstants.APP_API_DEFAULT_PROD_URL}/v1`,
+				url: `${AppConstants.APP_API_DEFAULT_PROD_URL}/api/v1`,
 				description: "Production server",
 			},
 		],

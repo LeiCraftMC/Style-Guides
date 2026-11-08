@@ -122,6 +122,8 @@ export class ConfigHandler {
 		LOG_LEVEL: CS.enum(["debug", "info", "warn", "error", "critical"]).default("info"),
 
 		API_DISABLE_DOCS: CS.boolean().default(false),
+		// Only enable when every request arrives through a reverse proxy that appends X-Forwarded-For.
+		API_TRUST_PROXY: CS.boolean().default(false),
 
 		DB_PATH: CS.string().default("./data/db.sqlite"),
 		DB_AUTO_MIGRATE: CS.boolean().default(true),

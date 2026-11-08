@@ -1,4 +1,4 @@
-import { defineEventHandler, getMethod, getRequestURL, readRawBody, setResponseStatus } from "h3";
+import { defineEventHandler, getRequestIP, setResponseStatus, toWebRequest } from "h3";
 import { Hono } from "hono";
 import { API } from "../../lib/api";
 
@@ -31,14 +31,8 @@ export default defineEventHandler(async (event) => {
 		};
 	}
 
-	const url = getRequestURL(event);
-	const method = getMethod(event);
-
-	const request = new Request(url, {
-		method,
-		headers: event.headers,
-		body: method !== "GET" && method !== "HEAD" ? await readRawBody(event) : undefined,
-	});
-
-	return app.fetch(request);
+	// `toWebRequest` passes the body through as raw bytes (uploads stay intact) and gives methods
+	// without a body, such as OPTIONS preflights, none. `getRequestIP` is the socket address where
+	// Nitro has one — the Bun preset has none, so production relies on API_TRUST_PROXY.
+	return app.fetch(toWebRequest(event), { clientIP: getRequestIP(event) });
 });

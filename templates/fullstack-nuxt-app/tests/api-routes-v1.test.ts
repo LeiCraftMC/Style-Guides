@@ -1,13 +1,16 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { Hono } from "hono";
 import { API } from "../server/lib/api";
 import { AuthHandler, AuthUtils, SessionHandler } from "../server/lib/api/utils/authHandler";
+import { getClientIP } from "../server/lib/api/utils/clientIP";
 import { AccountModel } from "../server/lib/api/versions/v1/routes/account/model";
 import { AccountPreferencesModel } from "../server/lib/api/versions/v1/routes/account/preferences/model";
 import { AuthModel } from "../server/lib/api/versions/v1/routes/auth/model";
 import { hashResetToken } from "../server/lib/api/versions/v1/routes/auth/reset-password";
 import { DB } from "../server/lib/db";
+import { ConfigHandler } from "../server/lib/utils/config";
 import { AppConstants } from "../server/lib/utils/constants";
 import { makeAPIRequest } from "./helpers/api";
 import { type SeededSession, type SeededUser, seedSession, seedUser } from "./helpers/seed";
@@ -260,6 +263,221 @@ describe("Auth routes and access checks", async () => {
 	});
 });
 
+describe("Login rate limiting per client", async () => {
+	// Every attempt runs a password hash check, so twenty of them outlast the default 5 s.
+	const LIMITER_TEST_TIMEOUT_MS = 30_000;
+
+	// `app.request()` has no socket; the `clientIP` env binding stands in for the client's address.
+	async function loginFrom(clientIP: string, username: string, password: string) {
+		const res = await API.getApp().request(
+			"/v1/auth/login",
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ username, password }),
+			},
+			{ clientIP },
+		);
+		return res.status;
+	}
+
+	test(
+		"failures from one client do not block another client",
+		async () => {
+			const user = await seedUser("user", {}, "PerClientP@ss1");
+
+			for (let attempt = 0; attempt < 5; attempt++) {
+				expect(await loginFrom("203.0.113.10", user.username, "WrongPassword")).toBe(401);
+			}
+			expect(await loginFrom("203.0.113.10", user.username, user.password)).toBe(429);
+
+			expect(await loginFrom("203.0.113.11", user.username, user.password)).toBe(200);
+		},
+		LIMITER_TEST_TIMEOUT_MS,
+	);
+
+	test(
+		"a username attacked from many clients stays reachable from a clean client",
+		async () => {
+			const user = await seedUser("user", {}, "UnderAttackP@ss1");
+
+			for (let client = 0; client < 15; client++) {
+				expect(await loginFrom(`198.51.100.${client}`, user.username, "WrongPassword")).toBe(401);
+			}
+
+			// A client that already failed for this username is blocked while it is under attack …
+			expect(await loginFrom("198.51.100.0", user.username, user.password)).toBe(429);
+			// … a client without failures still gets through.
+			expect(await loginFrom("198.51.100.200", user.username, user.password)).toBe(200);
+		},
+		LIMITER_TEST_TIMEOUT_MS,
+	);
+
+	test(
+		"one client is limited across usernames",
+		async () => {
+			for (let attempt = 0; attempt < 20; attempt++) {
+				expect(await loginFrom("192.0.2.1", `nobody_${randomUUID().slice(0, 8)}`, "WrongP@ss1")).toBe(
+					401,
+				);
+			}
+			expect(await loginFrom("192.0.2.1", `nobody_${randomUUID().slice(0, 8)}`, "WrongP@ss1")).toBe(
+				429,
+			);
+		},
+		LIMITER_TEST_TIMEOUT_MS,
+	);
+
+	test("X-Forwarded-For is only trusted with API_TRUST_PROXY", async () => {
+		const app = new Hono().get("/", (c) => c.text(getClientIP(c) ?? "none"));
+		const headers = { "X-Forwarded-For": "198.51.100.7, 203.0.113.50" };
+
+		expect(await (await app.request("/", { headers })).text()).toBe("none");
+
+		const config = ConfigHandler.getConfig() as { API_TRUST_PROXY: boolean };
+		config.API_TRUST_PROXY = true;
+		try {
+			// The last entry is the address the proxy saw; the first one is client-supplied.
+			expect(await (await app.request("/", { headers })).text()).toBe("203.0.113.50");
+		} finally {
+			config.API_TRUST_PROXY = false;
+		}
+	});
+});
+
+describe("Last administrator protection", async () => {
+	let soleAdmin: SeededUser;
+	let soleAdminToken: string;
+	let demotedAdminIds: number[] = [];
+
+	beforeAll(async () => {
+		soleAdmin = await seedUser("admin", {}, "SoleAdminP@ss1");
+		soleAdminToken = (await seedSession(soleAdmin.id)).token;
+
+		// Leave soleAdmin as the only admin; afterAll restores the others.
+		demotedAdminIds = DB.instance()
+			.select({ id: DB.Tables.users.id })
+			.from(DB.Tables.users)
+			.where(and(eq(DB.Tables.users.role, "admin"), ne(DB.Tables.users.id, soleAdmin.id)))
+			.all()
+			.map((row) => row.id);
+		DB.instance()
+			.update(DB.Tables.users)
+			.set({ role: "user" })
+			.where(inArray(DB.Tables.users.id, demotedAdminIds))
+			.run();
+	});
+
+	afterAll(() => {
+		DB.instance()
+			.update(DB.Tables.users)
+			.set({ role: "admin" })
+			.where(inArray(DB.Tables.users.id, demotedAdminIds))
+			.run();
+	});
+
+	test("PUT /v1/admin/users/:userId cannot remove the last admin's role", async () => {
+		await makeAPIRequest(
+			`/v1/admin/users/${soleAdmin.id}`,
+			{ method: "PUT", authToken: soleAdminToken, body: { role: "user" } },
+			409,
+		);
+
+		const user = DB.instance()
+			.select()
+			.from(DB.Tables.users)
+			.where(eq(DB.Tables.users.id, soleAdmin.id))
+			.get();
+		expect(user?.role).toBe("admin");
+	});
+
+	test("DELETE /v1/admin/users/:userId cannot delete the last admin", async () => {
+		await makeAPIRequest(
+			`/v1/admin/users/${soleAdmin.id}`,
+			{ method: "DELETE", authToken: soleAdminToken },
+			409,
+		);
+	});
+
+	test("DELETE /v1/account cannot delete the last admin's own account", async () => {
+		await makeAPIRequest("/v1/account", { method: "DELETE", authToken: soleAdminToken }, 409);
+	});
+
+	test("the role can be removed once another admin exists", async () => {
+		const promoted = await seedUser("user");
+		await makeAPIRequest(`/v1/admin/users/${promoted.id}`, {
+			method: "PUT",
+			authToken: soleAdminToken,
+			body: { role: "admin" },
+		});
+		demotedAdminIds.push(promoted.id);
+
+		await makeAPIRequest(`/v1/admin/users/${soleAdmin.id}`, {
+			method: "PUT",
+			authToken: soleAdminToken,
+			body: { role: "user" },
+		});
+	});
+});
+
+describe("Admin user validation", async () => {
+	let adminToken: string;
+
+	beforeAll(async () => {
+		const admin = await seedUser("admin", {}, "ValidationAdminP@ss1");
+		adminToken = (await seedSession(admin.id)).token;
+	});
+
+	test("PUT /v1/admin/users/:userId rejects an invalid username or email", async () => {
+		const user = await seedUser("user");
+
+		await makeAPIRequest(
+			`/v1/admin/users/${user.id}`,
+			{ method: "PUT", authToken: adminToken, body: { username: "Not A Valid Name!" } },
+			400,
+		);
+		await makeAPIRequest(
+			`/v1/admin/users/${user.id}`,
+			{ method: "PUT", authToken: adminToken, body: { email: "not-an-email" } },
+			400,
+		);
+	});
+
+	test("POST /v1/admin/users applies the password policy", async () => {
+		await makeAPIRequest(
+			"/v1/admin/users",
+			{
+				method: "POST",
+				authToken: adminToken,
+				body: {
+					username: `weak_${randomUUID().slice(0, 8)}`,
+					display_name: "Weak Password",
+					email: `${randomUUID()}@example.com`,
+					role: "user",
+					password: "alllowercase",
+				},
+			},
+			400,
+		);
+	});
+});
+
+describe("Database integrity", async () => {
+	test("deleting a user cascades to rows that reference it", async () => {
+		const user = await seedUser("user");
+		await seedSession(user.id);
+
+		DB.instance().delete(DB.Tables.users).where(eq(DB.Tables.users.id, user.id)).run();
+
+		const sessions = DB.instance()
+			.select()
+			.from(DB.Tables.sessions)
+			.where(eq(DB.Tables.sessions.user_id, user.id))
+			.all();
+		expect(sessions).toEqual([]);
+	});
+});
+
 describe("Auth reset-password routes", async () => {
 	let resetUser: SeededUser;
 	let resetSessionToken: string;
@@ -456,6 +674,32 @@ describe("Account routes", async () => {
 			.where(eq(DB.Tables.users.id, testUser.id))
 			.get();
 		expect(dbresult?.role).toBe("user");
+	});
+
+	test("a wrong current password returns 400 and keeps the session", async () => {
+		const user = await seedUser("user", {}, "CurrentP@ss1");
+		const { token } = await seedSession(user.id);
+
+		await makeAPIRequest(
+			"/v1/account/password",
+			{
+				method: "PUT",
+				authToken: token,
+				body: { current_password: "WrongP@ss1", new_password: "NewP@ssw0rd1" },
+			},
+			400,
+		);
+		await makeAPIRequest(
+			"/v1/account",
+			{
+				method: "PUT",
+				authToken: token,
+				body: { current_password: "WrongP@ss1", display_name: "Renamed" },
+			},
+			400,
+		);
+
+		await makeAPIRequest("/v1/account", { authToken: token });
 	});
 
 	test("PUT /v1/account/password rotates credentials and invalidates old sessions", async () => {

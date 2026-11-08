@@ -49,6 +49,7 @@
 				"noUnusedVariables": "off"
 			},
 			"suspicious": {
+				"noTsIgnore": { "level": "warn", "fix": "none" },
 				"noExplicitAny": "off"
 			}
 		}

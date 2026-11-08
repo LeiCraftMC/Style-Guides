@@ -48,5 +48,6 @@ data/
 !app/data/
 config/*
 !config/*.example.json
+docker/config/
 
 .claude/settings.local.json

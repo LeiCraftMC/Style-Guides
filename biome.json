@@ -52,6 +52,7 @@
 				"noUndeclaredVariables": "off"
 			},
 			"suspicious": {
+				"noTsIgnore": { "level": "warn", "fix": "none" },
 				"noExplicitAny": "off"
 			}
 		}
