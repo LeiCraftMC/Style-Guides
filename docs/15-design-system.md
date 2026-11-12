@@ -565,7 +565,13 @@ everyone else a solid "Login" button (`?url=` back to the current page).
 [`components/layout/Footer.vue`](../templates/nuxt-app/app/components/layout/Footer.vue):
 `USeparator` + `UFooter` with `UFooterColumns` — brand name (gradient), a one-line pitch and the
 social ghost `UButton`s in `#left`, link columns (Product, Legal → legal.leicraftmc.de), and the
-copyright row in `#bottom`.
+copyright row in `#bottom`. The columns' `:ui` is `root: 'grid gap-10 w-full lg:grid-cols-3'` and
+`center: 'grid grid-flow-row auto-cols-auto grid-cols-2 gap-8 sm:grid-cols-4 lg:col-span-2'` —
+two columns on phones, up to four from `sm`, the brand block taking a third from `lg`. Keep
+`grid-flow-row auto-cols-auto` and the `lg:` classes when you add columns: tailwind-merge only
+replaces Nuxt UI's defaults (`grid-flow-col auto-cols-fr`, `xl:grid-cols-3`, `xl:col-span-2`) that
+are overridden, and the leftovers squeeze three or four columns into one narrow row where long
+labels overlap.
 
 Landing page ([`pages/index.vue`](../templates/nuxt-app/app/pages/index.vue)) sections:
 

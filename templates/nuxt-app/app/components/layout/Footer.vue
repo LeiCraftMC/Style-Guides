@@ -41,11 +41,17 @@ const currentYear = new Date().getFullYear();
 			bottom: 'p-0 lg:p-0 mt-8',
 		}"
 	>
+		<!--
+			`root`/`center` override Nuxt UI's defaults (`xl:grid-cols-3`, `grid-flow-col auto-cols-fr`,
+			`xl:col-span-2`): tailwind-merge keeps any of them that aren't replaced, which squeezes the
+			link columns into one narrow row where long labels overlap. Two columns on phones, up to
+			four from `sm`, next to the brand block (one third) from `lg`.
+		-->
 		<UFooterColumns
 			:columns="footerColumns"
 			:ui="{
-				root: 'grid gap-8 sm:grid-cols-2 xl:grid-cols-2 w-full',
-				center: 'xl:col-span-1 grid',
+				root: 'grid gap-10 w-full lg:grid-cols-3',
+				center: 'grid grid-flow-row auto-cols-auto grid-cols-2 gap-8 sm:grid-cols-4 lg:col-span-2',
 				label: 'text-slate-100 font-semibold text-base',
 				link: 'text-slate-400 hover:text-primary text-sm sm:text-base inline-block py-1 transition-colors',
 				left: 'mb-0',
